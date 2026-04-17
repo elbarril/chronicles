@@ -1,0 +1,17 @@
+---
+description: Bootstrap de agente para Chronicle
+alwaysApply: true
+---
+
+# Bootstrap de Agente
+
+Este repositorio sigue la convención AGENTS.md.
+
+@AGENTS.md
+
+Antes de cualquier acción también leer:
+
+- .agents/memory/project-context.md
+- .agents/memory/decisions.md
+
+Idioma: español rioplatense por defecto.
