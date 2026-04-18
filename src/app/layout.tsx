@@ -19,6 +19,9 @@ export function RootLayout(): JSX.Element {
             <Button asChild variant="secondary" size="sm">
               <Link to="/">Inicio</Link>
             </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/campos">Campos</Link>
+            </Button>
             <span className="text-muted-foreground text-sm" aria-live="polite">
               {location.pathname}
             </span>
