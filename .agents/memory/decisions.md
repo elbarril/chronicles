@@ -282,3 +282,27 @@ Log of technical and product decisions. Only append entries, never edit existing
 - F3 completed in functional baseline state; F4 (Export/Import) can now build on the complete domain.
 - Dexie persistence contract changed to v4 — documented in `stack-and-architecture.md` sections 5.2 and 5.3.
 - `project-context.md` state transitions to "F3 implemented".
+
+---
+
+## [2026-04-18] Creation of phase-planner and phase-implementer skills
+
+**Context:** Implementing F1, F2, and F3 revealed a repeatable lifecycle — from scoping and branch creation through domain modeling, persistence, feature modules, routing, unit/E2E testing, and phase closeout — but no formal skills existed to guide agents through each axis consistently. Planning was ad-hoc (deleted prompt files) and implementation steps were implicit knowledge.
+
+**Decision:** Created two complementary skills that cover the full phase lifecycle:
+
+1. **`phase-planner`**: produces a structured plan for a roadmap phase before any code is written, covering domain changes, persistence schema, feature modules, routing, testing scope, branch name, and commit strategy. Requires user confirmation before handing off.
+2. **`phase-implementer`**: executes a confirmed plan end-to-end — branch creation, domain models, Dexie schema migration, repositories, services, hooks, pages/components, routes, navigation, unit tests, E2E tests, full `pnpm check` verification, implementation commit, and `phase-closeout` delegation.
+
+Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
+
+**Justification:**
+- Formalizes every implementation axis observed across F1–F3 into a reusable, auditable protocol.
+- Eliminates ad-hoc planning and reduces agent session startup cost for future phases.
+- The planner/implementer split enforces a confirmation gate — agents cannot start coding without an approved scope.
+- Delegation to `phase-closeout` at the end of `phase-implementer` preserves the documentation invariant without duplicating its logic.
+
+**Consequences:**
+- Future phases MUST start with `phase-planner` and proceed through `phase-implementer`.
+- Both skills are listed in `.agents/README.md`.
+- The Windsurf slash commands `/phase-planner` and `/phase-implementer` are now available.
