@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import { type Chronicle } from "@/domain/chronicle";
 import { type Encounter } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
 import { type ObservationForm } from "@/domain/form";
@@ -47,6 +48,7 @@ export class ChronicleDB extends Dexie {
   encounters!: Table<Encounter, string>;
   observations!: Table<Observation, string>;
   media!: Table<Media, string>;
+  chronicles!: Table<Chronicle, string>;
 
   constructor() {
     super("chronicle");

@@ -9,6 +9,8 @@ export const encounterMessages = {
   exportError: "No pudimos exportar el encuentro.",
   exportNotFound: "No encontramos los datos del encuentro para exportar.",
   exportButton: "Exportar encuentro",
+  generateChronicleButton: "Generar crónica",
+  generatingChronicleButton: "Generando crónica...",
   formNotFound: "No encontramos el formulario seleccionado.",
   formArchived: "El formulario seleccionado está archivado.",
   groupNotFound: "No encontramos el grupo seleccionado.",

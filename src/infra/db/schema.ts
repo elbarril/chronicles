@@ -1,4 +1,4 @@
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export const stores = {
   institutions: "id, name, createdAt",
@@ -9,4 +9,5 @@ export const stores = {
   encounters: "id, groupId, formId, startedAt, endedAt, createdAt",
   observations: "id, encounterId, participantId, createdAt",
   media: "id, mime, createdAt",
+  chronicles: "id, encounterId, generatedAt, createdAt",
 } as const;

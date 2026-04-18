@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { type Observation } from "@/domain/observation";
+import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
+import { getChronicleForEncounter } from "@/features/chronicles/services/chronicle-service";
 import { EncounterHeader } from "@/features/encounters/components/EncounterHeader";
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
@@ -30,6 +32,7 @@ export function EncounterDetailPage(): JSX.Element {
   const { encounter, fields, participants, observations, isLoading } = useEncounter(encounterId);
   const encounterActions = useEncounterActions();
   const encounterExport = useExportEncounter();
+  const chronicleActions = useChronicleActions();
   const observationActions = useObservationActions(fields);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -82,6 +85,22 @@ export function EncounterDetailPage(): JSX.Element {
     await encounterExport.exportEncounter(encounter.id);
   }
 
+  async function handleGenerateChronicle(): Promise<void> {
+    if (!encounter) {
+      return;
+    }
+
+    const existingChronicle = await getChronicleForEncounter(encounter.id);
+
+    if (existingChronicle) {
+      navigate(`/chronicles/${existingChronicle.id}`);
+      return;
+    }
+
+    const chronicle = await chronicleActions.generate(encounter.id);
+    navigate(`/chronicles/${chronicle.id}`);
+  }
+
   if (!params.id) {
     return <p className="text-muted-foreground text-sm">Encuentro inválido.</p>;
   }
@@ -113,8 +132,12 @@ export function EncounterDetailPage(): JSX.Element {
         participantCount={participants.length}
         onFinish={handleFinishEncounter}
         onExport={handleExportEncounter}
+        onGenerateChronicle={handleGenerateChronicle}
         isExporting={encounterExport.isExporting}
+        isGeneratingChronicle={chronicleActions.isGenerating}
         exportLabel={encounterMessages.exportButton}
+        generateChronicleLabel={encounterMessages.generateChronicleButton}
+        generatingChronicleLabel={encounterMessages.generatingChronicleButton}
       />
 
       <div className="flex items-center justify-between gap-2">

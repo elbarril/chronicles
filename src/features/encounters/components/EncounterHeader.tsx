@@ -6,8 +6,12 @@ interface EncounterHeaderProps {
   participantCount: number;
   onFinish: () => Promise<void>;
   onExport: () => Promise<void>;
+  onGenerateChronicle: () => Promise<void>;
   isExporting: boolean;
+  isGeneratingChronicle: boolean;
   exportLabel: string;
+  generateChronicleLabel: string;
+  generatingChronicleLabel: string;
 }
 
 function formatDate(value: string): string {
@@ -26,8 +30,12 @@ export function EncounterHeader({
   participantCount,
   onFinish,
   onExport,
+  onGenerateChronicle,
   isExporting,
+  isGeneratingChronicle,
   exportLabel,
+  generateChronicleLabel,
+  generatingChronicleLabel,
 }: EncounterHeaderProps): JSX.Element {
   const isFinished = Boolean(encounter.endedAt && encounter.endedAt !== "");
 
@@ -42,6 +50,17 @@ export function EncounterHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isGeneratingChronicle}
+            onClick={() => {
+              void onGenerateChronicle();
+            }}
+          >
+            {isGeneratingChronicle ? generatingChronicleLabel : generateChronicleLabel}
+          </Button>
+
           <Button
             type="button"
             variant="outline"
