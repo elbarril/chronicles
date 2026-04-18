@@ -20,7 +20,7 @@ export function RootLayout(): JSX.Element {
               <Link to="/">Inicio</Link>
             </Button>
             <Button asChild variant="secondary" size="sm">
-              <Link to="/campos">Campos</Link>
+              <Link to="/fields">Campos</Link>
             </Button>
             <span className="text-muted-foreground text-sm" aria-live="polite">
               {location.pathname}

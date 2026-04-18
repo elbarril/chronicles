@@ -1,8 +1,8 @@
 ---
-description: Crear una nueva skill en .agents/skills/
+description: Create a new skill in .agents/skills/
 ---
 
 # Create Skill
 
-Seguí exactamente los pasos definidos en `.agents/workflows/create-skill.md`.
-No dupliques la lógica en este archivo: este stub existe solo para habilitar `/create-skill` como slash command en Cascade.
+Follow exactly the steps defined in `.agents/workflows/create-skill.md`.
+Do not duplicate logic in this file: this stub exists only to enable `/create-skill` as a slash command in Cascade.

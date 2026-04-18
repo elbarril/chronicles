@@ -47,7 +47,7 @@ export function FieldFormPage(): JSX.Element {
       }
 
       if (!field) {
-        navigate("/campos", { replace: true });
+        navigate("/fields", { replace: true });
         return;
       }
 
@@ -64,7 +64,7 @@ export function FieldFormPage(): JSX.Element {
   async function handleSubmit(values: FieldFormInput): Promise<void> {
     if (mode === "create") {
       await actions.create(values);
-      navigate("/campos");
+      navigate("/fields");
       return;
     }
 
@@ -73,7 +73,7 @@ export function FieldFormPage(): JSX.Element {
     }
 
     await actions.update(fieldId, values);
-    navigate("/campos");
+    navigate("/fields");
   }
 
   if (mode === "edit" && !editInitialValues) {
@@ -97,7 +97,7 @@ export function FieldFormPage(): JSX.Element {
         initialValues={initialValues}
         isSaving={actions.isSaving}
         onSubmit={handleSubmit}
-        onCancel={() => navigate("/campos")}
+        onCancel={() => navigate("/fields")}
       />
     </section>
   );

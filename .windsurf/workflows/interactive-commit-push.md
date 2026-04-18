@@ -1,53 +1,53 @@
 ---
-description: Crear commit y push con selección interactiva de rama y tipo de cambio.
+description: Create commit and push with interactive branch and change type selection.
 ---
 
 # Interactive Commit Push
 
 ## Steps
 
-1. Validar estado del repo con `git status --short --branch` y listar cambios para contexto.
+1. Validate repository state with `git status --short --branch` and list changes for context.
 
-2. Preguntar interactivamente si se desea usar la rama actual:
-   - Prompt: `¿Querés commitear y pushear en la rama actual (<branch>)? [s/n]`
-   - Si la respuesta es `s`, continuar directamente sin volver a preguntar por rama.
-   - Si la respuesta es `n`, pedir la rama destino y validar su existencia local/remota.
+2. Interactively ask if the current branch should be used:
+   - Prompt: `Do you want to commit and push to the current branch (<branch>)? [y/n]`
+   - If `y`, continue directly without asking for branch again.
+   - If `n`, ask for the destination branch and validate its existence locally/remotely.
 
-3. Mostrar tipos de cambio disponibles y pedir selección:
-   - `feat`: nueva funcionalidad
-   - `fix`: corrección de bug
-   - `docs`: documentación
-   - `refactor`: mejora interna sin cambio funcional
-   - `perf`: mejora de performance
-   - `test`: pruebas
-   - `chore`: mantenimiento/tarea técnica
-   - `style`: formato/estilo sin cambios lógicos
+3. Show available change types and ask for selection:
+   - `feat`: new feature
+   - `fix`: bug fix
+   - `docs`: documentation
+   - `refactor`: internal improvement without functional change
+   - `perf`: performance improvement
+   - `test`: tests
+   - `chore`: maintenance/technical task
+   - `style`: formatting/style without logical changes
 
-4. Clasificar los cambios del repo por tipo de cambio antes de confirmar commit:
-   - Sugerir separación en commits cuando haya mezcla (ejemplo: `feat` + `docs`).
-   - Mostrar archivos por grupo para que el usuario confirme qué incluir en este commit.
+4. Categorize repository changes by change type before confirming commit:
+   - Suggest splitting into multiple commits if there is a mix (e.g., `feat` + `docs`).
+   - Show files by group so the user can confirm what to include in this commit.
 
-5. Solicitar mensaje de commit usando formato Conventional Commits:
-   - Formato: `<tipo>(<scope-opcional>): <resumen>`
-   - Ejemplos:
-     - `feat(observations): agregar filtro por actividad`
-     - `fix(chronicle): corregir orden temporal en narrativa`
-     - `docs(readme): documentar flujo de generación`
+5. Request a commit message using Conventional Commits format:
+   - Format: `<type>(<optional-scope>): <summary>`
+   - Examples:
+     - `feat(observations): add filter by activity`
+     - `fix(chronicle): correct temporal order in narrative`
+     - `docs(readme): document generation flow`
 
-6. Confirmar staging y commit en una sola validación final:
-   - Prompt: `Voy a ejecutar add/commit/push en <branch>. ¿Continuar? [s/n]`
-   - Si confirma, ejecutar `git add` (selectivo o total según decisión previa), `git commit` y `git push`.
-   - Si cancela, detener sin cambios adicionales.
+6. Confirm staging and commit in a single final validation:
+   - Prompt: `I will run add/commit/push on <branch>. Continue? [y/n]`
+   - If confirmed, run `git add` (selective or full based on previous decision), `git commit`, and `git push`.
+   - If cancelled, stop without additional changes.
 
-7. Reportar resultado final:
-   - Branch utilizada.
-   - Tipo de cambio usado.
-   - Hash corto del commit.
-   - Estado de push (ok/error) y acción sugerida si falla.
+7. Report final result:
+   - Branch used.
+   - Change type used.
+   - Short hash of the commit.
+   - Push status (ok/error) and suggested action if it fails.
 
 ## Notes
 
-- Priorizar commits atómicos: un tipo de cambio principal por commit.
-- Si el usuario elige rama actual, no abrir un nuevo prompt de selección de rama.
-- Si no hay cambios staged/unstaged, abortar temprano con mensaje claro.
-- No hacer push forzado (`--force`) salvo pedido explícito del usuario.
+- Prioritize atomic commits: one primary change type per commit.
+- If the user chooses the current branch, do not open a new prompt for branch selection.
+- If there are no staged/unstaged changes, abort early with a clear message.
+- Do not force push (`--force`) unless explicitly requested by the user.

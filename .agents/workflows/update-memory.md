@@ -1,51 +1,51 @@
 ---
-description: Actualizar un archivo de memoria en .agents/memory/
+description: Update a memory file in .agents/memory/
 ---
 
 ## Steps
 
-1. Identificar qué archivo de memoria corresponde al cambio:
+1. Identify which memory file corresponds to the change:
 
-   | Archivo | Cuándo |
+   | File | When |
    |--------|--------|
-   | `project-context.md` | Cambios en estado del proyecto, stack o propósito |
-   | `decisions.md` | Decisiones arquitectónicas, técnicas o de producto |
-   | `glossary.md` | Términos de dominio nuevos o redefinidos |
+   | `project-context.md` | Changes in project state, stack, or purpose |
+   | `decisions.md` | Architectural, technical, or product decisions |
+   | `glossary.md` | New or redefined domain terms |
 
-2. Abrir el archivo de memoria identificado.
+2. Open the identified memory file.
 
-3. **Si es `decisions.md`**:
-   - Agregar al final del archivo. NUNCA editar entradas existentes.
-   - Usar este formato:
+3. **If it is `decisions.md`**:
+   - Append to the end of the file. NEVER edit existing entries. (Note: historical entries were translated once on 2026-04-18, but the append-only rule remains strictly enforced going forward).
+   - Use this format:
 
      ```markdown
-     ## [YYYY-MM-DD] <Título de la decisión>
+     ## [YYYY-MM-DD] <Decision Title>
 
-     **Contexto:** <Por qué se tomó esta decisión>
+     **Context:** <Why this decision was made>
 
-     **Decisión:** <Qué se decidió>
+     **Decision:** <What was decided>
 
-     **Justificación:** <Por qué esta opción sobre las alternativas>
+     **Justification:** <Why this option over alternatives>
 
-     **Consecuencias:**
+     **Consequences:**
 
-     - <Consecuencia 1>
-     - <Consecuencia 2>
+     - <Consequence 1>
+     - <Consequence 2>
      ```
 
-4. **Si es `project-context.md`**:
-   - Actualizar la sección afectada directamente.
-   - Eliminar hechos desactualizados para mantener el archivo conciso.
-   - Si el cambio es significativo, también registrar en `decisions.md`.
+4. **If it is `project-context.md`**:
+   - Update the affected section directly.
+   - Remove outdated facts to keep the file concise.
+   - If the change is significant, also record it in `decisions.md`.
 
-5. **Si es `glossary.md`**:
-   - Agregar fila a la tabla en orden alfabético.
-   - Si se redefine un término existente, registrar el cambio en `decisions.md` antes de editar el glosario.
+5. **If it is `glossary.md`**:
+   - Add a row to the table in alphabetical order.
+   - If redefining an existing term, record the change in `decisions.md` before editing the glossary.
 
-6. Verificar que el archivo resultante no viola ningún principio de `AGENTS.md`.
+6. Verify that the resulting file does not violate any principle of `AGENTS.md`.
 
 ## Notes
 
-- Nunca eliminar entradas de `decisions.md` — es un log append-only.
-- Mantener `project-context.md` conciso: es el contexto que los agentes leen al iniciar sesión.
-- El glosario define el vocabulario canónico: usarlo de forma consistente en todo el código y documentación.
+- Never remove entries from `decisions.md` — it is an append-only log.
+- Keep `project-context.md` concise: it is the context agents read upon starting a session.
+- The glossary defines canonical vocabulary: use it consistently across code and documentation.

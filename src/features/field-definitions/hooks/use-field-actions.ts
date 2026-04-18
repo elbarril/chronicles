@@ -2,12 +2,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { type FieldFormInput } from "@/domain/field";
+import { fieldMessages } from "@/features/field-definitions/lib/messages";
 import {
   archiveFieldDefinition,
   createFieldDefinition,
   restoreFieldDefinition,
   updateFieldDefinition,
 } from "@/features/field-definitions/services/field-service";
+import { AppError } from "@/lib/error";
 
 export function useFieldActions() {
   const [isSaving, setIsSaving] = useState(false);
@@ -17,10 +19,14 @@ export function useFieldActions() {
 
     try {
       const field = await createFieldDefinition(input);
-      toast.success("Campo creado correctamente.");
+      toast.success(fieldMessages.createdSuccess);
       return field;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo crear el campo.");
+      const message =
+        error instanceof AppError && error.code === "FIELD_KEY_TAKEN"
+          ? fieldMessages.keyAlreadyTaken
+          : fieldMessages.createError;
+      toast.error(message);
       throw error;
     } finally {
       setIsSaving(false);
@@ -32,10 +38,16 @@ export function useFieldActions() {
 
     try {
       const field = await updateFieldDefinition(id, input);
-      toast.success("Campo actualizado.");
+      toast.success(fieldMessages.updatedSuccess);
       return field;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el campo.");
+      const message =
+        error instanceof AppError && error.code === "FIELD_KEY_TAKEN"
+          ? fieldMessages.keyAlreadyTaken
+          : error instanceof AppError && error.code === "FIELD_NOT_FOUND"
+            ? fieldMessages.notFound
+            : fieldMessages.updateError;
+      toast.error(message);
       throw error;
     } finally {
       setIsSaving(false);
@@ -45,9 +57,9 @@ export function useFieldActions() {
   async function archive(id: string) {
     try {
       await archiveFieldDefinition(id);
-      toast.success("Campo archivado.");
+      toast.success(fieldMessages.archivedSuccess);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo archivar el campo.");
+      toast.error(fieldMessages.archiveError);
       throw error;
     }
   }
@@ -55,9 +67,9 @@ export function useFieldActions() {
   async function restore(id: string) {
     try {
       await restoreFieldDefinition(id);
-      toast.success("Campo restaurado.");
+      toast.success(fieldMessages.restoredSuccess);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo restaurar el campo.");
+      toast.error(fieldMessages.restoreError);
       throw error;
     }
   }

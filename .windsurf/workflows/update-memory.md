@@ -1,8 +1,8 @@
 ---
-description: Actualizar un archivo de memoria en .agents/memory/
+description: Update a memory file in .agents/memory/
 ---
 
 # Update Memory
 
-Seguí exactamente los pasos definidos en `.agents/workflows/update-memory.md`.
-No dupliques la lógica en este archivo: este stub existe solo para habilitar `/update-memory` como slash command en Cascade.
+Follow exactly the steps defined in `.agents/workflows/update-memory.md`.
+Do not duplicate logic in this file: this stub exists only to enable `/update-memory` as a slash command in Cascade.

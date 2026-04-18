@@ -1,8 +1,8 @@
 ---
-description: Crear un nuevo workflow en .agents/workflows/
+description: Create a new workflow in .agents/workflows/
 ---
 
 # Create Workflow
 
-Seguí exactamente los pasos definidos en `.agents/workflows/create-workflow.md`.
-No dupliques la lógica en este archivo: este stub existe solo para habilitar `/create-workflow` como slash command en Cascade.
+Follow exactly the steps defined in `.agents/workflows/create-workflow.md`.
+Do not duplicate logic in this file: this stub exists only to enable `/create-workflow` as a slash command in Cascade.

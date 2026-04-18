@@ -16,6 +16,7 @@ import {
   restoreField,
   updateField,
 } from "@/infra/db/repositories/field-repository";
+import { AppError } from "@/lib/error";
 import { slugifyLabel } from "@/lib/slugify";
 
 function normalizeKey(value: string): string {
@@ -26,7 +27,7 @@ async function ensureUniqueKey(key: string, excludeId?: string): Promise<void> {
   const unique = await isFieldKeyUnique(key, excludeId);
 
   if (!unique) {
-    throw new Error("Ya existe un campo activo con esa clave.");
+    throw new AppError("FIELD_KEY_TAKEN", "A field with the same key already exists.");
   }
 }
 
@@ -52,7 +53,7 @@ export async function updateFieldDefinition(id: string, input: FieldFormInput): 
   const updated = await updateField(id, parsed);
 
   if (!updated) {
-    throw new Error("No encontramos el campo a editar.");
+    throw new AppError("FIELD_NOT_FOUND", "Field not found for update.");
   }
 
   return updated;
@@ -62,7 +63,7 @@ export async function archiveFieldDefinition(id: string): Promise<void> {
   const archived = await archiveField(id);
 
   if (!archived) {
-    throw new Error("No se pudo archivar el campo.");
+    throw new AppError("FIELD_ARCHIVE_FAILED", "Failed to archive field.");
   }
 }
 
@@ -70,7 +71,7 @@ export async function restoreFieldDefinition(id: string): Promise<void> {
   const restored = await restoreField(id);
 
   if (!restored) {
-    throw new Error("No se pudo restaurar el campo.");
+    throw new AppError("FIELD_RESTORE_FAILED", "Failed to restore field.");
   }
 }
 

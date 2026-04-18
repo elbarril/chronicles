@@ -38,7 +38,7 @@ export function FieldListTable({
         </p>
         {status === "active" ? (
           <Button asChild>
-            <Link to="/campos/nuevo">Crear primer campo</Link>
+            <Link to="/fields/new">Crear primer campo</Link>
           </Button>
         ) : null}
       </div>
@@ -79,7 +79,7 @@ export function FieldListTable({
                   {status === "active" ? (
                     <>
                       <Button asChild size="sm" variant="outline">
-                        <Link to={`/campos/${field.id}/editar`}>Editar</Link>
+                        <Link to={`/fields/${field.id}/edit`}>Editar</Link>
                       </Button>
                       <Button
                         type="button"

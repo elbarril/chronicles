@@ -1,16 +1,16 @@
 # Domain Glossary
 
-Terminología canónica del proyecto Chronicle. Todo agente debe usar estos términos de forma consistente.
+Canonical terminology of the Chronicle project. Every agent must use these terms consistently.
 
-| Término | Definición |
-|--------|-----------|
-| Actividad | La tarea o ejercicio que el grupo realiza durante una sesión |
-| Campo | Definición tipada de un dato a capturar durante una observación (texto, número, fecha, imagen, video, audio, etc.) |
-| Crónica | Reporte narrativo estructurado generado a partir de un conjunto de observaciones |
-| Encuentro | Ventana de tiempo acotada durante la cual un grupo realiza una actividad |
-| Formulario de Observación | Conjunto ordenado y versionado de Campos que se instancia en cada Encuentro para capturar Observaciones |
-| Grupo | Conjunto de participantes observados juntos en una sesión |
-| Institución | El contexto organizacional donde se desarrolla la actividad |
-| Observación | Instancia de valores capturados para un Formulario dentro de un Encuentro, opcionalmente atribuida a un Participante |
-| Participante | Individuo miembro de un grupo siendo observado |
-| Practicante | La persona (o agente) que captura observaciones en tiempo real |
+| Spanish Term | Canonical Identifier | Definition (English) |
+|---|---|---|
+| Actividad | Activity | The task or exercise that the group performs during a session. |
+| Campo | Field | Typed definition of a data point to capture during an observation (text, number, date, image, video, audio, etc.). |
+| Crónica | Chronicle | Structured narrative report generated from a set of observations. |
+| Encuentro | Encounter | Bounded time window during which a group performs an activity. |
+| Formulario de Observación | Form | Ordered and versioned set of Fields instantiated in each Encounter to capture Observations. |
+| Grupo | Group | Set of participants observed together in a session. |
+| Institución | Institution | The organizational context where the activity takes place. |
+| Observación | Observation | Instance of values captured for a Form within an Encounter, optionally attributed to a Participant. |
+| Participante | Participant | Individual member of a group being observed. |
+| Practicante | Practitioner | The person (or agent) capturing observations in real-time. |

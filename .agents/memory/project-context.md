@@ -1,47 +1,46 @@
 # Project Context
 
-## Identidad
+## Identity
 
-| Atributo | Valor |
+| Attribute | Value |
 | --------- | ------- |
-| Nombre | Chronicle |
-| Tipo | Aplicación web |
-| Dominio | Observación institucional y generación de crónicas |
-| Repositorio | `/home/emiliano/www/emisrepos/chronicle` |
-| Estado | F1 CRUD de Campos implementada (baseline funcional) — create/edit/archive/list en UI + validación de dominio + tests unit/E2E en verde (2026-04-18) |
+| Name | Chronicle |
+| Type | Web application |
+| Domain | Institutional observation and chronicle generation |
+| Repository | `/home/emiliano/www/emisrepos/chronicle` |
+| State | F1 Field CRUD implemented (functional baseline) — create/edit/archive/list in UI + domain validation + unit/E2E tests green (2026-04-18) |
 
-## Propósito
+## Purpose
 
-Chronicle captura observaciones de grupos que realizan actividades dentro de una institución
-y las transforma en reportes narrativos estructurados (crónicas).
+Chronicle captures observations of groups performing activities within an institution and transforms them into structured narrative reports (chronicles).
 
-## Flujos Principales
+## Main Flows
 
-1. El Practicante registra observaciones en tiempo real durante una sesión grupal.
-2. El sistema organiza las observaciones por participante, actividad y momento.
-3. Un agente o usuario genera una narrativa de crónica a partir de las observaciones estructuradas.
+1. The Practitioner records observations in real-time during a group session.
+2. The system organizes observations by participant, activity, and time.
+3. An agent or user generates a chronicle narrative from the structured observations.
 
-## Principios de Diseño (de AGENTS.md)
+## Design Principles (from AGENTS.md)
 
-- **UX primero**: claridad, bajo fricción, accesibilidad.
-- **Simplicidad**: soluciones simples antes que complejas.
-- **Sin dependencias externas innecesarias**: implementaciones autocontenidas y portables.
+- **UX first**: clarity, low friction, accessibility.
+- **Simplicity**: simple solutions over complex ones.
+- **Minimal external dependencies**: self-contained and portable implementations.
 
-## Stack Técnico
+## Technical Stack
 
-Web app **local-first** sin backend para v1. Stack: Vite + React + TypeScript, Tailwind + shadcn/ui, React Router, React Hook Form + Zod, Dexie.js (IndexedDB, incluye Blobs para imagen/video/audio), vite-plugin-pwa, Vitest + Playwright, pnpm.
+**Local-first** web app without backend for v1. Stack: Vite + React + TypeScript, Tailwind + shadcn/ui, React Router, React Hook Form + Zod, Dexie.js (IndexedDB, includes Blobs for image/video/audio), vite-plugin-pwa, Vitest + Playwright, pnpm.
 
-Documento canónico: `docs/stack-and-architecture.md` (incluye arquitectura, modelo de dominio y convenciones). Decisión registrada en `.agents/memory/decisions.md` el 2026-04-17.
+Canonical document: `docs/stack-and-architecture.md` (includes architecture, domain model, and conventions). Decision registered in `.agents/memory/decisions.md` on 2026-04-17.
 
-## Estado Funcional Actual
+## Current Functional State
 
-- **F0:** scaffolding completo.
-- **F1 (implementado):** módulo `field-definitions` con rutas `/campos`, `/campos/nuevo`, `/campos/:id/editar`.
-- **Campos:** alta, edición, archivado/restauración, listado activo/archivado.
-- **Dominio `Field`:** discriminated union por `type` + `config` tipado por variante, `createdAt/updatedAt/archivedAt`.
-- **Persistencia:** Dexie schema v2 para `fields` con índice `createdAt` y repositorio dedicado.
-- **Testing vigente:** `tests/unit/home.test.tsx`, `tests/unit/field-schema.test.ts`, `tests/unit/slugify.test.ts`, `tests/e2e/smoke.spec.ts`, `tests/e2e/field-crud.spec.ts`.
+- **F0:** scaffolding complete.
+- **F1 (implemented):** `field-definitions` module with routes `/fields`, `/fields/new`, `/fields/:id/edit`.
+- **Fields:** create, edit, archive/restore, list active/archived.
+- **Domain `Field`:** discriminated union by `type` + typed `config` per variant, `createdAt/updatedAt/archivedAt`.
+- **Persistence:** Dexie schema v2 for `fields` with `createdAt` index and dedicated repository.
+- **Current testing:** `tests/unit/home.test.tsx`, `tests/unit/field-schema.test.ts`, `tests/unit/slugify.test.ts`, `tests/e2e/smoke.spec.ts`, `tests/e2e/field-crud.spec.ts`.
 
-## Audiencia
+## Audience
 
-Practicantees e instituciones que necesitan documentar y analizar la dinámica de grupos en actividad.
+Practitioners and institutions that need to document and analyze group dynamics in activity.

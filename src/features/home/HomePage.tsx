@@ -13,10 +13,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { homeMessages } from "@/features/home/messages";
 import { buildResolver } from "@/lib/zod";
 
 const homeSchema = z.object({
-  name: z.string().trim().min(2, "Ingresá al menos 2 caracteres"),
+  name: z.string().trim().min(2, homeMessages.nameMinLength),
 });
 
 type HomeFormValues = z.infer<typeof homeSchema>;
@@ -30,7 +31,7 @@ export function HomePage(): JSX.Element {
   });
 
   function handleSubmit(values: HomeFormValues) {
-    toast.success(`¡Listo, ${values.name}! Ya podés arrancar a observar.`);
+    toast.success(homeMessages.readyToast(values.name));
   }
 
   return (

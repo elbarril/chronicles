@@ -1,143 +1,143 @@
-# Stack Tecnológico y Arquitectura
+# Technology Stack and Architecture
 
-Este documento es la **fuente de verdad** para decisiones técnicas estructurales de Chronicle.
-Define el stack, la arquitectura de capas, los módulos principales y las convenciones de desarrollo.
+This document is the **source of truth** for structural technical decisions of Chronicle.
+It defines the stack, layered architecture, main modules, and development conventions.
 
-Última actualización: 2026-04-18 (F1 implementada)
-
----
-
-## 1. Alcance de la versión inicial (v1)
-
-- **Forma de entrega:** Web app **local-first**, 100% cliente. Sin backend propio, sin cuentas, sin red obligatoria.
-- **Persistencia:** Todos los datos se guardan en el navegador del usuario.
-- **Flujo central:**
-  1. El Practicante **define los campos** a observar (texto, número, selección, booleano, fecha, imagen, video, audio, archivo).
-  2. Con esos campos se arma un **Formulario de Observación** reutilizable.
-  3. Ese formulario se usa para cargar **Encuentros** (sesiones concretas de observación).
-  4. A partir de los datos recolectados se podrán generar crónicas (fuera del alcance de v1 técnica, pero el modelo de datos lo contempla).
+Last updated: 2026-04-18 (F1 implemented, language policy refactored)
 
 ---
 
-## 2. Principios que guían el stack
+## 1. Scope of Initial Version (v1)
 
-Heredan de `AGENTS.md`:
-
-1. UX primero: accesibilidad, bajo fricción, interacciones predecibles.
-2. Simplicidad antes que complejidad.
-3. Rendimiento y eficiencia.
-4. Mínimas dependencias externas, preferir soluciones autocontenidas y portables.
-
-Traducido a tecnología:
-
-- **Sin backend en v1**: reduce fricción operativa y dependencia de servicios externos.
-- **Local-first real** con persistencia binaria nativa del navegador (IndexedDB) para soportar imagen/video/audio sin hacks.
-- **Tipado fuerte** para minimizar bugs en un dominio con formularios dinámicos.
-- **Stack mainstream** para maximizar mantenibilidad y disponibilidad de documentación actualizada.
+- **Delivery format:** **Local-first** web app, 100% client-side. No custom backend, no accounts, no mandatory network.
+- **Persistence:** All data is saved in the user's browser.
+- **Core flow:**
+  1. The Practitioner **defines fields** to observe (text, number, choice, boolean, date, image, video, audio, file).
+  2. With these fields, a reusable **Observation Form** is composed.
+  3. That form is used to record **Encounters** (concrete observation sessions).
+  4. From the collected data, chronicles can be generated (out of scope for v1 tech, but supported by the data model).
 
 ---
 
-## 3. Stack Tecnológico
+## 2. Principles Guiding the Stack
 
-| Capa | Elección | Justificación |
+Inherited from `AGENTS.md`:
+
+1. UX first: accessibility, low friction, predictable interactions.
+2. Simplicity over complexity.
+3. Performance and efficiency.
+4. Minimal external dependencies, preferring self-contained and portable solutions.
+
+Translated to technology:
+
+- **No backend in v1**: reduces operational friction and reliance on external services.
+- **True local-first** with native browser binary persistence (IndexedDB) to support image/video/audio without hacks.
+- **Strong typing** to minimize bugs in a domain with dynamic forms.
+- **Mainstream stack** to maximize maintainability and availability of updated documentation.
+
+---
+
+## 3. Technology Stack
+
+| Layer | Choice | Justification |
 | ------ | ---------- | --------------- |
-| Lenguaje | **TypeScript (strict)** | Contratos claros para formularios dinámicos y modelos de datos. |
-| Build/Dev | **Vite** | Arranque rápido, zero-config, HMR, build moderno. |
-| UI framework | **React 18+** | Ecosistema maduro, ideal para formularios dinámicos. |
-| Routing | **React Router (data APIs)** | Navegación SPA estándar, loaders/actions se alinean con el modelo local. |
-| Estilos | **Tailwind CSS** | Utility-first, responsive mobile-first, consistente con principios del usuario. |
-| Componentes UI | **shadcn/ui + Radix UI** | Primitivas accesibles (ARIA correcto) sin atarnos a una librería monolítica. |
-| Iconos | **lucide-react** | Liviano, tree-shakeable. |
-| Formularios | **React Hook Form + Zod** | Performance, validación declarativa reutilizable entre runtime y tipos. |
-| Persistencia local | **IndexedDB vía Dexie.js** | Maneja `Blob`/`File` nativo (imagen, video, audio), transacciones, índices. |
-| Media captura | **MediaRecorder API + `<input type=file capture>`** | APIs del navegador, sin servicios externos. |
-| PWA / offline | **vite-plugin-pwa (Workbox)** | App instalable y funcional sin conexión. |
-| Testing unit | **Vitest + React Testing Library** | Integración nativa con Vite. |
-| Testing E2E | **Playwright** | Cobre flujos críticos con navegador real. |
-| Lint/format | **ESLint + Prettier** | Estándar, bajo mantenimiento. |
-| Gestor de paquetes | **pnpm** | Rápido, determinístico, disk-efficient. |
-| Node | **LTS actual (>= 20)** | Compatibilidad con toolchain moderna. |
+| Language | **TypeScript (strict)** | Clear contracts for dynamic forms and data models. |
+| Build/Dev | **Vite** | Fast startup, zero-config, HMR, modern build. |
+| UI Framework | **React 18+** | Mature ecosystem, ideal for dynamic forms. |
+| Routing | **React Router (data APIs)** | Standard SPA navigation, loaders/actions align with local model. |
+| Styling | **Tailwind CSS** | Utility-first, mobile-first responsive, consistent with user principles. |
+| UI Components | **shadcn/ui + Radix UI** | Accessible primitives (proper ARIA) without tying to a monolithic library. |
+| Icons | **lucide-react** | Lightweight, tree-shakeable. |
+| Forms | **React Hook Form + Zod** | Performance, reusable declarative validation between runtime and types. |
+| Local Persistence| **IndexedDB via Dexie.js** | Handles native `Blob`/`File` (image, video, audio), transactions, indices. |
+| Media Capture | **MediaRecorder API + `<input type=file capture>`** | Browser APIs, no external services. |
+| PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
+| Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
+| E2E Testing | **Playwright** | Covers critical flows with a real browser. |
+| Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
+| Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
+| Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
 
-### Dependencias explícitamente descartadas en v1
+### Explicitly Discarded Dependencies in v1
 
-- **Ningún backend propio** (Node/Express/Nest/etc.): no aporta en v1 local-first.
-- **Ningún BaaS** (Supabase, Firebase): viola el principio de mínimas dependencias externas.
-- **Ningún state manager global** (Redux, Zustand): Dexie live queries + estado local de React alcanzan.
-- **Ninguna UI kit pesada** (MUI, Chakra): shadcn + Tailwind ofrecen control total con menos peso.
-- **Ningún ORM**: Dexie ya es la capa tipada sobre IndexedDB.
+- **No custom backend** (Node/Express/Nest/etc.): adds no value in local-first v1.
+- **No BaaS** (Supabase, Firebase): violates minimal external dependencies principle.
+- **No global state manager** (Redux, Zustand): Dexie live queries + React local state suffice.
+- **No heavy UI kit** (MUI, Chakra): shadcn + Tailwind offer total control with less weight.
+- **No ORM**: Dexie is already the typed layer over IndexedDB.
 
-### Criterios para introducir nuevas dependencias
+### Criteria for Introducing New Dependencies
 
-Cualquier dependencia nueva debe registrarse como decisión en `.agents/memory/decisions.md` y justificar:
+Any new dependency must be recorded as a decision in `.agents/memory/decisions.md` and justify:
 
-1. Qué problema concreto resuelve que no podemos resolver con lo existente.
-2. Impacto en tamaño de bundle y en el flujo offline.
-3. Alternativa nativa considerada y por qué no alcanza.
+1. What concrete problem it solves that cannot be resolved with existing stack.
+2. Impact on bundle size and offline flow.
+3. Native alternative considered and why it falls short.
 
 ---
 
-## 4. Modelo de Dominio (conceptual)
+## 4. Domain Model (Conceptual)
 
-Entidades núcleo (nombres canónicos, ver `.agents/memory/glossary.md`):
+Core entities (canonical names, see `.agents/memory/glossary.md`):
 
-- **Institución**: contexto organizacional.
-- **Grupo**: conjunto de Participantes.
-- **Participante**: individuo observado.
-- **Actividad**: tarea/ejercicio realizado por el Grupo.
-- **Campo** *(nuevo)*: definición de un dato a capturar. Tipo + metadatos + validaciones.
-- **Formulario de Observación** *(nuevo)*: conjunto ordenado de Campos que se instancia en cada Encuentro.
-- **Encuentro**: ventana temporal concreta donde se aplica un Formulario a un Grupo.
-- **Observación**: instancia de valores capturados para un Formulario dentro de un Encuentro (puede ser por Participante o grupal).
-- **Crónica**: narrativa derivada de un conjunto de Observaciones.
+- **Institution**: organizational context.
+- **Group**: set of Participants.
+- **Participant**: observed individual.
+- **Activity**: task/exercise performed by the Group.
+- **Field**: definition of data to capture. Type + metadata + validations.
+- **Form (Observation Form)**: ordered set of Fields instantiated in each Encounter.
+- **Encounter**: concrete time window where a Form is applied to a Group.
+- **Observation**: instance of captured values for a Form within an Encounter.
+- **Chronicle**: narrative derived from a set of Observations.
 
-### Tipos de Campo soportados en v1
+### Field Types Supported in v1
 
-`text` (corto) · `longText` · `number` · `boolean` · `singleChoice` · `multiChoice` · `date` · `time` · `datetime` · `image` · `video` · `audio` · `file` · `rating` · `location`
+`text` (short) · `longText` · `number` · `boolean` · `singleChoice` · `multiChoice` · `date` · `time` · `datetime` · `image` · `video` · `audio` · `file` · `rating` · `location`
 
-Cada Campo define base común: `id`, `key`, `label`, `type`, `required`, `helpText?`, `createdAt`, `updatedAt`, `archivedAt`.
+Each Field defines a common base: `id`, `key`, `label`, `type`, `required`, `helpText?`, `createdAt`, `updatedAt`, `archivedAt`.
 
-Además define `config` tipado por variante (`discriminated union`) según `type`:
+It also defines a typed `config` per variant (`discriminated union`) according to `type`:
 
-- choice (`singleChoice` / `multiChoice`): `options` (+ `minSelect?`, `maxSelect?` para multi)
-- number/rating: restricciones de rango
+- choice (`singleChoice` / `multiChoice`): `options` (+ `minSelect?`, `maxSelect?` for multi)
+- number/rating: range restrictions
 - media (`image`/`video`/`audio`/`file`): `accept?`, `multiple?`
-- date/time/datetime: límites opcionales
+- date/time/datetime: optional limits
 - text/longText: `maxLength?`
 
-Los binarios (imagen/video/audio/archivo) se almacenan como `Blob` en una tabla dedicada y se referencian por `mediaId` desde la Observación, para no inflar los registros principales.
+Binaries (image/video/audio/file) are stored as `Blob`s in a dedicated table and referenced by `mediaId` from the Observation to keep main records lightweight.
 
 ---
 
-## 5. Arquitectura de la Aplicación
+## 5. Application Architecture
 
-### 5.1 Vista en capas
+### 5.1 Layered View
 
 ```text
 ┌──────────────────────────────────────────────────────┐
 │ UI (React + Tailwind + shadcn/ui)                    │
-│  - Pantallas, componentes, routing                   │
+│  - Pages, components, routing                        │
 ├──────────────────────────────────────────────────────┤
-│ Features (casos de uso por dominio)                  │
+│ Features (use cases by domain)                       │
 │  - field-definitions / forms / encounters /          │
 │    observations / chronicles                         │
 ├──────────────────────────────────────────────────────┤
-│ Dominio (tipos + schemas Zod)                        │
-│  - Contratos puros, sin dependencia de UI ni DB      │
+│ Domain (types + Zod schemas)                         │
+│  - Pure contracts, independent of UI or DB           │
 ├──────────────────────────────────────────────────────┤
-│ Infraestructura                                      │
+│ Infrastructure                                       │
 │  - db/ (Dexie)  ·  media/ (Blob helpers)  ·          │
 │    export/ (JSON/ZIP)  ·  pwa/                       │
 └──────────────────────────────────────────────────────┘
 ```
 
-Reglas de dependencia: UI → Features → Dominio ← Infraestructura. El Dominio no importa nada de UI ni de infraestructura.
+Dependency rules: UI → Features → Domain ← Infrastructure. Domain imports nothing from UI or Infra.
 
-### 5.2 Estructura de carpetas propuesta
+### 5.2 Proposed Folder Structure
 
 ```text
 chronicle/
 ├─ docs/
-│  └─ stack-and-architecture.md        # este documento
+│  └─ stack-and-architecture.md        # this document
 ├─ public/
 ├─ src/
 │  ├─ app/                              # shell, providers, router
@@ -145,31 +145,31 @@ chronicle/
 │  │  ├─ layout.tsx
 │  │  └─ providers.tsx
 │  ├─ features/
-│  │  ├─ field-definitions/             # CRUD de Campos
-│  │  ├─ forms/                         # armado de Formularios de Observación
-│  │  ├─ encounters/                    # sesiones concretas
-│  │  ├─ observations/                  # captura de datos
-│  │  └─ chronicles/                    # (stub en v1)
+│  │  ├─ field-definitions/             # Field CRUD
+│  │  ├─ forms/                         # Observation Form assembly
+│  │  ├─ encounters/                    # concrete sessions
+│  │  ├─ observations/                  # data capture
+│  │  └─ chronicles/                    # (stub in v1)
 │  ├─ domain/
-│  │  ├─ field.ts                       # tipos + schema Zod
+│  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
 │  │  ├─ encounter.ts
 │  │  └─ observation.ts
 │  ├─ infra/
 │  │  ├─ db/
-│  │  │  ├─ schema.ts                   # tablas Dexie + versioning
-│  │  │  ├─ client.ts                   # instancia única
-│  │  │  └─ repositories/               # un archivo por entidad
+│  │  │  ├─ schema.ts                   # Dexie tables + versioning
+│  │  │  ├─ client.ts                   # singleton instance
+│  │  │  └─ repositories/               # one file per entity
 │  │  ├─ media/
-│  │  │  ├─ store.ts                    # guardar/leer Blobs
+│  │  │  ├─ store.ts                    # store/read Blobs
 │  │  │  └─ record.ts                   # MediaRecorder helpers
 │  │  ├─ export/
 │  │  │  └─ zip.ts                      # export/import JSON + media
 │  │  └─ pwa/
 │  ├─ components/
-│  │  └─ ui/                            # primitivas shadcn
+│  │  └─ ui/                            # shadcn primitives
 │  ├─ hooks/
-│  ├─ lib/                              # utilidades genéricas
+│  ├─ lib/                              # generic utilities
 │  ├─ styles/
 │  │  └─ globals.css
 │  └─ main.tsx
@@ -186,109 +186,136 @@ chronicle/
 └─ .eslintrc / .prettierrc
 ```
 
-### 5.3 Persistencia (Dexie / IndexedDB)
+### 5.3 Persistence (Dexie / IndexedDB)
 
-Tablas sugeridas (todas con `id` UUID v4 generado en cliente):
+Suggested tables (all with v4 UUID `id` generated in client):
 
-| Tabla | Campos principales | Notas |
+| Table | Main Fields | Notes |
 | ------- | ------------------- | ------- |
 | `institutions` | `id`, `name`, `createdAt` | |
-| `groups` | `id`, `institutionId`, `name` | índice por `institutionId` |
-| `participants` | `id`, `groupId`, `displayName` | índice por `groupId` |
-| `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` es JSON tipado por tipo de campo; `archivedAt` usa string vacío para activos |
-| `forms` | `id`, `name`, `fieldIds[]`, `version`, `archivedAt?` | `fieldIds` preserva orden |
+| `groups` | `id`, `institutionId`, `name` | index by `institutionId` |
+| `participants` | `id`, `groupId`, `displayName` | index by `groupId` |
+| `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
+| `forms` | `id`, `name`, `fieldIds[]`, `version`, `archivedAt?` | `fieldIds` preserves order |
 | `encounters` | `id`, `groupId`, `formId`, `activity`, `startedAt`, `endedAt?` | |
-| `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` mapea `fieldId → valor` o `fieldId → mediaId` |
-| `media` | `id`, `mime`, `blob`, `size`, `createdAt` | tabla aparte para binarios |
+| `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId` |
+| `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
 
-**Versionado del schema:** cada cambio incrementa la versión en Dexie y registra migración. Se registra también en `decisions.md`.
+**Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`.
 
-**Live queries:** usar `dexie-react-hooks` (`useLiveQuery`) para reactividad sin state manager global.
+**Live queries:** use `dexie-react-hooks` (`useLiveQuery`) for reactivity without a global state manager.
 
-### 5.4 Manejo de media
+### 5.4 Media Handling
 
-- Captura: `<input type="file" accept="image/*|video/*|audio/*" capture>` para flujo móvil rápido; `MediaRecorder` para grabación en línea.
-- Almacenamiento: siempre como `Blob` en tabla `media`.
-- Lectura: `URL.createObjectURL(blob)` con ciclo de vida controlado (revoke al desmontar).
-- Export: ZIP con JSON de entidades + carpeta `media/` de binarios (vía `JSZip` si se agrega, decisión pendiente).
+- Capture: `<input type="file" accept="image/*|video/*|audio/*" capture>` for quick mobile flow; `MediaRecorder` for online recording.
+- Storage: always as `Blob` in `media` table.
+- Read: `URL.createObjectURL(blob)` with managed lifecycle (revoke on unmount).
+- Export: ZIP with JSON entities + `media/` folder of binaries.
 
-### 5.5 Rendering de formularios dinámicos
+### 5.5 Dynamic Form Rendering
 
-- Un **renderer** único mapea `field.type → componente` (tabla de despacho).
-- Validación: construcción dinámica de schema Zod a partir de los `fields` del `form`.
-- React Hook Form se configura con `zodResolver` dinámico por Encuentro.
+- A single **renderer** maps `field.type → component` (dispatch table).
+- Validation: dynamic construction of Zod schema from the `fields` of the `form`.
+- React Hook Form configured with dynamic `zodResolver` per Encounter.
 
 ### 5.6 PWA / Offline
 
-- `vite-plugin-pwa` con estrategia `NetworkFirst` para navegación y `CacheFirst` para assets.
-- Manifest instalable con íconos y nombre "Chronicle".
-- Al ser local-first, offline es el caso normal, no la excepción.
+- `vite-plugin-pwa` with `NetworkFirst` strategy for navigation and `CacheFirst` for assets.
+- Installable manifest with icons and name "Chronicle".
+- Being local-first, offline is the normal case, not the exception.
 
-### 5.7 Accesibilidad
+### 5.7 Accessibility
 
-- Componentes shadcn/Radix con ARIA correcto por defecto.
-- Navegación completa por teclado obligatoria.
-- Contraste AA mínimo; modo oscuro como variante desde el inicio.
-- Targets táctiles ≥ 44px.
+- shadcn/Radix components with proper ARIA by default.
+- Full keyboard navigation mandatory.
+- Minimum AA contrast; dark mode supported from the start.
+- Touch targets ≥ 44px.
 
 ### 5.8 Testing
 
-- **Unit (Vitest):** dominio puro (schemas Zod, reducers, helpers de media).
-- **Integración:** repositorios Dexie contra `fake-indexeddb`.
-- **E2E (Playwright):** flujos críticos — definir campos, armar formulario, crear encuentro, capturar observación con media, exportar.
+- **Unit (Vitest):** pure domain (Zod schemas, reducers, media helpers).
+- **Integration:** Dexie repositories against `fake-indexeddb`.
+- **E2E (Playwright):** critical flows — define fields, assemble form, create encounter, capture observation with media, export.
 
-### 5.9 Seguridad y privacidad
+### 5.9 Security and Privacy
 
-- Datos siempre en el dispositivo del usuario. Nada sale del navegador salvo export explícito.
-- Export/Import como responsabilidad del usuario. Documentar en UI.
-- Sin analytics de terceros en v1.
+- Data always on the user's device. Nothing leaves the browser except explicit export.
+- Export/Import is the user's responsibility. Documented in UI.
+- No third-party analytics in v1.
 
 ---
 
-## 6. Roadmap técnico por fases
+## 6. Technical Roadmap by Phases
 
-| Fase | Entregable | Criterios de salida |
+| Phase | Deliverable | Exit Criteria |
 | ------ | ----------- | --------------------- |
-| **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completada 2026-04-17** |
-| **F1** | **CRUD de Campos** | **Completada 2026-04-18 (baseline): create/edit/archive/list, rutas `/campos*`, validación por tipo y tests unit/E2E** |
-| F2 | Editor de Formularios de Observación | Componer, reordenar, versionar |
-| F3 | Encuentros y captura de Observaciones (incluye media) | Flujo completo de una sesión |
-| F4 | Export/Import (JSON + media) | Round-trip sin pérdida |
-| F5 | Generación de Crónica (primer prototipo) | Plantilla básica a partir de observaciones |
+| **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completed 2026-04-17** |
+| **F1** | **Field CRUD** | **Completed 2026-04-18 (baseline): create/edit/archive/list, routes `/fields*`, validation by type and unit/E2E tests** |
+| F2 | Observation Form Editor | Compose, reorder, version |
+| F3 | Encounters and Observation Capture (includes media) | Complete flow of a session |
+| F4 | Export/Import (JSON + media) | Round-trip without loss |
+| F5 | Chronicle Generation (first prototype) | Basic template from observations |
 
-Cada fase cierra ejecutando la skill `.agents/skills/phase-closeout/SKILL.md`, que registra decisiones, crea skills nuevas y actualiza toda la documentación.
-
----
-
-## 7. Convenciones de desarrollo
-
-- **Idioma:** código, tests y docs en inglés; UI y documentación funcional en español rioplatense.
-- **Commits:** Conventional Commits.
-- **Branches:** trunk-based; features cortas desde `main`.
-- **CSS:** utilidades Tailwind; cuando haga falta CSS propio, BEM y variables CSS; sin `!important`.
-- **HTML:** semántico siempre (`<button>`, `<a>`, `<main>`, etc.).
-- **Componentes:** un archivo por componente; co-locar tests `*.test.tsx` al lado.
-- **Imports:** todos al tope del archivo; alias `@/` hacia `src/`.
-- **Errores:** nunca silenciar; superficie al usuario con mensaje accionable.
-- **Performance:** lazy-load de rutas; evitar re-render innecesarios con `useLiveQuery` dirigido.
+Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 
 ---
 
-## 8. Protocolo de mantenimiento de este documento
+## 7. Development Conventions
 
-Este documento debe mantenerse **actualizado** cuando:
+- **Commits:** Conventional Commits (English).
+- **Branches:** trunk-based; short-lived features from `main`.
+- **CSS:** Tailwind utilities; when custom CSS is needed, use BEM and CSS variables; no `!important`.
+- **HTML:** semantic always (`<button>`, `<a>`, `<main>`, etc.).
+- **Components:** one file per component; co-locate tests `*.test.tsx` alongside.
+- **Imports:** all at the top of the file; alias `@/` to `src/`.
+- **Errors:** never silence; surface to the user with actionable messages via `AppError`.
+- **Performance:** lazy-load routes; avoid unnecessary re-renders with targeted `useLiveQuery`.
 
-1. Se agregue, reemplace o elimine una dependencia del stack.
-2. Cambie la estructura de carpetas a alto nivel.
-3. Cambie el modelo de dominio o el schema de persistencia.
-4. Cambie la estrategia de offline, media o testing.
+### 7.1 Language Policy
 
-Protocolo obligatorio para agentes y humanos:
+This repository follows a strict bilingual split: internal artifacts are in English, while user-facing content remains in rioplatense Spanish.
 
-1. Proponer el cambio en conversación.
-2. Registrar la decisión en `.agents/memory/decisions.md` (append-only).
-3. Editar este documento reflejando el nuevo estado.
-4. Si aparecen conceptos de dominio nuevos, actualizar `.agents/memory/glossary.md`.
-5. Si cambia el stack al punto de afectar el bootstrap del agente, actualizar `AGENTS.md` y `.agents/README.md`.
+**English (Internal Artifacts):**
+- Code identifiers, types, functions, variables, constants, enums
+- File and directory names
+- Code comments, JSDoc/TSDoc
+- All thrown `Error` and `AppError` messages in `src/domain`, `src/infra`, `src/features/**`, `src/lib/**`, `src/app/**`
+- Unit, integration, and E2E test names, descriptions, and assertion messages (except when asserting on specific Spanish UI strings)
+- All files under `.agents/`, `.windsurf/`, `.cursor/`
+- `AGENTS.md`, `README.md`, `docs/**`
+- Git commit messages and branch names
+- Route paths and URL query parameter names/values
+- Package metadata
+- Glossary term definitions (column 3 in `glossary.md`)
 
-Cambios triviales (typos, reordenamiento) no requieren entrada en `decisions.md`.
+**Rioplatense Spanish (User-Facing Content):**
+- Text inside JSX/HTML that the user reads: headings, labels, placeholders, button text, empty states, confirmation dialogs, captions, legends
+- `toast.*()` copy that surfaces to the user
+- `aria-label`, `aria-description`, `aria-live` content (for screen readers)
+- `<title>` and meta tags
+- `lang="es-AR"` on `<html>`
+- `toLocaleString("es-AR", ...)` and equivalent locale formatting
+- Agent conversation with the user: use natural rioplatense Spanish
+
+See `.agents/rules/language-policy.md` for the full canonical rule.
+
+---
+
+## 8. Maintenance Protocol for this Document
+
+This document must be **updated** when:
+
+1. A dependency of the stack is added, replaced, or removed.
+2. The high-level folder structure changes.
+3. The domain model or persistence schema changes.
+4. The strategy for offline, media, or testing changes.
+
+Mandatory protocol for agents and humans:
+
+1. Propose the change in conversation.
+2. Record the decision in `.agents/memory/decisions.md` (append-only).
+3. Edit this document reflecting the new state.
+4. If new domain concepts appear, update `.agents/memory/glossary.md`.
+5. If the stack changes to the point of affecting agent bootstrap, update `AGENTS.md` and `.agents/README.md`.
+
+Trivial changes (typos, reordering) do not require a `decisions.md` entry.

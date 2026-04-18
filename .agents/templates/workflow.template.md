@@ -1,13 +1,13 @@
 ---
-description: <Una oración describiendo qué logra este workflow>
+description: <One sentence describing what this workflow achieves>
 ---
 
 ## Steps
 
-1. <Paso 1 — comienza con verbo>
-2. <Paso 2>
-3. <Paso 3>
+1. <Step 1 — starts with a verb>
+2. <Step 2>
+3. <Step 3>
 
 ## Notes
 
-- <Advertencias, casos borde o referencias relevantes>
+- <Warnings, edge cases, or relevant references>

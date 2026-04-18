@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("can create and archive a field", async ({ page }) => {
-  await page.goto("/campos");
+  await page.goto("/fields");
 
   await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
 

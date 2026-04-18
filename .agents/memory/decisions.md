@@ -1,141 +1,149 @@
 # Architectural Decisions
 
-Registro de decisiones técnicas y de producto. Solo se agregan entradas, nunca se editan las existentes.
+Log of technical and product decisions. Only append entries, never edit existing ones.
 
 ---
 
-## [2026-04-17] Adopción de estructura de workspace de agentes
+## [2026-04-17] Adoption of agent workspace structure
 
-**Contexto:** El proyecto requiere trabajo coordinado entre agentes AI mixtos (Windsurf, Cursor, Claude, CLI) y contribuidores humanos.
+**Context:** The project requires coordinated work between mixed AI agents (Windsurf, Cursor, Claude, CLI) and human contributors.
 
-**Decisión:** Se creó el directorio `.agents/` con tres subsistemas: `skills/`, `memory/`, `workflows/`.
+**Decision:** Created the `.agents/` directory with three subsystems: `skills/`, `memory/`, `workflows/`.
 
-**Justificación:** El enfoque en Markdown plano es tool-agnostic, autodocumentado y funciona en cualquier entorno de agente sin depender de APIs propietarias.
+**Justification:** The plain Markdown approach is tool-agnostic, self-documenting, and works in any agent environment without depending on proprietary APIs.
 
-**Consecuencias:**
+**Consequences:**
 
-- Todo agente debe leer `memory/project-context.md` al iniciar sesión.
-- Las decisiones significativas deben registrarse aquí antes de implementarse.
-- La skill `agent-workspace-manager` es la autoridad para crear o modificar herramientas de agente.
-
----
-
-## [2026-04-17] Refactor de infraestructura de vibe coding
-
-**Contexto:** El sistema original duplicaba protocolo en `AGENTS.md`, `.agents/README.md` y `SKILL.md`; no exponía bridges explícitos para Cursor; y los templates estaban acoplados al skill `agent-workspace-manager`.
-
-**Decisión:** `AGENTS.md` pasó a ser la fuente única de verdad minimalista. El índice operativo vive en `.agents/README.md`. Los templates se movieron a `.agents/templates/`. Se agregaron bridges nativos en `.windsurf/rules/` y `.cursor/rules/`, y stubs de slash commands en `.windsurf/workflows/` para delegar en workflows canónicos.
-
-**Justificación:** Esta estructura elimina divergencia por duplicación, mejora interoperabilidad entre IDEs/CLIs de agentes y mantiene una capa operativa tool-agnostic en Markdown plano.
-
-**Consecuencias:**
-
-- `AGENTS.md` concentra principios globales y bootstrap inicial.
-- `.agents/README.md` queda como índice operativo único de `.agents/`.
-- Los workflows canónicos viven en `.agents/workflows/`; los archivos en `.windsurf/workflows/` delegan y no duplican lógica.
-- Cualquier herramienta que soporte `AGENTS.md` puede operar en el repo sin configuración adicional.
+- Every agent must read `memory/project-context.md` when starting a session.
+- Significant decisions must be recorded here before implementation.
+- The `agent-workspace-manager` skill is the authority to create or modify agent tools.
 
 ---
 
-## [2026-04-17] Stack tecnológico y arquitectura v1 (local-first web app)
+## [2026-04-17] Vibe coding infrastructure refactor
 
-**Contexto:** La v1 de Chronicle debe permitir al Practicante definir los campos a observar, componer un formulario de observación y cargar encuentros, soportando desde texto hasta imagen, video y audio. Los principios del proyecto exigen UX primero, simplicidad, rendimiento y mínimas dependencias externas.
+**Context:** The original system duplicated protocols in `AGENTS.md`, `.agents/README.md` and `SKILL.md`; it didn't expose explicit bridges for Cursor; and templates were coupled to the `agent-workspace-manager` skill.
 
-**Decisión:** Se adopta un stack **local-first sin backend** para v1: Vite + React + TypeScript, Tailwind + shadcn/ui (Radix), React Router, React Hook Form + Zod, Dexie.js sobre IndexedDB (incluye Blobs para media), vite-plugin-pwa, Vitest + Playwright, pnpm. El modelo de dominio incorpora dos conceptos nuevos: `Campo` (definición tipada de dato a capturar) y `Formulario de Observación` (composición ordenada de Campos). El documento `docs/stack-and-architecture.md` queda como fuente de verdad técnica y debe mantenerse sincronizado según su sección 8.
+**Decision:** `AGENTS.md` became the minimalist single source of truth. The operational index lives in `.agents/README.md`. Templates moved to `.agents/templates/`. Added native bridges in `.windsurf/rules/` and `.cursor/rules/`, and slash command stubs in `.windsurf/workflows/` to delegate to canonical workflows.
 
-**Justificación:**
+**Justification:** Eliminates divergence from duplication, improves interoperability across agent IDEs/CLIs, and maintains a tool-agnostic operational layer in plain Markdown.
 
-- No introducir backend ni BaaS respeta el principio de mínimas dependencias externas y hace al sistema portable y privado por defecto.
-- IndexedDB vía Dexie es la única opción del navegador que almacena `Blob` de manera robusta — condición necesaria para imagen/video/audio.
-- React Hook Form + Zod permite construir formularios dinámicos con validación declarativa reutilizable en runtime y tipos.
-- shadcn/ui sobre Radix da accesibilidad (ARIA) sin atar al proyecto a una UI kit monolítica.
-- PWA cubre la expectativa de uso offline en contextos institucionales.
+**Consequences:**
 
-**Consecuencias:**
-
-- `docs/stack-and-architecture.md` es lectura obligatoria junto al bootstrap de `AGENTS.md` cuando la tarea toca arquitectura, stack o dominio.
-- Cualquier dependencia nueva o cambio de stack requiere una entrada en este log y edición del documento.
-- Se agregan al glosario los términos `Campo` y `Formulario de Observación`.
-- Versionado de schema de IndexedDB se documenta también aquí cuando cambie.
-- Descartadas explícitamente en v1: backend propio, BaaS (Supabase/Firebase), state managers globales, UI kits pesadas, ORMs.
+- `AGENTS.md` concentrates global principles and initial bootstrap.
+- `.agents/README.md` remains as the unique operational index for `.agents/`.
+- Canonical workflows live in `.agents/workflows/`; files in `.windsurf/workflows/` delegate and do not duplicate logic.
+- Any tool supporting `AGENTS.md` can operate in the repo without additional configuration.
 
 ---
 
-## [2026-04-17] Creación de skills phase-closeout y update-project-docs
+## [2026-04-17] Technology stack and architecture v1 (local-first web app)
 
-**Contexto:** Al completar la fase F0 de scaffolding se evidenció que no existía un proceso formal para cerrar una fase de implementación y actualizar toda la documentación del proyecto de forma consistente. Sin un proceso definido, la documentación técnica y de agentes diverge del estado real del código.
+**Context:** Chronicle v1 must allow the Practitioner to define observable fields, compose an observation form, and record encounters, supporting text, image, video, and audio. Project principles demand UX first, simplicity, performance, and minimal external dependencies.
 
-**Decisión:** Se crean dos skills complementarias:
+**Decision:** Adopt a **local-first backendless stack** for v1: Vite + React + TypeScript, Tailwind + shadcn/ui (Radix), React Router, React Hook Form + Zod, Dexie.js over IndexedDB (includes Blobs for media), vite-plugin-pwa, Vitest + Playwright, pnpm. The domain model incorporates two new concepts: `Field` (typed definition of data to capture) and `Observation Form` (ordered composition of Fields). `docs/stack-and-architecture.md` remains the technical source of truth.
 
-1. **`phase-closeout`**: orquesta el cierre de cada fase — inventaría lo construido, evalúa y crea skills nuevas, y dispara la actualización de documentación.
-2. **`update-project-docs`**: skill reutilizable que actualiza de forma consistente todos los artefactos de documentación (`docs/stack-and-architecture.md`, `project-context.md`, `decisions.md`, `glossary.md`, `README.md`, `.agents/README.md`).
+**Justification:**
 
-Toda skill futura debe incluir una referencia a `update-project-docs` para garantizar que la documentación se mantiene sincronizada.
+- Not introducing a backend or BaaS respects the minimal external dependencies principle and makes the system portable and private by default.
+- IndexedDB via Dexie is the only browser option that robustly stores `Blob` — a requirement for image/video/audio.
+- React Hook Form + Zod allows building dynamic forms with reusable declarative validation.
+- shadcn/ui over Radix provides accessibility (ARIA) without tying the project to a monolithic UI kit.
+- PWA covers the expectation of offline use in institutional contexts.
 
-**Justificación:**
+**Consequences:**
 
-- Formaliza el proceso post-implementación que de otro modo depende de la memoria del agente o del humano.
-- Centraliza la lógica de actualización de documentación en una skill reutilizable (DRY).
-- Define una Responsibility Matrix que evita duplicación entre documentos.
-- Garantiza que cada fase deja el proyecto en estado documentado y auditable.
-
-**Consecuencias:**
-
-- Todo cierre de fase debe ejecutar `phase-closeout`.
-- Toda skill nueva debe referenciar `update-project-docs` en sus constraints o steps.
-- `.agents/README.md` fue actualizado con las dos skills nuevas.
-- Las skills existentes no se modifican retroactivamente, pero las futuras deben seguir esta convención.
+- `docs/stack-and-architecture.md` is mandatory reading.
+- Any new dependency or stack change requires an entry in this log.
+- Explicitly discarded for v1: custom backend, BaaS (Supabase/Firebase), global state managers, heavy UI kits, ORMs.
 
 ---
 
-## [2026-04-17] Cierre de Fase F0 — Scaffolding
+## [2026-04-17] Creation of phase-closeout and update-project-docs skills
 
-**Contexto:** Se completó la fase F0 del roadmap técnico, que abarca el scaffolding completo del proyecto.
+**Context:** Completing the F0 scaffolding phase revealed there was no formal process to close an implementation phase and consistently update all project documentation.
 
-**Decisión:** Se da por cerrada la fase F0 con el siguiente alcance implementado:
+**Decision:** Created two complementary skills:
 
-- **Build/Dev:** Vite 5 + React 18 + TypeScript 5 (strict) + pnpm.
-- **Estilos/UI:** Tailwind CSS v4 (CSS-first) + shadcn/ui primitivas (button, input, label, card, dialog, form, sonner).
-- **Routing:** React Router v7 (library mode, `createBrowserRouter`).
-- **Formularios:** React Hook Form + Zod v4 + `buildResolver` helper.
-- **Persistencia:** Dexie.js v4 con schema v1 (institutions, groups, participants, fields, forms, encounters, observations, media).
-- **PWA:** vite-plugin-pwa con autoUpdate, manifest, workbox runtime caching, placeholder icons.
-- **Testing:** Vitest + React Testing Library (unit), Playwright (E2E). Smoke tests en verde.
-- **Lint/Format:** ESLint 9 flat config + Prettier + prettier-plugin-tailwindcss.
-- **Estructura:** carpetas según `docs/stack-and-architecture.md` sección 5.2.
-- **App shell:** providers (theme + toast), layout (header/main/footer), router con home y 404.
+1. **`phase-closeout`**: orchestrates phase closure — inventories what was built, evaluates/creates new skills, and triggers documentation updates.
+2. **`update-project-docs`**: reusable skill that consistently updates all documentation artifacts (`docs/stack-and-architecture.md`, `project-context.md`, `decisions.md`, `glossary.md`, `README.md`, `.agents/README.md`).
 
-**Justificación:** Todos los criterios de salida de F0 se cumplen: `pnpm dev` levanta, build produce dist, lint/format/typecheck/test/test:e2e pasan en verde.
+**Justification:**
 
-**Consecuencias:**
+- Formalizes the post-implementation process.
+- Centralizes documentation update logic in a reusable skill (DRY).
+- Ensures every phase leaves the project in a documented and auditable state.
 
-- `project-context.md` actualizado a estado "F0 completo".
-- `docs/stack-and-architecture.md` roadmap marca F0 como completada.
-- El proyecto está listo para comenzar F1 (CRUD de Campos).
+**Consequences:**
+
+- Every phase closure must execute `phase-closeout`.
+- Every new skill must reference `update-project-docs` in its constraints or steps.
 
 ---
 
-## [2026-04-18] Implementación F1 — CRUD de Campos
+## [2026-04-17] Phase Closeout F0 — Scaffolding
 
-**Contexto:** El roadmap técnico define F1 como la primera fase funcional post-scaffolding, centrada en permitir la definición operativa de Campos (crear, editar, archivar y listar) sin backend y respetando arquitectura en capas.
+**Context:** Completed phase F0 of the technical roadmap, covering full project scaffolding.
 
-**Decisión:** Se implementa un baseline completo de F1 con alcance end-to-end:
+**Decision:** Phase F0 is closed with the following implemented scope:
 
-- **Dominio:** `Field` pasa a un modelo discriminado por `type` con `config` tipado por variante en `src/domain/field.ts`, incorporando además `createdAt`, `updatedAt`, `archivedAt`.
-- **Persistencia:** schema Dexie actualizado a versión 2 (`src/infra/db/schema.ts`) y creación de repositorio dedicado (`src/infra/db/repositories/field-repository.ts`) con operaciones `create/update/archive/restore/list/get/uniqueKey`.
-- **Feature layer:** módulo `field-definitions` con servicios de caso de uso, hooks reactivos y metadatos/defaults por tipo.
-- **UI y routing:** rutas `/campos`, `/campos/nuevo`, `/campos/:id/editar` integradas en `src/app/router.tsx`, navegación en `src/app/layout.tsx`, pantalla de listado con activos/archivados y formulario de alta/edición.
-- **Testing:** cobertura agregada para dominio (`tests/unit/field-schema.test.ts`), utilidades (`tests/unit/slugify.test.ts`) y flujo E2E (`tests/e2e/field-crud.spec.ts`).
+- **Build/Dev:** Vite 5 + React 18 + TypeScript 5 + pnpm.
+- **Styles/UI:** Tailwind CSS v4 + shadcn/ui primitives.
+- **Routing:** React Router v7.
+- **Forms:** React Hook Form + Zod v4.
+- **Persistence:** Dexie.js v4 with schema v1.
+- **PWA:** vite-plugin-pwa.
+- **Testing:** Vitest + React Testing Library (unit), Playwright (E2E).
+- **Lint/Format:** ESLint 9 flat config + Prettier.
 
-**Justificación:**
+**Justification:** All F0 exit criteria met.
 
-- El modelo discriminado reduce ambigüedad y mejora la validación por tipo de campo.
-- El repositorio dedicado consolida reglas de negocio de persistencia (archivado soft-delete y unicidad de key) en un punto auditable.
-- El flujo UI permite operación real del Practicante sin depender de fases posteriores.
-- La cobertura de tests mantiene verificable la evolución de F1.
+**Consequences:**
 
-**Consecuencias:**
+- The project is ready to begin F1 (Field CRUD).
 
-- F1 queda implementada en estado baseline funcional y validada por `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`.
-- El documento canónico `docs/stack-and-architecture.md` debe reflejar este nuevo estado de roadmap y contratos de `Field`/persistencia.
-- El estado del proyecto en `project-context.md` pasa de "F0 completo" a "F1 implementada".
+---
+
+## [2026-04-18] Implementation F1 — Field CRUD
+
+**Context:** The technical roadmap defines F1 as the first functional phase post-scaffolding, focused on allowing the operational definition of Fields.
+
+**Decision:** Implemented a complete F1 baseline with end-to-end scope:
+
+- **Domain:** `Field` model discriminated by `type` with typed `config` in `src/domain/field.ts`.
+- **Persistence:** Dexie schema updated to v2 and dedicated repository created.
+- **Feature layer:** `field-definitions` module with use case services, reactive hooks, and metadata.
+- **UI and routing:** routes `/fields`, `/fields/new`, `/fields/:id/edit` integrated in `src/app/router.tsx`.
+- **Testing:** coverage added for domain and E2E flow.
+
+**Justification:**
+
+- Discriminated model reduces ambiguity.
+- Dedicated repository consolidates persistence business rules.
+- UI flow allows real Practitioner operation.
+
+**Consequences:**
+
+- F1 implemented in functional baseline state.
+- `project-context.md` state transitions to "F1 implemented".
+
+---
+
+## [2026-04-18] Language Policy Refactor (Bilingual Split)
+
+**Context:** The user requested to translate all files to English, leaving rioplatense Spanish strictly for user-facing UI content and human-agent conversations. Past entries in this decisions log were in Spanish.
+
+**Decision:**
+1. A strict bilingual split is adopted: English for all internal project artifacts (code, tests, agent rules, docs, route URLs, dev-facing errors), and rioplatense Spanish exclusively for end-user UI strings (JSX text, toasts, labels, `lang="es-AR"`).
+2. The domain glossary adopts a 3-column format: `Spanish term | Canonical English identifier | English definition`.
+3. Created `.agents/rules/language-policy.md` to encode this boundary for all agents.
+4. As a one-time exception, all historical entries in this `decisions.md` file and other agent memory files were translated to English.
+
+**Justification:**
+- Keeps the repository aligned with the mainstream English AI-coding ecosystem.
+- Preserves the product requirement that Practitioners consume the app in rioplatense Spanish.
+- Translating the historical decisions log (despite being an append-only file) avoids cognitive dissonance for agents reading mixed-language context.
+
+**Consequences:**
+- All future entries in `decisions.md` MUST be written in English.
+- Developers and agents must map Spanish UI labels to English service errors using the new `src/**/messages.ts` convention.

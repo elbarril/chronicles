@@ -1,11 +1,11 @@
 # <Memory File Title>
 
-<!-- Una oración describiendo qué tipo de hechos almacena este archivo. -->
+<!-- One sentence describing what kind of facts this file stores. -->
 
 ---
 
-<!-- El contenido comienza aquí. Usar formato consistente:
-     - Tablas para pares término/hecho
-     - ## [YYYY-MM-DD] encabezados para logs append-only
-     - Párrafos en prosa para contexto narrativo
+<!-- Content starts here. Use consistent formatting:
+     - Tables for term/fact pairs
+     - ## [YYYY-MM-DD] headers for append-only logs
+     - Prose paragraphs for narrative context
 -->

@@ -7,7 +7,7 @@ import { useFields } from "@/features/field-definitions/hooks/use-fields";
 
 export function FieldListPage(): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
-  const status = searchParams.get("estado") === "archivados" ? "archived" : "active";
+  const status = searchParams.get("status") === "archived" ? "archived" : "active";
   const { fields, isLoading } = useFields(status);
   const actions = useFieldActions();
 
@@ -24,7 +24,7 @@ export function FieldListPage(): JSX.Element {
         </div>
 
         <Button asChild>
-          <Link to="/campos/nuevo">Nuevo campo</Link>
+          <Link to="/fields/new">Nuevo campo</Link>
         </Button>
       </header>
 
@@ -32,14 +32,14 @@ export function FieldListPage(): JSX.Element {
         <Button
           type="button"
           variant={status === "active" ? "default" : "outline"}
-          onClick={() => setSearchParams({ estado: "activos" })}
+          onClick={() => setSearchParams({ status: "active" })}
         >
           Activos
         </Button>
         <Button
           type="button"
           variant={status === "archived" ? "default" : "outline"}
-          onClick={() => setSearchParams({ estado: "archivados" })}
+          onClick={() => setSearchParams({ status: "archived" })}
         >
           Archivados
         </Button>

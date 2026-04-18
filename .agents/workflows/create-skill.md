@@ -1,45 +1,45 @@
 ---
-description: Crear una nueva skill en .agents/skills/
+description: Create a new skill in .agents/skills/
 ---
 
 # Create Skill
 
 ## Steps
 
-1. Verificar que no existe una skill equivalente en `.agents/skills/`. Si existe, ir al workflow `update-skill` en su lugar.
+1. Verify an equivalent skill does not exist in `.agents/skills/`. If it does, use the `update-skill` workflow instead.
 
-2. Definir el nombre de la skill en kebab-case con formato `<dominio>-<accion>` (ej: `chronicle-generator`).
+2. Define the skill name in kebab-case with format `<domain>-<action>` (e.g., `chronicle-generator`).
 
-3. Crear el directorio:
+3. Create the directory:
 
    ```text
    .agents/skills/<skill-name>/
    ```
 
-4. Copiar el template a la nueva skill:
+4. Copy the template to the new skill:
 
    ```text
    .agents/templates/skill.template.md
    → .agents/skills/<skill-name>/SKILL.md
    ```
 
-5. Completar todas las secciones obligatorias del SKILL.md:
-   - **Description**: una oración
-   - **Trigger Conditions**: cuándo usarla (mínimo 2 condiciones)
-   - **Steps**: numerados, comienzan con verbo, ordenados por dependencia
-   - **Constraints**: qué está PROHIBIDO hacer (sección obligatoria)
+5. Complete all mandatory sections of SKILL.md:
+   - **Description**: one sentence
+   - **Trigger Conditions**: when to use it (minimum 2 conditions)
+   - **Steps**: numbered, start with a verb, ordered by dependency
+   - **Constraints**: what is FORBIDDEN to do (mandatory section)
 
-6. Agregar scripts de soporte en `.agents/skills/<skill-name>/scripts/` si la skill los requiere.
-   Cada script debe incluir un comentario de uso al inicio.
+6. Add support scripts in `.agents/skills/<skill-name>/scripts/` if the skill requires them.
+   Each script must include a usage comment at the beginning.
 
-7. Registrar la creación en `.agents/memory/decisions.md`:
-   - Formato: `## [YYYY-MM-DD] Creación de skill <skill-name>`
-   - Incluir: Contexto, Decisión, Justificación, Consecuencias
+7. Log the creation in `.agents/memory/decisions.md`:
+   - Format: `## [YYYY-MM-DD] Skill <skill-name> created`
+   - Include: Context, Decision, Justification, Consequences
 
-8. Actualizar el índice de skills en `.agents/README.md` si la skill es de uso general.
+8. Update the skills index in `.agents/README.md` if the skill is for general use.
 
 ## Notes
 
-- Una skill nueva no debe duplicar lógica de una existente. Referenciar la skill existente desde los pasos.
-- Las skills deben ser autocontenidas: no depender de herramientas externas no documentadas.
-- Si la skill tiene una contraparte como workflow de Windsurf, crear también `.windsurf/workflows/<skill-name>.md`.
+- A new skill must not duplicate logic from an existing one. Reference the existing skill from the steps.
+- Skills must be self-contained: do not depend on undocumented external tools.
+- If the skill has a counterpart as a Windsurf workflow, also create `.windsurf/workflows/<skill-name>.md` as a delegation stub to `.agents/workflows/<skill-name>.md` (without duplicating logic).

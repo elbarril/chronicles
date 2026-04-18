@@ -1,4 +1,5 @@
 import { type FieldConfig, type FieldFormInput, type FieldType } from "@/domain/field";
+import { fieldMessages } from "@/features/field-definitions/lib/messages";
 
 export function getDefaultConfig(type: FieldType): FieldConfig {
   switch (type) {
@@ -11,9 +12,13 @@ export function getDefaultConfig(type: FieldType): FieldConfig {
     case "location":
       return {};
     case "singleChoice":
-      return { options: ["Opción 1"] };
+      return { options: [fieldMessages.defaultChoiceOption] };
     case "multiChoice":
-      return { options: ["Opción 1"], minSelect: undefined, maxSelect: undefined };
+      return {
+        options: [fieldMessages.defaultChoiceOption],
+        minSelect: undefined,
+        maxSelect: undefined,
+      };
     case "date":
     case "time":
     case "datetime":

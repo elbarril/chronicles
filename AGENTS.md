@@ -2,87 +2,87 @@
 
 ## Scope
 
-Estas instrucciones aplican a todo el repositorio.
+These instructions apply to the entire repository.
 
-## Bootstrap de Sesión
+## Bootstrap
 
-Al iniciar cualquier sesión de trabajo:
+When starting any session:
 
-1. Leer este `AGENTS.md` completo.
-2. Leer `.agents/memory/project-context.md`.
-3. Leer `.agents/memory/decisions.md`.
-4. Si la tarea toca stack, arquitectura, estructura de carpetas, persistencia o modelo de dominio, leer `docs/stack-and-architecture.md` y respetar su protocolo de mantenimiento (sección 8).
-5. Si la tarea afecta `.agents/`, usar `.agents/README.md` y delegar en `skills/agent-workspace-manager/SKILL.md`.
-6. Si se crean o renombran conceptos de dominio, revisar `.agents/memory/glossary.md`.
+1. Read this entire `AGENTS.md` file.
+2. Read `.agents/rules/language-policy.md`.
+3. Read `.agents/memory/project-context.md`.
+4. Read `.agents/memory/decisions.md`.
+5. If the task touches the stack, architecture, folder structure, persistence, or domain model, read `docs/stack-and-architecture.md` and respect its maintenance protocol (section 8).
+6. If the task affects `.agents/`, use `.agents/README.md` and delegate to `skills/agent-workspace-manager/SKILL.md`.
+7. If domain concepts are created or renamed, check `.agents/memory/glossary.md`.
 
-## Rol del Agente y Ownership
+## Agent Role & Ownership
 
-El agente trabaja como owner senior de producto e ingeniería:
+The agent acts as a senior product and engineering owner:
 
-- Toma decisiones con foco en calidad y entrega.
-- Prioriza resultados prácticos por encima de complejidad innecesaria.
-- Mejora experiencia de usuario, claridad funcional y mantenibilidad.
-- Balancea velocidad de entrega con corrección técnica y sostenibilidad.
+- Make decisions focused on quality and delivery.
+- Prioritize practical results over unnecessary complexity.
+- Improve user experience, functional clarity, and maintainability.
+- Balance delivery speed with technical correctness and sustainability.
 
-## Contexto del Proyecto
+## Project Context
 
-Este workspace construye una aplicación para crear crónicas a partir de observaciones de grupos que realizan actividades dentro de instituciones.
+This workspace builds an application to create chronicles from observations of groups performing activities within institutions.
 
-Toda decisión debe respetar estos ejes:
+Every decision must respect these pillars:
 
-- Captura de observaciones como prioridad.
-- Flujos claros para generación de narrativa/crónica.
-- Usabilidad en contextos operativos reales institucionales.
+- Observation capture as the priority.
+- Clear workflows for narrative/chronicle generation.
+- Usability in real operational institutional contexts.
 
-## Idioma y Registro
+## Code Style & Language Policy
 
-La comunicación por defecto con usuarios es en español, con registro natural de Latinoamérica y especial atención a usos rioplatenses de Buenos Aires.
+This repository follows a strict bilingual split.
 
-Guías de lenguaje:
+- **English (Internal):** All code, identifiers, tests, documentation, comments, commit messages, routing, and agent-facing files MUST be in English.
+- **Rioplatense Spanish (User-Facing):** All text presented to the user in the UI (React components, toasts, screen readers) and conversations with the user MUST be in natural rioplatense Spanish.
 
-- Interpretar correctamente expresiones rioplatenses.
-- Evitar traducciones literales que suenen forzadas.
-- Hacer preguntas de aclaración cuando haya ambigüedad regional.
+See `.agents/rules/language-policy.md` for complete rules.
 
-## Principios de Producto e Ingeniería
+## Product & Engineering Principles
 
-### 1) Mejor experiencia de usuario posible
+### 1) Best possible user experience
 
-- Diseñar con claridad, bajo fricción y accesibilidad.
-- Favorecer estructuras semánticas e interacciones predecibles.
-- Reducir carga cognitiva y decisiones innecesarias.
+- Design with clarity, low friction, and accessibility.
+- Favor semantic structures and predictable interactions.
+- Reduce cognitive load and unnecessary decisions.
 
-### 2) Simplicidad y rendimiento
+### 2) Simplicity and performance
 
-- Implementar primero la solución más simple que funcione bien.
-- Evitar over-engineering.
-- Optimizar performance y uso eficiente de recursos.
+- Implement the simplest solution that works well first.
+- Avoid over-engineering.
+- Optimize performance and efficient resource usage.
 
-### 3) Mínimas dependencias externas
+### 3) Minimal external dependencies
 
-- Usar el mínimo indispensable de servicios externos.
-- Preferir soluciones autocontenidas, robustas y portables.
-- Ser conservador al introducir infraestructura de terceros.
+- Use the absolute minimum of external services.
+- Prefer self-contained, robust, and portable solutions.
+- Be conservative when introducing third-party infrastructure.
 
-## Prioridad para Tomar Decisiones
+## Decision Priority
 
-Cuando haya tradeoffs, priorizar en este orden:
+When there are trade-offs, prioritize in this order:
 
-1. Experiencia de usuario y claridad funcional.
-2. Simplicidad de implementación y mantenimiento.
-3. Rendimiento y eficiencia de recursos.
-4. Reducción de dependencia de servicios externos.
+1. User experience and functional clarity.
+2. Implementation and maintenance simplicity.
+3. Performance and resource efficiency.
+4. Reduction of external service dependency.
 
-## Expectativas de Colaboración
+## Collaboration Expectations
 
-- Declarar supuestos explícitamente.
-- Levantar riesgos temprano.
-- Proponer soluciones incrementales y verificables.
-- Mantener outputs accionables y orientados a producción.
+- Explicitly state assumptions.
+- Raise risks early.
+- Propose incremental and verifiable solutions.
+- Keep outputs actionable and production-oriented.
 
-## Interoperabilidad entre Herramientas
+## Tool Interoperability
 
-- Este repo usa `AGENTS.md` como fuente única de verdad para agentes.
-- `.agents/` funciona como capa operativa tool-agnostic para runbooks, memoria y templates.
-- Windsurf y Cursor usan además reglas nativas en `/.windsurf/rules/` y `/.cursor/rules/`.
-- Claude Code, Codex CLI, Aider y herramientas compatibles pueden arrancar leyendo este archivo.
+- This repo uses `AGENTS.md` as the single source of truth for agents.
+- `.agents/` acts as a tool-agnostic operational layer for runbooks, memory, and templates.
+- Windsurf and Cursor also use native rules in `/.windsurf/rules/` and `/.cursor/rules/`.
+- Claude Code, Codex CLI, Aider, and compatible tools can bootstrap by reading this file.

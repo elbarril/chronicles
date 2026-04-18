@@ -2,24 +2,24 @@
 
 ## Description
 
-Una oración que describe qué hace esta skill.
+One sentence describing what this skill does.
 
 ## Trigger Conditions
 
-Usar esta skill cuando:
+Use this skill when:
 
-- <Condición 1>
-- <Condición 2>
+- <Condition 1>
+- <Condition 2>
 
 ## Prerequisites
 
-- <Prerequisito 1 (si aplica)>
+- <Prerequisite 1 (if applicable)>
 
 ## Steps
 
-1. <Paso 1 — comienza con verbo>
-2. <Paso 2>
-3. <Paso 3>
+1. <Step 1 — starts with a verb>
+2. <Step 2>
+3. <Step 3>
 
 ## Outputs
 
@@ -28,9 +28,9 @@ Usar esta skill cuando:
 
 ## Constraints
 
-- NEVER <acción prohibida 1>
-- NEVER <acción prohibida 2>
+- NEVER <forbidden action 1>
+- NEVER <forbidden action 2>
 
 ## AGENTS.md Compliance
 
-- <Qué principio de AGENTS.md aplica o garantiza esta skill>
+- <Which AGENTS.md principle this skill applies or guarantees>

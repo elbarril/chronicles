@@ -15,15 +15,15 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "/campos",
+        path: "/fields",
         element: <FieldListPage />,
       },
       {
-        path: "/campos/nuevo",
+        path: "/fields/new",
         element: <FieldFormPage />,
       },
       {
-        path: "/campos/:id/editar",
+        path: "/fields/:id/edit",
         element: <FieldFormPage />,
       },
       {

@@ -3,15 +3,7 @@ description: Bootstrap de agente para Chronicle
 alwaysApply: true
 ---
 
-# Bootstrap de Agente
+# Bootstrap Bridge
 
-Este repositorio sigue la convención AGENTS.md.
-
-@AGENTS.md
-
-Antes de cualquier acción también leer:
-
-- .agents/memory/project-context.md
-- .agents/memory/decisions.md
-
-Idioma: español rioplatense por defecto.
+Seguí exactamente las instrucciones definidas en `.agents/rules/agents.md`.
+No dupliques la lógica en este archivo: es un bridge de compatibilidad para Cursor.

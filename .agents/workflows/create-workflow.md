@@ -1,51 +1,64 @@
 ---
-description: Crear un nuevo workflow en .agents/workflows/
+description: Create a new workflow in .agents/workflows/
 ---
 
 # Create Workflow
 
 ## Steps
 
-1. Verificar que no existe un workflow equivalente en `.agents/workflows/`.
+1. Verify an equivalent workflow does not exist in `.agents/workflows/`.
 
-2. Definir el nombre del workflow en kebab-case describiendo el resultado: `<verbo>-<sustantivo>.md` (ej: `generate-chronicle.md`).
+2. Define the workflow name in kebab-case describing the outcome: `<verb>-<noun>.md` (e.g., `generate-chronicle.md`).
 
-3. Crear el archivo: `.agents/workflows/<name>.md`
+3. Create the file: `.agents/workflows/<name>.md`
 
-4. Copiar el template:
+4. Copy the template:
 
    ```text
    .agents/templates/workflow.template.md
    → .agents/workflows/<name>.md
    ```
 
-5. Completar el frontmatter:
+5. Complete the frontmatter:
 
    ```yaml
    ---
-   description: <Una oración que describe qué logra este workflow>
+   description: <One sentence describing what this workflow achieves>
    ---
    ```
 
-6. Escribir los pasos numerados. Cada paso debe:
-   - Comenzar con un verbo de acción
-   - Ser específico y ejecutable sin ambigüedad
-   - Estar ordenado por dependencia lógica
+6. Write the numbered steps. Each step must:
+   - Start with an action verb
+   - Be specific and executable without ambiguity
+   - Be ordered by logical dependency
 
-7. Marcar pasos auto-ejecutables con `// turbo` en la línea anterior al paso (convención Windsurf; ignorado por otros agentes).
+7. Mark auto-executable steps with `// turbo` on the line before the step (Windsurf convention; ignored by other agents).
 
-8. Referenciar skills por nombre cuando un paso delega en una:
+8. Reference skills by name when a step delegates to one:
 
    ```text
-   Usar la skill `<skill-name>` para completar este paso.
+   Use the `<skill-name>` skill to complete this step.
    ```
 
-9. Agregar una sección `## Notes` con advertencias, casos borde o referencias relevantes.
+9. If the workflow should be available as a slash command in Windsurf, create the bridge in `.windsurf/workflows/<name>.md` with a stub format:
 
-10. Actualizar `.agents/README.md` si el workflow es de uso general.
+   ```markdown
+   ---
+   description: <same summarized purpose>
+   ---
+
+   # <Title>
+
+   Follow exactly the steps defined in `.agents/workflows/<name>.md`.
+   Do not duplicate logic in this file: this stub exists only to enable the slash command.
+   ```
+
+10. Add a `## Notes` section with warnings, edge cases, or relevant references.
+
+11. Update `.agents/README.md` if the workflow is for general use.
 
 ## Notes
 
-- No duplicar lógica ya existente en una skill — referenciar la skill.
-- Los workflows deben ser herramienta-agnósticos salvo por las anotaciones `// turbo`.
-- Si el workflow es frecuentemente invocado desde Windsurf, considerar también crearlo en `.windsurf/workflows/`.
+- Do not duplicate logic already existing in a skill — reference the skill.
+- Workflows must be tool-agnostic except for `// turbo` annotations.
+- Canonical workflows live in `.agents/workflows/`; `.windsurf/workflows/` only contains delegation stubs.
