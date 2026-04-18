@@ -1,10 +1,15 @@
 import { createBrowserRouter } from "react-router";
 
 import { RootLayout } from "@/app/layout";
+import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
+import { EncounterListPage } from "@/features/encounters/pages/EncounterListPage";
+import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
 import { FieldFormPage } from "@/features/field-definitions/pages/FieldFormPage";
 import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage";
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
+import { GroupFormPage } from "@/features/groups/pages/GroupFormPage";
+import { GroupListPage } from "@/features/groups/pages/GroupListPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 
@@ -39,6 +44,34 @@ export const router = createBrowserRouter([
       {
         path: "/forms/:id/edit",
         element: <FormBuilderPage />,
+      },
+      {
+        path: "/groups",
+        element: <GroupListPage />,
+      },
+      {
+        path: "/groups/new",
+        element: <GroupFormPage />,
+      },
+      {
+        path: "/groups/:id/edit",
+        element: <GroupFormPage />,
+      },
+      {
+        path: "/encounters",
+        element: <EncounterListPage />,
+      },
+      {
+        path: "/encounters/new",
+        element: <EncounterNewPage />,
+      },
+      {
+        path: "/encounters/:id",
+        element: <EncounterDetailPage />,
+      },
+      {
+        path: "/encounters/:id/observations/new",
+        element: <EncounterDetailPage />,
       },
       {
         path: "*",
