@@ -112,3 +112,30 @@ Toda skill futura debe incluir una referencia a `update-project-docs` para garan
 - `project-context.md` actualizado a estado "F0 completo".
 - `docs/stack-and-architecture.md` roadmap marca F0 como completada.
 - El proyecto está listo para comenzar F1 (CRUD de Campos).
+
+---
+
+## [2026-04-18] Implementación F1 — CRUD de Campos
+
+**Contexto:** El roadmap técnico define F1 como la primera fase funcional post-scaffolding, centrada en permitir la definición operativa de Campos (crear, editar, archivar y listar) sin backend y respetando arquitectura en capas.
+
+**Decisión:** Se implementa un baseline completo de F1 con alcance end-to-end:
+
+- **Dominio:** `Field` pasa a un modelo discriminado por `type` con `config` tipado por variante en `src/domain/field.ts`, incorporando además `createdAt`, `updatedAt`, `archivedAt`.
+- **Persistencia:** schema Dexie actualizado a versión 2 (`src/infra/db/schema.ts`) y creación de repositorio dedicado (`src/infra/db/repositories/field-repository.ts`) con operaciones `create/update/archive/restore/list/get/uniqueKey`.
+- **Feature layer:** módulo `field-definitions` con servicios de caso de uso, hooks reactivos y metadatos/defaults por tipo.
+- **UI y routing:** rutas `/campos`, `/campos/nuevo`, `/campos/:id/editar` integradas en `src/app/router.tsx`, navegación en `src/app/layout.tsx`, pantalla de listado con activos/archivados y formulario de alta/edición.
+- **Testing:** cobertura agregada para dominio (`tests/unit/field-schema.test.ts`), utilidades (`tests/unit/slugify.test.ts`) y flujo E2E (`tests/e2e/field-crud.spec.ts`).
+
+**Justificación:**
+
+- El modelo discriminado reduce ambigüedad y mejora la validación por tipo de campo.
+- El repositorio dedicado consolida reglas de negocio de persistencia (archivado soft-delete y unicidad de key) en un punto auditable.
+- El flujo UI permite operación real del Practicante sin depender de fases posteriores.
+- La cobertura de tests mantiene verificable la evolución de F1.
+
+**Consecuencias:**
+
+- F1 queda implementada en estado baseline funcional y validada por `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`.
+- El documento canónico `docs/stack-and-architecture.md` debe reflejar este nuevo estado de roadmap y contratos de `Field`/persistencia.
+- El estado del proyecto en `project-context.md` pasa de "F0 completo" a "F1 implementada".

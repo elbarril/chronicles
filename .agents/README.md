@@ -23,6 +23,17 @@ Este directorio concentra la infraestructura de trabajo con agentes para Chronic
 
 - `../docs/stack-and-architecture.md`: fuente de verdad del stack, arquitectura en capas, modelo de dominio y convenciones de código. Lectura obligatoria cuando la tarea toca stack, persistencia, estructura de carpetas o dominio. Mantenimiento según su sección 8.
 
+## Estado técnico vigente (F1)
+
+Para acelerar nuevas sesiones de agentes sobre el estado real del producto:
+
+- **Rutas F1:** `../src/app/router.tsx` (`/campos`, `/campos/nuevo`, `/campos/:id/editar`).
+- **UI F1:** `../src/features/field-definitions/pages/FieldListPage.tsx`, `../src/features/field-definitions/pages/FieldFormPage.tsx`.
+- **Componente de formulario dinámico de campo:** `../src/features/field-definitions/components/FieldForm.tsx`.
+- **Dominio de Campo:** `../src/domain/field.ts` (discriminated union por tipo + `config` tipado).
+- **Persistencia de Campos:** `../src/infra/db/repositories/field-repository.ts` + schema Dexie v2 en `../src/infra/db/schema.ts`.
+- **Tests F1:** `../tests/unit/field-schema.test.ts`, `../tests/unit/slugify.test.ts`, `../tests/e2e/field-crud.spec.ts`.
+
 ## Protocolo de Encuentro
 
 1. Leer `../AGENTS.md` para reglas globales de comportamiento.

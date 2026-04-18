@@ -3,7 +3,7 @@
 Este documento es la **fuente de verdad** para decisiones técnicas estructurales de Chronicle.
 Define el stack, la arquitectura de capas, los módulos principales y las convenciones de desarrollo.
 
-Última actualización: 2026-04-18
+Última actualización: 2026-04-18 (F1 implementada)
 
 ---
 
@@ -40,7 +40,7 @@ Traducido a tecnología:
 ## 3. Stack Tecnológico
 
 | Capa | Elección | Justificación |
-|------|----------|---------------|
+| ------ | ---------- | --------------- |
 | Lenguaje | **TypeScript (strict)** | Contratos claros para formularios dinámicos y modelos de datos. |
 | Build/Dev | **Vite** | Arranque rápido, zero-config, HMR, build moderno. |
 | UI framework | **React 18+** | Ecosistema maduro, ideal para formularios dinámicos. |
@@ -94,7 +94,15 @@ Entidades núcleo (nombres canónicos, ver `.agents/memory/glossary.md`):
 
 `text` (corto) · `longText` · `number` · `boolean` · `singleChoice` · `multiChoice` · `date` · `time` · `datetime` · `image` · `video` · `audio` · `file` · `rating` · `location`
 
-Cada Campo define: `id`, `key`, `label`, `type`, `required`, `helpText`, `options?` (para choice), `accept?` (para media), `max?`, `min?`, `multiple?`.
+Cada Campo define base común: `id`, `key`, `label`, `type`, `required`, `helpText?`, `createdAt`, `updatedAt`, `archivedAt`.
+
+Además define `config` tipado por variante (`discriminated union`) según `type`:
+
+- choice (`singleChoice` / `multiChoice`): `options` (+ `minSelect?`, `maxSelect?` para multi)
+- number/rating: restricciones de rango
+- media (`image`/`video`/`audio`/`file`): `accept?`, `multiple?`
+- date/time/datetime: límites opcionales
+- text/longText: `maxLength?`
 
 Los binarios (imagen/video/audio/archivo) se almacenan como `Blob` en una tabla dedicada y se referencian por `mediaId` desde la Observación, para no inflar los registros principales.
 
@@ -183,11 +191,11 @@ chronicle/
 Tablas sugeridas (todas con `id` UUID v4 generado en cliente):
 
 | Tabla | Campos principales | Notas |
-|-------|-------------------|-------|
+| ------- | ------------------- | ------- |
 | `institutions` | `id`, `name`, `createdAt` | |
 | `groups` | `id`, `institutionId`, `name` | índice por `institutionId` |
 | `participants` | `id`, `groupId`, `displayName` | índice por `groupId` |
-| `fields` | `id`, `key`, `label`, `type`, `config`, `archivedAt?` | `config` es JSON tipado por tipo de campo |
+| `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` es JSON tipado por tipo de campo; `archivedAt` usa string vacío para activos |
 | `forms` | `id`, `name`, `fieldIds[]`, `version`, `archivedAt?` | `fieldIds` preserva orden |
 | `encounters` | `id`, `groupId`, `formId`, `activity`, `startedAt`, `endedAt?` | |
 | `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` mapea `fieldId → valor` o `fieldId → mediaId` |
@@ -240,9 +248,9 @@ Tablas sugeridas (todas con `id` UUID v4 generado en cliente):
 ## 6. Roadmap técnico por fases
 
 | Fase | Entregable | Criterios de salida |
-|------|-----------|---------------------|
+| ------ | ----------- | --------------------- |
 | **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completada 2026-04-17** |
-| F1 | CRUD de Campos | Crear/editar/archivar todos los tipos de Campo, con validaciones |
+| **F1** | **CRUD de Campos** | **Completada 2026-04-18 (baseline): create/edit/archive/list, rutas `/campos*`, validación por tipo y tests unit/E2E** |
 | F2 | Editor de Formularios de Observación | Componer, reordenar, versionar |
 | F3 | Encuentros y captura de Observaciones (incluye media) | Flujo completo de una sesión |
 | F4 | Export/Import (JSON + media) | Round-trip sin pérdida |
