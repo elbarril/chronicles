@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-04-18 (F3 implemented, encounters and observation capture baseline)
+Last updated: 2026-04-18 (F4 implemented, encounter export/import baseline)
 
 ---
 
@@ -55,6 +55,7 @@ Translated to technology:
 | PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
+| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained encounter export/import with media blobs. |
 | Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
 | Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
@@ -154,6 +155,7 @@ chronicle/
 │  │  ├─ groups/                        # Group + Participant management
 │  │  ├─ encounters/                    # concrete sessions
 │  │  ├─ observations/                  # data capture
+│  │  ├─ import/                        # ZIP import flow with preview/confirm
 │  │  └─ chronicles/                    # (stub in v1)
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
@@ -171,7 +173,9 @@ chronicle/
 │  │  │  ├─ store.ts                    # store/read Blobs
 │  │  │  └─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
 │  │  ├─ export/
-│  │  │  └─ zip.ts                      # export/import JSON + media
+│  │  │  ├─ manifest.ts                 # ZIP manifest schema/contract
+│  │  │  ├─ encounter-exporter.ts       # per-encounter ZIP generation and download
+│  │  │  └─ encounter-importer.ts       # ZIP parse + transactional upsert import
 │  │  └─ pwa/
 │  ├─ components/
 │  │  └─ ui/                            # shadcn primitives
@@ -242,7 +246,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 
 - **Unit (Vitest):** pure domain (Zod schemas, reducers, media helpers).
 - **Integration:** Dexie repositories against `fake-indexeddb`.
-- **E2E (Playwright):** critical flows — define fields, assemble form, create encounter, capture observation with media, export.
+- **E2E (Playwright):** critical flows — define fields, assemble form, create encounter, capture observation with media, export, import, and round-trip validation.
 
 ### 5.9 Security and Privacy
 
@@ -260,7 +264,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F1** | **Field CRUD** | **Completed 2026-04-18 (baseline): create/edit/archive/list, routes `/fields*`, validation by type and unit/E2E tests** |
 | **F2** | **Observation Form Editor** | **Completed 2026-04-18 (baseline): create/edit/archive/restore/list, routes `/forms*`, ordered field composition with accessible reorder, auto version bump, unit/E2E tests** |
 | **F3** | **Encounters and Observation Capture (includes media)** | **Completed 2026-04-18 (baseline): Groups/Participants CRUD, encounter create/finish, observation capture with dynamic fields + media (file picker + in-app audio), Dexie schema v4, unit/E2E tests** |
-| F4 | Export/Import (JSON + media) | Round-trip without loss |
+| **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests** |
 | F5 | Chronicle Generation (first prototype) | Basic template from observations |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.

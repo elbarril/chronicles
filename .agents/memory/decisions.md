@@ -306,3 +306,39 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - Future phases MUST start with `phase-planner` and proceed through `phase-implementer`.
 - Both skills are listed in `.agents/README.md`.
 - The Windsurf slash commands `/phase-planner` and `/phase-implementer` are now available.
+
+---
+
+## [2026-04-18] Phase Closeout F4 — Encounter Export/Import
+
+**Context:** F4 required portable encounter data exchange in a fully local-first architecture, including binary media support, explicit user confirmation before import, and deterministic idempotent merge behavior.
+
+**Decision:** Implemented and closed F4 with the following scope:
+
+- **Infrastructure (`src/infra/export/`):**
+  - `manifest.ts` defines `chronicle-encounter-v1` manifest contract and schema validation.
+  - `encounter-exporter.ts` generates self-contained encounter ZIPs (manifest + entities + media) and triggers browser download.
+  - `encounter-importer.ts` parses ZIP payloads and runs transactional upsert-by-ID import across Dexie tables.
+- **Feature modules/UI:**
+  - Added export action in encounter detail (`/encounters/:id`) via `use-export-encounter` and updated header actions.
+  - Added dedicated import route `/import` with file drop/upload, full preview, confirm/cancel, and success redirect flow.
+  - Added navigation entry `Importar` in root layout.
+- **Error model:** added `EXPORT_*` and `IMPORT_*` `AppError` codes in `src/lib/error.ts`.
+- **Testing:**
+  - Unit: `zip-manifest`, `encounter-exporter`, `encounter-importer`.
+  - E2E: `encounter-export-import.spec.ts` covering full round-trip.
+
+**Key technical decisions:**
+
+- **JSZip** selected for browser compatibility and direct Blob handling in local-first flows.
+- **Export granularity:** per-encounter ZIP including referenced form, fields, group, participants, observations, and media assets.
+- **Import strategy:** upsert-by-ID in a single Dexie read-write transaction for atomicity and idempotent re-import.
+- **Import UX:** mandatory preview-before-confirm pattern to avoid blind data writes.
+
+**Skill evaluation:** No new skill required for F4-specific runtime behavior. Existing `phase-closeout`, `update-project-docs`, `verify`, and `test-fix` skills cover planning, implementation verification, and closeout consistency.
+
+**Consequences:**
+
+- F4 is complete in baseline state; roadmap focus can move to F5 (chronicle generation).
+- Export/import becomes an explicit operational capability in the product shell and architecture docs.
+- The project now has round-trip data portability without backend dependencies.
