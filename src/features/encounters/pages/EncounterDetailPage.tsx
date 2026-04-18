@@ -15,6 +15,8 @@ import { EncounterHeader } from "@/features/encounters/components/EncounterHeade
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
+import { useExportEncounter } from "@/features/encounters/hooks/use-export-encounter";
+import { encounterMessages } from "@/features/encounters/lib/messages";
 import { ObservationForm } from "@/features/observations/components/ObservationForm";
 import { useObservationActions } from "@/features/observations/hooks/use-observation-actions";
 
@@ -27,6 +29,7 @@ export function EncounterDetailPage(): JSX.Element {
 
   const { encounter, fields, participants, observations, isLoading } = useEncounter(encounterId);
   const encounterActions = useEncounterActions();
+  const encounterExport = useExportEncounter();
   const observationActions = useObservationActions(fields);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -71,6 +74,14 @@ export function EncounterDetailPage(): JSX.Element {
     }
   }
 
+  async function handleExportEncounter(): Promise<void> {
+    if (!encounter) {
+      return;
+    }
+
+    await encounterExport.exportEncounter(encounter.id);
+  }
+
   if (!params.id) {
     return <p className="text-muted-foreground text-sm">Encuentro inválido.</p>;
   }
@@ -101,6 +112,9 @@ export function EncounterDetailPage(): JSX.Element {
         encounter={encounter}
         participantCount={participants.length}
         onFinish={handleFinishEncounter}
+        onExport={handleExportEncounter}
+        isExporting={encounterExport.isExporting}
+        exportLabel={encounterMessages.exportButton}
       />
 
       <div className="flex items-center justify-between gap-2">

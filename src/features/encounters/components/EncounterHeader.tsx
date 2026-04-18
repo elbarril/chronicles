@@ -5,6 +5,9 @@ interface EncounterHeaderProps {
   encounter: Encounter;
   participantCount: number;
   onFinish: () => Promise<void>;
+  onExport: () => Promise<void>;
+  isExporting: boolean;
+  exportLabel: string;
 }
 
 function formatDate(value: string): string {
@@ -22,6 +25,9 @@ export function EncounterHeader({
   encounter,
   participantCount,
   onFinish,
+  onExport,
+  isExporting,
+  exportLabel,
 }: EncounterHeaderProps): JSX.Element {
   const isFinished = Boolean(encounter.endedAt && encounter.endedAt !== "");
 
@@ -35,19 +41,32 @@ export function EncounterHeader({
           </p>
         </div>
 
-        {!isFinished ? (
+        <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
+            disabled={isExporting}
             onClick={() => {
-              void onFinish();
+              void onExport();
             }}
           >
-            Finalizar encuentro
+            {isExporting ? "Exportando..." : exportLabel}
           </Button>
-        ) : (
-          <span className="text-sm font-medium">Encuentro finalizado</span>
-        )}
+
+          {!isFinished ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void onFinish();
+              }}
+            >
+              Finalizar encuentro
+            </Button>
+          ) : (
+            <span className="text-sm font-medium">Encuentro finalizado</span>
+          )}
+        </div>
       </div>
 
       <dl className="grid gap-2 text-sm md:grid-cols-3">
