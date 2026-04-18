@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-04-18 (F4 implemented, encounter export/import baseline)
+Last updated: 2026-04-18 (F5 implemented, chronicle generation baseline)
 
 ---
 
@@ -156,18 +156,19 @@ chronicle/
 │  │  ├─ encounters/                    # concrete sessions
 │  │  ├─ observations/                  # data capture
 │  │  ├─ import/                        # ZIP import flow with preview/confirm
-│  │  └─ chronicles/                    # (stub in v1)
+│  │  └─ chronicles/                    # chronicle generation/list/detail
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
 │  │  ├─ group.ts
 │  │  ├─ participant.ts
 │  │  ├─ encounter.ts
-│  │  └─ observation.ts
+│  │  ├─ observation.ts
+│  │  └─ chronicle.ts
 │  ├─ infra/
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
-│  │  │  ├─ client.ts                   # singleton instance + v4 migration
+│  │  │  ├─ client.ts                   # singleton instance + migrations up to v5
 │  │  │  └─ repositories/               # one file per entity
 │  │  ├─ media/
 │  │  │  ├─ store.ts                    # store/read Blobs
@@ -211,6 +212,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment |
 | `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId` |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
+| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt` | one chronicle per encounter (upsert by `encounterId`) |
 
 **Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`.
 
@@ -265,7 +267,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F2** | **Observation Form Editor** | **Completed 2026-04-18 (baseline): create/edit/archive/restore/list, routes `/forms*`, ordered field composition with accessible reorder, auto version bump, unit/E2E tests** |
 | **F3** | **Encounters and Observation Capture (includes media)** | **Completed 2026-04-18 (baseline): Groups/Participants CRUD, encounter create/finish, observation capture with dynamic fields + media (file picker + in-app audio), Dexie schema v4, unit/E2E tests** |
 | **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests** |
-| F5 | Chronicle Generation (first prototype) | Basic template from observations |
+| **F5** | **Chronicle Generation (first prototype)** | **Completed 2026-04-18 (baseline): deterministic chronicle generation from encounter observations, `/chronicles` list + detail routes, generation action from encounter detail, Dexie schema v5 (`chronicles` table), unit/E2E tests** |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 
