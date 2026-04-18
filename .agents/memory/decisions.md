@@ -228,3 +228,57 @@ Log of technical and product decisions. Only append entries, never edit existing
 - `pnpm check` is the canonical pre-commit verification command.
 - Agents must consult `test-fix` skill before retrying a failing test more than once.
 - The production build path (`pnpm test:e2e:ci`) is preserved for CI and explicit production validation.
+
+---
+
+## [2026-04-18] Phase Closeout F3 — Encounters and Observation Capture
+
+**Context:** F3 required enabling practitioners to run group sessions, capture observations in real-time against a versioned form snapshot, and attach arbitrary media (images, video, audio via in-app recorder).
+
+**Decision:** Implemented a full F3 baseline with the following scope:
+
+**F3.0 — Groups and Participants:**
+- Domain: `Group` and `Participant` in `src/domain/group.ts` / `src/domain/participant.ts` with Zod schemas.
+- Persistence: `group-repository` (CRUD, archive/restore, participant count), `participant-repository` (bulk sync by groupId).
+- Feature module: `src/features/groups/` with service, hooks, pages, and components.
+- UX: inline participant editor inside GroupForm; archive/restore with toast feedback.
+- Routing: `/groups` (list), `/groups/:id/edit` + main navigation entry "Grupos".
+
+**F3.1 — Encounters:**
+- Domain: `Encounter` expanded with `formVersion` and `fieldIds[]` (form snapshot frozen at creation time).
+- Persistence: `encounter-repository`; encounter service freezes the form snapshot on `create` and sets `endedAt` on `finish`.
+- `resolveEncounterDependencies`: single call that hydrates fields, participants, form, and observations together for the detail page.
+- Feature module: `src/features/encounters/` with service, hooks, pages, and components.
+- Deep-link: `/encounters/:id/observations/new` auto-opens the observation dialog.
+- Routing: `/encounters` (list, with status filter tabs), `/encounters/new`, `/encounters/:id`.
+
+**F3.2 — Observations:**
+- Domain: `Observation` expanded with typed scalar and media value union (`fieldId → scalar | mediaId`).
+- Persistence: `observation-repository` with media cleanup on update/delete.
+- Observation service: normalizes media, validates per-field dynamic schema, `observation-values-schema.ts` builder.
+- Feature module: `src/features/observations/` with service, hook, component.
+- `ObservationForm`: dynamic field renderer dispatch table (text/number/boolean/choice/media), file picker for all media types, `useAudioRecorder` hook for in-app audio recording.
+
+**Infrastructure:**
+- Dexie schema bumped to v4: `groups` (index `institutionId`), `participants` (index `groupId`), `encounters` (index `groupId,formId`), `media` table. Migration adds default Institution row.
+- `infra/media/store.ts`: Blob CRUD with object URL lifecycle management.
+- `infra/media/recorder.ts`: `useAudioRecorder` hook wrapping the MediaRecorder API.
+- `field-repository`: added `listFieldsByIds`.
+- `error.ts`: added `GROUP_*`, `ENCOUNTER_*`, `OBSERVATION_*` error codes.
+
+**Testing:**
+- Unit: `tests/unit/group-schema.test.ts`, `tests/unit/participant-schema.test.ts`, `tests/unit/encounter-schema.test.ts`, `tests/unit/observation-schema.test.ts`.
+- E2E: `tests/e2e/groups-crud.spec.ts` (create/edit/archive/restore), `tests/e2e/encounter-capture.spec.ts` (full flow + media files).
+- All 29 unit tests and 5 E2E tests passing (`pnpm check` green).
+
+**Skill evaluation:** No new skill required. F3 patterns (feature module + repository + dynamic form + media infra) are a direct extension of the established F1/F2 pattern. Existing `test-fix` and `phase-closeout` skills remain current.
+
+**Justification:**
+- Form snapshot strategy ensures encounter data is immutable regardless of future form edits.
+- Media stored as Blobs in dedicated table keeps main observation records lightweight and indexable.
+- Deep-link `/encounters/:id/observations/new` supports mobile capture workflows where users tap a shared link to open directly in capture mode.
+
+**Consequences:**
+- F3 completed in functional baseline state; F4 (Export/Import) can now build on the complete domain.
+- Dexie persistence contract changed to v4 — documented in `stack-and-architecture.md` sections 5.2 and 5.3.
+- `project-context.md` state transitions to "F3 implemented".
