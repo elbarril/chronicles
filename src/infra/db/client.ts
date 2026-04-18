@@ -45,6 +45,17 @@ export class ChronicleDB extends Dexie {
   constructor() {
     super("chronicle");
 
+    this.version(2).stores({
+      institutions: "id, name, createdAt",
+      groups: "id, institutionId, name",
+      participants: "id, groupId, displayName",
+      fields: "id, key, type, archivedAt, createdAt",
+      forms: "id, name, version, archivedAt",
+      encounters: "id, groupId, formId, startedAt",
+      observations: "id, encounterId, participantId, createdAt",
+      media: "id, mime, createdAt",
+    });
+
     this.version(DB_VERSION).stores(stores);
   }
 }

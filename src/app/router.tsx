@@ -3,6 +3,8 @@ import { createBrowserRouter } from "react-router";
 import { RootLayout } from "@/app/layout";
 import { FieldFormPage } from "@/features/field-definitions/pages/FieldFormPage";
 import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage";
+import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
+import { FormListPage } from "@/features/forms/pages/FormListPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 
@@ -25,6 +27,18 @@ export const router = createBrowserRouter([
       {
         path: "/fields/:id/edit",
         element: <FieldFormPage />,
+      },
+      {
+        path: "/forms",
+        element: <FormListPage />,
+      },
+      {
+        path: "/forms/new",
+        element: <FormBuilderPage />,
+      },
+      {
+        path: "/forms/:id/edit",
+        element: <FormBuilderPage />,
       },
       {
         path: "*",

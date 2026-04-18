@@ -3,6 +3,10 @@ export type ErrorCode =
   | "FIELD_NOT_FOUND"
   | "FIELD_ARCHIVE_FAILED"
   | "FIELD_RESTORE_FAILED"
+  | "FORM_NAME_TAKEN"
+  | "FORM_NOT_FOUND"
+  | "FORM_ARCHIVE_FAILED"
+  | "FORM_RESTORE_FAILED"
   | "UNKNOWN_ERROR";
 
 export class AppError extends Error {
