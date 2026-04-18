@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-04-18 (F2 implemented, observation form editor baseline)
+Last updated: 2026-04-18 (F3 implemented, encounters and observation capture baseline)
 
 ---
 
@@ -151,22 +151,25 @@ chronicle/
 │  │  ├─ field-definitions/             # Field CRUD
 │  │  ├─ home/                          # Home and 404 pages
 │  │  ├─ forms/                         # Observation Form assembly
+│  │  ├─ groups/                        # Group + Participant management
 │  │  ├─ encounters/                    # concrete sessions
 │  │  ├─ observations/                  # data capture
 │  │  └─ chronicles/                    # (stub in v1)
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
+│  │  ├─ group.ts
+│  │  ├─ participant.ts
 │  │  ├─ encounter.ts
 │  │  └─ observation.ts
 │  ├─ infra/
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
-│  │  │  ├─ client.ts                   # singleton instance
+│  │  │  ├─ client.ts                   # singleton instance + v4 migration
 │  │  │  └─ repositories/               # one file per entity
 │  │  ├─ media/
 │  │  │  ├─ store.ts                    # store/read Blobs
-│  │  │  └─ record.ts                   # MediaRecorder helpers
+│  │  │  └─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
 │  │  ├─ export/
 │  │  │  └─ zip.ts                      # export/import JSON + media
 │  │  └─ pwa/
@@ -201,7 +204,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `participants` | `id`, `groupId`, `displayName` | index by `groupId` |
 | `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
 | `forms` | `id`, `name`, `fieldIds[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fieldIds` preserves order and uniqueness; version auto-increments on update |
-| `encounters` | `id`, `groupId`, `formId`, `activity`, `startedAt`, `endedAt?` | |
+| `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment |
 | `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId` |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
 
@@ -256,7 +259,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completed 2026-04-17** |
 | **F1** | **Field CRUD** | **Completed 2026-04-18 (baseline): create/edit/archive/list, routes `/fields*`, validation by type and unit/E2E tests** |
 | **F2** | **Observation Form Editor** | **Completed 2026-04-18 (baseline): create/edit/archive/restore/list, routes `/forms*`, ordered field composition with accessible reorder, auto version bump, unit/E2E tests** |
-| F3 | Encounters and Observation Capture (includes media) | Complete flow of a session |
+| **F3** | **Encounters and Observation Capture (includes media)** | **Completed 2026-04-18 (baseline): Groups/Participants CRUD, encounter create/finish, observation capture with dynamic fields + media (file picker + in-app audio), Dexie schema v4, unit/E2E tests** |
 | F4 | Export/Import (JSON + media) | Round-trip without loss |
 | F5 | Chronicle Generation (first prototype) | Basic template from observations |
 

@@ -23,7 +23,8 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - F0 completed (base scaffolding).
 - F1 completed (baseline): Field CRUD with create/edit/archive/list and validations by type.
 - F2 completed (baseline): Observation Form Editor with compose/reorder/version and routes `/forms*`.
-- Target next phase: F3 (Encounters and Observation Capture).
+- F3 completed (baseline): Groups/Participants CRUD, Encounter create/finish with form snapshot, Observation capture with dynamic fields and media.
+- Target next phase: F4 (Export/Import JSON + media).
 
 ## F1 Module: Fields
 
@@ -40,6 +41,23 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - Domain: `src/domain/form.ts`.
 - Persistence: `src/infra/db/repositories/form-repository.ts` (Dexie schema v3).
 - Main tests: `tests/unit/form-schema.test.ts`, `tests/unit/form-service.test.ts`, `tests/e2e/forms-compose.spec.ts`.
+
+## F3 Module: Groups
+
+- Routes: `/groups`, `/groups/:id/edit`.
+- Feature: `src/features/groups/`.
+- Domain: `src/domain/group.ts`, `src/domain/participant.ts`.
+- Persistence: `src/infra/db/repositories/group-repository.ts`, `src/infra/db/repositories/participant-repository.ts`.
+- Main tests: `tests/unit/group-schema.test.ts`, `tests/unit/participant-schema.test.ts`, `tests/e2e/groups-crud.spec.ts`.
+
+## F3 Module: Encounters and Observations
+
+- Routes: `/encounters`, `/encounters/new`, `/encounters/:id`, `/encounters/:id/observations/new`.
+- Feature: `src/features/encounters/`, `src/features/observations/`.
+- Domain: `src/domain/encounter.ts` (with form snapshot), `src/domain/observation.ts` (typed scalar + media values).
+- Persistence: `src/infra/db/repositories/encounter-repository.ts`, `src/infra/db/repositories/observation-repository.ts` (Dexie schema v4).
+- Media: `src/infra/media/store.ts` (Blob CRUD), `src/infra/media/recorder.ts` (in-app audio).
+- Main tests: `tests/unit/encounter-schema.test.ts`, `tests/unit/observation-schema.test.ts`, `tests/e2e/encounter-capture.spec.ts`.
 
 ## Working with Agents
 

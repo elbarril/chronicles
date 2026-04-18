@@ -65,6 +65,16 @@ export async function getFieldById(id: string): Promise<Field | undefined> {
   return db.fields.get(id);
 }
 
+export async function listFieldsByIds(fieldIds: string[]): Promise<Field[]> {
+  const rows = await db.fields.bulkGet(fieldIds);
+
+  const byId = new Map(
+    rows.filter((row): row is Field => Boolean(row)).map((row) => [row.id, row]),
+  );
+
+  return fieldIds.map((fieldId) => byId.get(fieldId)).filter((row): row is Field => Boolean(row));
+}
+
 export async function listActiveFields(): Promise<Field[]> {
   return db.fields
     .where("archivedAt")

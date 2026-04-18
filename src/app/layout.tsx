@@ -25,6 +25,12 @@ export function RootLayout(): JSX.Element {
             <Button asChild variant="secondary" size="sm">
               <Link to="/forms">Formularios</Link>
             </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/groups">Grupos</Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/encounters">Encuentros</Link>
+            </Button>
             <span className="text-muted-foreground text-sm" aria-live="polite">
               {location.pathname}
             </span>

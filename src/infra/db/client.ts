@@ -16,12 +16,18 @@ interface Group {
   id: string;
   institutionId: string;
   name: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: "" | string;
 }
 
 interface Participant {
   id: string;
   groupId: string;
   displayName: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: "" | string;
 }
 
 interface Media {
@@ -45,6 +51,9 @@ export class ChronicleDB extends Dexie {
   constructor() {
     super("chronicle");
 
+    const defaultInstitutionId = "00000000-0000-4000-8000-000000000001";
+    const now = new Date().toISOString();
+
     this.version(2).stores({
       institutions: "id, name, createdAt",
       groups: "id, institutionId, name",
@@ -56,7 +65,33 @@ export class ChronicleDB extends Dexie {
       media: "id, mime, createdAt",
     });
 
-    this.version(DB_VERSION).stores(stores);
+    this.version(3).stores({
+      institutions: "id, name, createdAt",
+      groups: "id, institutionId, name",
+      participants: "id, groupId, displayName",
+      fields: "id, key, type, archivedAt, createdAt",
+      forms: "id, name, version, archivedAt, createdAt",
+      encounters: "id, groupId, formId, startedAt",
+      observations: "id, encounterId, participantId, createdAt",
+      media: "id, mime, createdAt",
+    });
+
+    this.version(DB_VERSION)
+      .stores(stores)
+      .upgrade(async (tx) => {
+        const institutions = tx.table<Institution, string>("institutions");
+        const existing = await institutions.toArray();
+
+        if (existing.length > 0) {
+          return;
+        }
+
+        await institutions.add({
+          id: defaultInstitutionId,
+          name: "Default",
+          createdAt: now,
+        });
+      });
   }
 }
 
