@@ -48,6 +48,7 @@ Translated to technology:
 | Styling | **Tailwind CSS** | Utility-first, mobile-first responsive, consistent with user principles. |
 | UI Components | **shadcn/ui + Radix UI** | Accessible primitives (proper ARIA) without tying to a monolithic library. |
 | Icons | **lucide-react** | Lightweight, tree-shakeable. |
+| Toast Notifications | **sonner** | Lightweight, accessible toast system for user-facing feedback messages. |
 | Forms | **React Hook Form + Zod** | Performance, reusable declarative validation between runtime and types. |
 | Local Persistence| **IndexedDB via Dexie.js** | Handles native `Blob`/`File` (image, video, audio), transactions, indices. |
 | Media Capture | **MediaRecorder API + `<input type=file capture>`** | Browser APIs, no external services. |
@@ -95,6 +96,8 @@ Core entities (canonical names, see `.agents/memory/glossary.md`):
 `text` (short) · `longText` · `number` · `boolean` · `singleChoice` · `multiChoice` · `date` · `time` · `datetime` · `image` · `video` · `audio` · `file` · `rating` · `location`
 
 Each Field defines a common base: `id`, `key`, `label`, `type`, `required`, `helpText?`, `createdAt`, `updatedAt`, `archivedAt`.
+
+`fieldFormSchema` (input variant without `id`/timestamps) is the form input schema used for create/edit forms; the derived type is `FieldFormInput`. `buildFieldValueSchema(field: Field)` dynamically constructs a Zod schema to validate captured observation values per field type — it is the core of the dynamic form renderer in F2+.
 
 It also defines a typed `config` per variant (`discriminated union`) according to `type`:
 
@@ -146,6 +149,7 @@ chronicle/
 │  │  └─ providers.tsx
 │  ├─ features/
 │  │  ├─ field-definitions/             # Field CRUD
+│  │  ├─ home/                          # Home and 404 pages
 │  │  ├─ forms/                         # Observation Form assembly
 │  │  ├─ encounters/                    # concrete sessions
 │  │  ├─ observations/                  # data capture
