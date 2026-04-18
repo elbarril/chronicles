@@ -13,6 +13,8 @@ This directory concentrates the agent workspace infrastructure for Chronicle and
 | `templates/workflow.template.md`| Template for new workflows | When creating a new workflow in `workflows/` |
 | `templates/memory.template.md` | Base memory template | When creating a new file in `memory/` |
 | `skills/agent-workspace-manager/SKILL.md` | Governance skill for `.agents/` | When a task creates or modifies skills, workflows, or memory |
+| `skills/phase-planner/SKILL.md` | Plan a roadmap phase before implementation | When a new phase is about to start and no written plan exists |
+| `skills/phase-implementer/SKILL.md` | Implement a confirmed phase end-to-end | When a phase plan is confirmed and implementation can begin |
 | `skills/phase-closeout/SKILL.md` | Phase closeout | When completing a roadmap phase (F0, F1, ...) |
 | `skills/update-project-docs/SKILL.md` | Consistent update of project docs | When stack, domain, structure change or a phase is closed |
 | `skills/test-fix/SKILL.md` | Diagnose and fix test failures | When `pnpm test` or `pnpm test:e2e` exits with errors |
