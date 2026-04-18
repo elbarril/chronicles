@@ -2,46 +2,46 @@
 
 ## Description
 
-Coordina cambios en `.agents/` delegando la ejecución a workflows canónicos y validando conformidad con `AGENTS.md`.
+Coordinates changes in `.agents/` by delegating execution to canonical workflows and validating conformity with `AGENTS.md`.
 
 ## Trigger Conditions
 
-Usar esta skill cuando:
+Use this skill when:
 
-- Se va a crear una nueva skill en `.agents/skills/`
-- Se va a crear o modificar un workflow en `.agents/workflows/`
-- Se va a crear o actualizar un archivo de memoria en `.agents/memory/`
-- Se necesita revisar consistencia general del workspace de agentes
+- A new skill is being created in `.agents/skills/`
+- A workflow is being created or modified in `.agents/workflows/`
+- A memory file is being created or updated in `.agents/memory/`
+- A general consistency review of the agent workspace is needed
 
-## Reglas Invariables
+## Invariant Rules
 
-- Mantener `AGENTS.md` como fuente de verdad para principios globales.
-- Evitar duplicación entre `AGENTS.md`, `.agents/README.md`, skills y workflows.
-- Usar Markdown plano y contenido tool-agnostic dentro de `.agents/`.
-- Registrar decisiones significativas en `.agents/memory/decisions.md`.
+- Keep `AGENTS.md` as the source of truth for global principles.
+- Avoid duplication between `AGENTS.md`, `.agents/README.md`, skills, and workflows.
+- Use plain Markdown and tool-agnostic content within `.agents/`.
+- Record significant decisions in `.agents/memory/decisions.md`.
 
-## Delegación por Tipo de Tarea
+## Delegation by Task Type
 
-| Tarea | Workflow canónico |
+| Task | Canonical Workflow |
 |------|-------------------|
-| Crear una skill | `.agents/workflows/create-skill.md` |
-| Crear un workflow | `.agents/workflows/create-workflow.md` |
-| Actualizar memoria | `.agents/workflows/update-memory.md` |
+| Create a skill | `.agents/workflows/create-skill.md` |
+| Create a workflow | `.agents/workflows/create-workflow.md` |
+| Update memory | `.agents/workflows/update-memory.md` |
 
-## Checklist de Calidad
+## Quality Checklist
 
-Antes de dar por finalizado cualquier cambio en el workspace, verificar:
+Before finalizing any change to the workspace, verify:
 
-- [ ] El archivo usa Markdown plano sin sintaxis exclusiva de una herramienta
-- [ ] El archivo es autocontenido y sus referencias internas son válidas
-- [ ] El nombre sigue la convención kebab-case cuando aplica
-- [ ] `decisions.md` fue actualizado si hubo un cambio significativo
-- [ ] No hay duplicación con skills, memoria o workflows existentes
-- [ ] Ningún principio de `AGENTS.md` fue violado
-- [ ] Las secciones obligatorias del template están completas
+- [ ] The file uses plain Markdown with no tool-exclusive syntax
+- [ ] The file is self-contained and its internal references are valid
+- [ ] The name follows kebab-case convention where applicable
+- [ ] `decisions.md` was updated if there was a significant change
+- [ ] No duplication with existing skills, memory, or workflows
+- [ ] No principle of `AGENTS.md` was violated
+- [ ] All mandatory template sections are complete
 
 ## Constraints
 
-- NEVER duplicar pasos detallados que ya estén en workflows canónicos.
-- NEVER editar entradas previas de `.agents/memory/decisions.md`.
-- NEVER introducir dependencias externas sin documentar y justificar.
+- NEVER duplicate detailed steps that already exist in canonical workflows.
+- NEVER edit previous entries in `.agents/memory/decisions.md`.
+- NEVER introduce external dependencies without documenting and justifying them.

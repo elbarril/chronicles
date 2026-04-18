@@ -28,24 +28,9 @@ This directory concentrates the agent workspace infrastructure for Chronicle and
 
 - `../docs/stack-and-architecture.md`: source of truth for stack, architecture, domain model, and conventions. Mandatory reading when touching stack, persistence, or domain.
 
-## Current Technical State (F1)
+## Current State
 
-To accelerate new agent sessions on the product's actual state:
-
-- **F1 Routes:** `../src/app/router.tsx` (`/fields`, `/fields/new`, `/fields/:id/edit`).
-- **F1 UI:** `../src/features/field-definitions/pages/FieldListPage.tsx`, `../src/features/field-definitions/pages/FieldFormPage.tsx`.
-- **Dynamic Form Component:** `../src/features/field-definitions/components/FieldForm.tsx`.
-- **Field Domain:** `../src/domain/field.ts` (discriminated union by type + typed `config`).
-- **Field Persistence:** `../src/infra/db/repositories/field-repository.ts` + Dexie v2 schema in `../src/infra/db/schema.ts`.
-- **F1 Tests:** `../tests/unit/field-schema.test.ts`, `../tests/unit/slugify.test.ts`, `../tests/e2e/field-crud.spec.ts`.
-
-## Encounter Protocol
-
-1. Read `../AGENTS.md` for global behavior rules.
-2. Read `rules/language-policy.md`.
-3. Restore context with `memory/project-context.md` and `memory/decisions.md`.
-4. If the task touches stack or architecture, read `../docs/stack-and-architecture.md`.
-5. If the task affects `.agents/`, delegate execution to `skills/agent-workspace-manager/SKILL.md`.
+See `.agents/memory/project-context.md` for current project state, active routes, and key file references.
 
 ## Interoperability
 

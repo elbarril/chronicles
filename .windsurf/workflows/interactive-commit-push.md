@@ -8,36 +8,46 @@ description: Create commit and push with interactive branch and change type sele
 
 1. Validate repository state with `git status --short --branch` and list changes for context.
 
-2. Interactively ask if the current branch should be used:
-   - Prompt: `Do you want to commit and push to the current branch (<branch>)? [y/n]`
-   - If `y`, continue directly without asking for branch again.
-   - If `n`, ask for the destination branch and validate its existence locally/remotely.
+2. **Interactive branch selection** (UI buttons):
+   - Show current branch and present two options:
+     - **Button: "Usar rama actual (<branch>)"** → Continue without asking for branch again.
+     - **Button: "Cambiar rama"** → Open text input to enter destination branch, validate existence locally/remotely.
 
-3. Show available change types and ask for selection:
-   - `feat`: new feature
-   - `fix`: bug fix
-   - `docs`: documentation
-   - `refactor`: internal improvement without functional change
-   - `perf`: performance improvement
-   - `test`: tests
-   - `chore`: maintenance/technical task
-   - `style`: formatting/style without logical changes
+3. **Interactive change type selection** (UI dropdown):
+   - Present dropdown with options:
+     - `feat`: nueva funcionalidad
+     - `fix`: corrección de bug
+     - `docs`: documentación
+     - `refactor`: mejora interna sin cambio funcional
+     - `perf`: mejora de performance
+     - `test`: tests
+     - `chore`: tarea de mantenimiento/técnica
+     - `style`: formato/estilo sin cambios lógicos
 
-4. Categorize repository changes by change type before confirming commit:
+4. **Interactive file selection** (UI checkboxes):
+   - Categorize repository changes by type.
+   - Show checkboxes for each file group so the user can select which files to include.
+   - **Button: "Seleccionar todos"** / **Button: "Deseleccionar todos"**
    - Suggest splitting into multiple commits if there is a mix (e.g., `feat` + `docs`).
-   - Show files by group so the user can confirm what to include in this commit.
 
-5. Request a commit message using Conventional Commits format:
-   - Format: `<type>(<optional-scope>): <summary>`
-   - Examples:
+5. **Interactive commit message input** (UI form):
+   - Show input field with Conventional Commits format:
+     - `<type>(<optional-scope>): <summary>`
+   - Provide quick-select buttons for common scopes based on project structure.
+   - Show format examples below the input:
      - `feat(observations): add filter by activity`
      - `fix(chronicle): correct temporal order in narrative`
      - `docs(readme): document generation flow`
 
-6. Confirm staging and commit in a single final validation:
-   - Prompt: `I will run add/commit/push on <branch>. Continue? [y/n]`
-   - If confirmed, run `git add` (selective or full based on previous decision), `git commit`, and `git push`.
-   - If cancelled, stop without additional changes.
+6. **Final confirmation** (UI buttons):
+   - Show summary card with:
+     - Rama: `<branch>`
+     - Tipo: `<type>`
+     - Archivos: `<count>`
+     - Mensaje: `<commit-message>`
+   - Present two options:
+     - **Button: "Confirmar y ejecutar"** → Run `git add`, `git commit`, and `git push`.
+     - **Button: "Cancelar"** → Stop without additional changes.
 
 7. Report final result:
    - Branch used.
@@ -51,3 +61,4 @@ description: Create commit and push with interactive branch and change type sele
 - If the user chooses the current branch, do not open a new prompt for branch selection.
 - If there are no staged/unstaged changes, abort early with a clear message.
 - Do not force push (`--force`) unless explicitly requested by the user.
+- All user-facing text must be in rioplatense Spanish (natural, not formal).

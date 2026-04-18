@@ -2,6 +2,8 @@
 description: Update a memory file in .agents/memory/
 ---
 
+# Update Memory
+
 ## Steps
 
 1. Identify which memory file corresponds to the change:
@@ -15,7 +17,7 @@ description: Update a memory file in .agents/memory/
 2. Open the identified memory file.
 
 3. **If it is `decisions.md`**:
-   - Append to the end of the file. NEVER edit existing entries. (Note: historical entries were translated once on 2026-04-18, but the append-only rule remains strictly enforced going forward).
+   - Append to the end of the file. NEVER edit existing entries.
    - Use this format:
 
      ```markdown

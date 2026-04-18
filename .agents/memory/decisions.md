@@ -147,3 +147,26 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Consequences:**
 - All future entries in `decisions.md` MUST be written in English.
 - Developers and agents must map Spanish UI labels to English service errors using the new `src/**/messages.ts` convention.
+
+---
+
+## [2026-04-18] Agent Workspace Audit and Cleanup
+
+**Context:** Deep analysis of the `.agents/` workspace revealed several issues: all three skill files were written in Spanish (violating the language policy), two bridge files (`.windsurf/rules/agents.md`, `.cursor/rules/agents.mdc`) used Spanish text, the bootstrap sequence was duplicated in three places (`AGENTS.md`, `.agents/rules/agents.md`, `.agents/README.md`), `project-context.md` had an explicitly acknowledged duplicate of AGENTS.md principles, and three orphaned files existed that were not indexed or reachable via bootstrap (`memory/f1-closeout.md`, `prompts/f0-scaffolding-planning.md`, `prompts/f1-field-crud-planning.md`).
+
+**Decision:**
+1. Translated all skill files to English: `agent-workspace-manager/SKILL.md`, `phase-closeout/SKILL.md`, `update-project-docs/SKILL.md`.
+2. Fixed bridge files to English: `.windsurf/rules/agents.md`, `.cursor/rules/agents.mdc`.
+3. Removed the "Encounter Protocol" section from `.agents/README.md` (third copy of bootstrap) and replaced "Current Technical State" with a pointer to `project-context.md`.
+4. Removed "Design Principles (from AGENTS.md)" section from `project-context.md` and simplified the stack summary to a single pointer line.
+5. Added missing `# Update Memory` title to `update-memory.md` and removed permanent historical noise note.
+6. Deleted orphaned artifacts: `memory/f1-closeout.md`, `prompts/f0-scaffolding-planning.md`, `prompts/f1-field-crud-planning.md`.
+7. Removed the `AGENTS.md Compliance` boilerplate section from `phase-closeout/SKILL.md` and `update-project-docs/SKILL.md`.
+
+**Justification:** Each change addressed either a language policy violation (hallucination risk) or a duplication that creates divergence risk across multi-agent systems. Orphaned files not reachable via bootstrap paths are pure noise.
+
+**Consequences:**
+- All `.agents/` files are now fully in English, consistent with language policy.
+- Bootstrap is defined in one canonical place (`AGENTS.md`) and referenced by bridges, not duplicated.
+- `project-context.md` no longer self-duplicates AGENTS.md content.
+- `.agents/memory/` contains only the three canonical memory types: `project-context.md`, `decisions.md`, `glossary.md`.

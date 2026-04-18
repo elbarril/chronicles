@@ -20,17 +20,9 @@ Chronicle captures observations of groups performing activities within an instit
 2. The system organizes observations by participant, activity, and time.
 3. An agent or user generates a chronicle narrative from the structured observations.
 
-## Design Principles (from AGENTS.md)
-
-- **UX first**: clarity, low friction, accessibility.
-- **Simplicity**: simple solutions over complex ones.
-- **Minimal external dependencies**: self-contained and portable implementations.
-
 ## Technical Stack
 
-**Local-first** web app without backend for v1. Stack: Vite + React + TypeScript, Tailwind + shadcn/ui, React Router, React Hook Form + Zod, Dexie.js (IndexedDB, includes Blobs for image/video/audio), vite-plugin-pwa, Vitest + Playwright, pnpm.
-
-Canonical document: `docs/stack-and-architecture.md` (includes architecture, domain model, and conventions). Decision registered in `.agents/memory/decisions.md` on 2026-04-17.
+**Local-first** web app (Vite + React + TypeScript, Dexie.js/IndexedDB, PWA). Full stack and architecture: `docs/stack-and-architecture.md`.
 
 ## Current Functional State
 
