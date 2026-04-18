@@ -12,6 +12,7 @@ import { GroupFormPage } from "@/features/groups/pages/GroupFormPage";
 import { GroupListPage } from "@/features/groups/pages/GroupListPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
+import { ImportPage } from "@/features/import/pages/ImportPage";
 
 export const router = createBrowserRouter([
   {
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
       {
         path: "/encounters/:id/observations/new",
         element: <EncounterDetailPage />,
+      },
+      {
+        path: "/import",
+        element: <ImportPage />,
       },
       {
         path: "*",
