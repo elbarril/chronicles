@@ -24,7 +24,8 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - F1 completed (baseline): Field CRUD with create/edit/archive/list and validations by type.
 - F2 completed (baseline): Observation Form Editor with compose/reorder/version and routes `/forms*`.
 - F3 completed (baseline): Groups/Participants CRUD, Encounter create/finish with form snapshot, Observation capture with dynamic fields and media.
-- Target next phase: F4 (Export/Import JSON + media).
+- F4 completed (baseline): Encounter ZIP export/import with preview+confirm, upsert-by-ID import, route `/import`.
+- Target next phase: F5 (Chronicle Generation prototype).
 
 ## F1 Module: Fields
 
@@ -58,6 +59,14 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - Persistence: `src/infra/db/repositories/encounter-repository.ts`, `src/infra/db/repositories/observation-repository.ts` (Dexie schema v4).
 - Media: `src/infra/media/store.ts` (Blob CRUD), `src/infra/media/recorder.ts` (in-app audio).
 - Main tests: `tests/unit/encounter-schema.test.ts`, `tests/unit/observation-schema.test.ts`, `tests/e2e/encounter-capture.spec.ts`.
+
+## F4 Module: Export / Import
+
+- Routes/actions: `/import`, plus export action from `/encounters/:id`.
+- Features: `src/features/import/`, `src/features/encounters/hooks/use-export-encounter.ts`.
+- Infra: `src/infra/export/manifest.ts`, `src/infra/export/encounter-exporter.ts`, `src/infra/export/encounter-importer.ts`.
+- Dependency: `jszip`.
+- Main tests: `tests/unit/zip-manifest.test.ts`, `tests/unit/encounter-exporter.test.ts`, `tests/unit/encounter-importer.test.ts`, `tests/e2e/encounter-export-import.spec.ts`.
 
 ## Working with Agents
 
