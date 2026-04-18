@@ -29,7 +29,9 @@ y las transforma en reportes narrativos estructurados (crónicas).
 
 ## Stack Técnico
 
-Pendiente de definición en la primera sesión de implementación.
+Web app **local-first** sin backend para v1. Stack: Vite + React + TypeScript, Tailwind + shadcn/ui, React Router, React Hook Form + Zod, Dexie.js (IndexedDB, incluye Blobs para imagen/video/audio), vite-plugin-pwa, Vitest + Playwright, pnpm.
+
+Documento canónico: `docs/stack-and-architecture.md` (incluye arquitectura, modelo de dominio y convenciones). Decisión registrada en `.agents/memory/decisions.md` el 2026-04-17.
 
 ## Audiencia
 

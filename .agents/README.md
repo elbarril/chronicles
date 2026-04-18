@@ -17,11 +17,16 @@ Este directorio concentra la infraestructura de trabajo con agentes para Chronic
 |`workflows/create-workflow.md`|Runbook para crear workflows|Al convertir una tarea repetible en proceso formal|
 |`workflows/update-memory.md`|Runbook para actualizar memoria|Al registrar contexto, decisiones o cambios terminológicos|
 
+## Referencias fuera de `.agents/`
+
+- `../docs/stack-and-architecture.md`: fuente de verdad del stack, arquitectura en capas, modelo de dominio y convenciones de código. Lectura obligatoria cuando la tarea toca stack, persistencia, estructura de carpetas o dominio. Mantenimiento según su sección 8.
+
 ## Protocolo de Encuentro
 
 1. Leer `../AGENTS.md` para reglas globales de comportamiento.
 2. Restaurar contexto con `memory/project-context.md` y `memory/decisions.md`.
-3. Si la tarea toca `.agents/`, delegar ejecución a `skills/agent-workspace-manager/SKILL.md`.
+3. Si la tarea toca stack o arquitectura, leer `../docs/stack-and-architecture.md`.
+4. Si la tarea afecta `.agents/`, delegar ejecución a `skills/agent-workspace-manager/SKILL.md`.
 
 ## Interoperabilidad
 

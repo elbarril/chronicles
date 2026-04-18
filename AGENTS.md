@@ -11,8 +11,9 @@ Al iniciar cualquier sesión de trabajo:
 1. Leer este `AGENTS.md` completo.
 2. Leer `.agents/memory/project-context.md`.
 3. Leer `.agents/memory/decisions.md`.
-4. Si la tarea afecta `.agents/`, usar `.agents/README.md` y delegar en `skills/agent-workspace-manager/SKILL.md`.
-5. Si se crean o renombran conceptos de dominio, revisar `.agents/memory/glossary.md`.
+4. Si la tarea toca stack, arquitectura, estructura de carpetas, persistencia o modelo de dominio, leer `docs/stack-and-architecture.md` y respetar su protocolo de mantenimiento (sección 8).
+5. Si la tarea afecta `.agents/`, usar `.agents/README.md` y delegar en `skills/agent-workspace-manager/SKILL.md`.
+6. Si se crean o renombran conceptos de dominio, revisar `.agents/memory/glossary.md`.
 
 ## Rol del Agente y Ownership
 
