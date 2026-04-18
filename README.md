@@ -21,3 +21,24 @@ Definición completa y protocolo de mantenimiento: [`docs/stack-and-architecture
 ## Trabajo con agentes
 
 Este repositorio sigue la convención `AGENTS.md`. Punto de entrada: [`AGENTS.md`](AGENTS.md). Capa operativa tool-agnostic en [`.agents/`](.agents/README.md).
+
+## Desarrollo local
+
+### Requisitos
+
+- Node.js `>= 20`
+- pnpm `>= 9`
+
+### Comandos
+
+```bash
+pnpm install
+pnpm dev
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm test:e2e
+pnpm build
+pnpm preview
+```

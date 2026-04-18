@@ -58,3 +58,57 @@ Registro de decisiones técnicas y de producto. Solo se agregan entradas, nunca 
 - Se agregan al glosario los términos `Campo` y `Formulario de Observación`.
 - Versionado de schema de IndexedDB se documenta también aquí cuando cambie.
 - Descartadas explícitamente en v1: backend propio, BaaS (Supabase/Firebase), state managers globales, UI kits pesadas, ORMs.
+
+---
+
+## [2026-04-17] Creación de skills phase-closeout y update-project-docs
+
+**Contexto:** Al completar la fase F0 de scaffolding se evidenció que no existía un proceso formal para cerrar una fase de implementación y actualizar toda la documentación del proyecto de forma consistente. Sin un proceso definido, la documentación técnica y de agentes diverge del estado real del código.
+
+**Decisión:** Se crean dos skills complementarias:
+
+1. **`phase-closeout`**: orquesta el cierre de cada fase — inventaría lo construido, evalúa y crea skills nuevas, y dispara la actualización de documentación.
+2. **`update-project-docs`**: skill reutilizable que actualiza de forma consistente todos los artefactos de documentación (`docs/stack-and-architecture.md`, `project-context.md`, `decisions.md`, `glossary.md`, `README.md`, `.agents/README.md`).
+
+Toda skill futura debe incluir una referencia a `update-project-docs` para garantizar que la documentación se mantiene sincronizada.
+
+**Justificación:**
+
+- Formaliza el proceso post-implementación que de otro modo depende de la memoria del agente o del humano.
+- Centraliza la lógica de actualización de documentación en una skill reutilizable (DRY).
+- Define una Responsibility Matrix que evita duplicación entre documentos.
+- Garantiza que cada fase deja el proyecto en estado documentado y auditable.
+
+**Consecuencias:**
+
+- Todo cierre de fase debe ejecutar `phase-closeout`.
+- Toda skill nueva debe referenciar `update-project-docs` en sus constraints o steps.
+- `.agents/README.md` fue actualizado con las dos skills nuevas.
+- Las skills existentes no se modifican retroactivamente, pero las futuras deben seguir esta convención.
+
+---
+
+## [2026-04-17] Cierre de Fase F0 — Scaffolding
+
+**Contexto:** Se completó la fase F0 del roadmap técnico, que abarca el scaffolding completo del proyecto.
+
+**Decisión:** Se da por cerrada la fase F0 con el siguiente alcance implementado:
+
+- **Build/Dev:** Vite 5 + React 18 + TypeScript 5 (strict) + pnpm.
+- **Estilos/UI:** Tailwind CSS v4 (CSS-first) + shadcn/ui primitivas (button, input, label, card, dialog, form, sonner).
+- **Routing:** React Router v7 (library mode, `createBrowserRouter`).
+- **Formularios:** React Hook Form + Zod v4 + `buildResolver` helper.
+- **Persistencia:** Dexie.js v4 con schema v1 (institutions, groups, participants, fields, forms, encounters, observations, media).
+- **PWA:** vite-plugin-pwa con autoUpdate, manifest, workbox runtime caching, placeholder icons.
+- **Testing:** Vitest + React Testing Library (unit), Playwright (E2E). Smoke tests en verde.
+- **Lint/Format:** ESLint 9 flat config + Prettier + prettier-plugin-tailwindcss.
+- **Estructura:** carpetas según `docs/stack-and-architecture.md` sección 5.2.
+- **App shell:** providers (theme + toast), layout (header/main/footer), router con home y 404.
+
+**Justificación:** Todos los criterios de salida de F0 se cumplen: `pnpm dev` levanta, build produce dist, lint/format/typecheck/test/test:e2e pasan en verde.
+
+**Consecuencias:**
+
+- `project-context.md` actualizado a estado "F0 completo".
+- `docs/stack-and-architecture.md` roadmap marca F0 como completada.
+- El proyecto está listo para comenzar F1 (CRUD de Campos).

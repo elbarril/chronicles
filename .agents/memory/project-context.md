@@ -8,7 +8,7 @@
 | Tipo | Aplicación web |
 | Dominio | Observación institucional y generación de crónicas |
 | Repositorio | `/home/emiliano/www/emisrepos/chronicle` |
-| Estado | Inicializado — sin código de aplicación todavía (2026-04-17) |
+| Estado | F0 scaffolding completo — stack funcional, build/lint/test en verde (2026-04-17) |
 
 ## Propósito
 

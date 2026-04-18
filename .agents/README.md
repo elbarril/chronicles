@@ -13,6 +13,8 @@ Este directorio concentra la infraestructura de trabajo con agentes para Chronic
 |`templates/workflow.template.md`|Plantilla para nuevos workflows|Cuando se crea un workflow en `workflows/`|
 |`templates/memory.template.md`|Plantilla base de memoria|Cuando se crea un archivo nuevo en `memory/`|
 |`skills/agent-workspace-manager/SKILL.md`|Skill de gobernanza de `.agents/`|Cuando una tarea crea o modifica skills, workflows o memoria|
+|`skills/phase-closeout/SKILL.md`|Cierre de fase: audita lo construido, crea skills y dispara actualización de docs|Al completar una fase del roadmap (F0, F1, ...)|
+|`skills/update-project-docs/SKILL.md`|Actualización consistente de toda la documentación del proyecto|Cuando cambia stack, dominio, estructura o se cierra una fase|
 |`workflows/create-skill.md`|Runbook para crear skills|Al dar de alta una capacidad nueva|
 |`workflows/create-workflow.md`|Runbook para crear workflows|Al convertir una tarea repetible en proceso formal|
 |`workflows/update-memory.md`|Runbook para actualizar memoria|Al registrar contexto, decisiones o cambios terminológicos|

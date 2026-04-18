@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Chronicle">
+  <rect width="512" height="512" rx="96" fill="#0f172a" />
+  <path
+    d="M334 140c-24-16-50-24-82-24-78 0-138 57-138 140s60 140 138 140c31 0 58-7 82-24v-64c-20 21-46 31-75 31-44 0-79-35-79-83s35-83 79-83c29 0 55 11 75 31v-64z"
+    fill="#f8fafc"
+  />
+</svg>

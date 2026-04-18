@@ -3,7 +3,7 @@
 Este documento es la **fuente de verdad** para decisiones técnicas estructurales de Chronicle.
 Define el stack, la arquitectura de capas, los módulos principales y las convenciones de desarrollo.
 
-Última actualización: 2026-04-17
+Última actualización: 2026-04-18
 
 ---
 
@@ -241,14 +241,14 @@ Tablas sugeridas (todas con `id` UUID v4 generado en cliente):
 
 | Fase | Entregable | Criterios de salida |
 |------|-----------|---------------------|
-| F0 | Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA | `pnpm dev` levanta, PWA instalable, lint/test OK |
+| **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completada 2026-04-17** |
 | F1 | CRUD de Campos | Crear/editar/archivar todos los tipos de Campo, con validaciones |
 | F2 | Editor de Formularios de Observación | Componer, reordenar, versionar |
 | F3 | Encuentros y captura de Observaciones (incluye media) | Flujo completo de una sesión |
 | F4 | Export/Import (JSON + media) | Round-trip sin pérdida |
 | F5 | Generación de Crónica (primer prototipo) | Plantilla básica a partir de observaciones |
 
-Cada fase cierra con entrada en `decisions.md` si hubo desvío del plan.
+Cada fase cierra ejecutando la skill `.agents/skills/phase-closeout/SKILL.md`, que registra decisiones, crea skills nuevas y actualiza toda la documentación.
 
 ---
 
