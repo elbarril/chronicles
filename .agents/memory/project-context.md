@@ -8,7 +8,7 @@
 | Type | Web application |
 | Domain | Institutional observation and chronicle generation |
 | Repository | `/home/emiliano/www/emisrepos/chronicle` |
-| State | F1 Field CRUD implemented (functional baseline) — create/edit/archive/list in UI + domain validation + unit/E2E tests green (2026-04-18) |
+| State | F2 Observation Form Editor implemented (functional baseline) — forms compose/reorder/version + create/edit/archive/restore/list + unit/E2E tests green (2026-04-18) |
 
 ## Purpose
 
@@ -28,10 +28,12 @@ Chronicle captures observations of groups performing activities within an instit
 
 - **F0:** scaffolding complete.
 - **F1 (implemented):** `field-definitions` module with routes `/fields`, `/fields/new`, `/fields/:id/edit`.
+- **F2 (implemented):** `forms` module with routes `/forms`, `/forms/new`, `/forms/:id/edit`.
 - **Fields:** create, edit, archive/restore, list active/archived.
-- **Domain `Field`:** discriminated union by `type` + typed `config` per variant, `createdAt/updatedAt/archivedAt`.
-- **Persistence:** Dexie schema v2 for `fields` with `createdAt` index and dedicated repository.
-- **Current testing:** `tests/unit/home.test.tsx`, `tests/unit/field-schema.test.ts`, `tests/unit/slugify.test.ts`, `tests/e2e/smoke.spec.ts`, `tests/e2e/field-crud.spec.ts`.
+- **Forms:** compose ordered field sets, accessible reorder (up/down), auto-version on update, create/edit/archive/restore/list.
+- **Domain:** `Field` discriminated union by `type`; `ObservationForm` with `createdAt/updatedAt/archivedAt` and unique ordered `fieldIds`.
+- **Persistence:** Dexie schema v3 (`forms` indexed by `createdAt`) with dedicated repositories for fields/forms.
+- **Current testing:** `tests/unit/home.test.tsx`, `tests/unit/field-schema.test.ts`, `tests/unit/form-schema.test.ts`, `tests/unit/form-service.test.ts`, `tests/unit/slugify.test.ts`, `tests/e2e/smoke.spec.ts`, `tests/e2e/field-crud.spec.ts`, `tests/e2e/forms-compose.spec.ts`.
 
 ## Audience
 

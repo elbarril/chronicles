@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-04-18 (F1 implemented, language policy refactored)
+Last updated: 2026-04-18 (F2 implemented, observation form editor baseline)
 
 ---
 
@@ -200,7 +200,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `groups` | `id`, `institutionId`, `name` | index by `institutionId` |
 | `participants` | `id`, `groupId`, `displayName` | index by `groupId` |
 | `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
-| `forms` | `id`, `name`, `fieldIds[]`, `version`, `archivedAt?` | `fieldIds` preserves order |
+| `forms` | `id`, `name`, `fieldIds[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fieldIds` preserves order and uniqueness; version auto-increments on update |
 | `encounters` | `id`, `groupId`, `formId`, `activity`, `startedAt`, `endedAt?` | |
 | `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId` |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
@@ -255,7 +255,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | ------ | ----------- | --------------------- |
 | **F0** | **Scaffolding: Vite + React + TS + Tailwind + shadcn + Dexie + router + PWA** | **Completed 2026-04-17** |
 | **F1** | **Field CRUD** | **Completed 2026-04-18 (baseline): create/edit/archive/list, routes `/fields*`, validation by type and unit/E2E tests** |
-| F2 | Observation Form Editor | Compose, reorder, version |
+| **F2** | **Observation Form Editor** | **Completed 2026-04-18 (baseline): create/edit/archive/restore/list, routes `/forms*`, ordered field composition with accessible reorder, auto version bump, unit/E2E tests** |
 | F3 | Encounters and Observation Capture (includes media) | Complete flow of a session |
 | F4 | Export/Import (JSON + media) | Round-trip without loss |
 | F5 | Chronicle Generation (first prototype) | Basic template from observations |

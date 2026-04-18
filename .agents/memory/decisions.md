@@ -170,3 +170,61 @@ Log of technical and product decisions. Only append entries, never edit existing
 - Bootstrap is defined in one canonical place (`AGENTS.md`) and referenced by bridges, not duplicated.
 - `project-context.md` no longer self-duplicates AGENTS.md content.
 - `.agents/memory/` contains only the three canonical memory types: `project-context.md`, `decisions.md`, `glossary.md`.
+
+---
+
+## [2026-04-18] Implementation F2 — Observation Form Editor
+
+**Context:** F2 required enabling practitioners to compose and maintain reusable Observation Forms from existing Fields, preserving order and version history.
+
+**Decision:** Implemented a full F2 baseline with the following scope:
+
+- **Domain:** `ObservationForm` normalized with `createdAt`, `updatedAt`, `archivedAt`, and unique ordered `fieldIds`.
+- **Versioning:** form version starts at `1` and auto-increments on every update.
+- **Persistence:** Dexie schema upgraded to v3; `forms` table includes `createdAt` index and dedicated repository.
+- **Feature module:** new `src/features/forms/` module (services, hooks, pages, components, messages/defaults).
+- **UX:** accessible form composer with explicit add/remove and keyboard-friendly reorder (`↑ Subir` / `↓ Bajar`) plus `aria-live` announcements.
+- **Routing/UI:** routes `/forms`, `/forms/new`, `/forms/:id/edit` and main navigation entry “Formularios”.
+- **Testing:** added `tests/unit/form-schema.test.ts`, `tests/unit/form-service.test.ts`, and `tests/e2e/forms-compose.spec.ts`.
+
+**Justification:**
+
+- Delivers the roadmap milestone for Observation Form editing while preserving local-first constraints.
+- Keeps architecture consistent with F1 patterns (feature module + repository + domain schema + reactive hooks).
+- Improves accessibility and reduces complexity by avoiding drag-and-drop dependencies.
+
+**Consequences:**
+
+- F2 is completed in baseline state and F3 (Encounters/Observation Capture) can build on top of forms.
+- Forms now enforce ordered unique field composition and deterministic version progression.
+- Dexie persistence contract changed (v3), requiring documentation synchronization in architecture/context files.
+
+---
+
+## [2026-04-18] Testing infrastructure improvement — non-blocking E2E, dev server, and test-fix skill
+
+**Context:** During F1 and F2 implementation sessions, agents incurred significant friction from three sources: (1) `pnpm test:e2e` required a full production build on every run; (2) Playwright's `html` reporter started an HTTP server after failures (`Serving HTML report at localhost:9323. Press Ctrl+C to quit.`) that blocked the agent console; (3) no documented patterns existed for common failure classes (`vi.mock` TDZ hoisting, E2E strict mode violations, stale test data), causing 6+ repetitive retry cycles per session.
+
+**Decision:**
+
+1. **`playwright.config.ts`**: default reporter changed from `"html"` to `"list"` (exits cleanly after every run). HTML reporter reserved for CI via `process.env.CI`. `webServer.command` changed from `pnpm preview --port 4173` (requires built `dist/`) to `pnpm dev --port 4173` (starts the Vite dev server — no build required).
+
+2. **`package.json`** scripts:
+   - `test:e2e`: now just `playwright test` — Playwright manages the dev server lifecycle automatically.
+   - `test:e2e:ci`: `pnpm build && E2E_PREVIEW=1 playwright test` — production build + preview server for CI.
+   - `check`: `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` — full fail-fast verification in one command.
+
+3. **`.agents/skills/test-fix/SKILL.md`**: new skill with a lookup table covering the five most common failure classes observed in F1/F2: `vi.mock` hoisting TDZ, unresolvable module aliases, `expect` shape mismatch, locator timeout (stale data / insufficient scoping), E2E strict mode violation.
+
+4. **`.agents/workflows/verify.md`**: new workflow defining the correct verification sequence for implementation sessions (`pnpm test` → `pnpm test:e2e` → `pnpm check` before commit). Also available as `/verify` Cascade slash command via `.windsurf/workflows/verify.md` stub.
+
+**Justification:**
+- Removing the build from the default `test:e2e` path eliminates ~1.5 s per iteration and removes the `dist/` dependency.
+- Switching to `list` reporter eliminates the blocking HTTP server that made agent sessions unrecoverable without manual intervention.
+- Formalizing failure classes and fixes reduces multi-turn diagnosis loops to a single lookup.
+
+**Consequences:**
+- `pnpm test:e2e` is now safe to run as a Blocking command — it always exits cleanly.
+- `pnpm check` is the canonical pre-commit verification command.
+- Agents must consult `test-fix` skill before retrying a failing test more than once.
+- The production build path (`pnpm test:e2e:ci`) is preserved for CI and explicit production validation.

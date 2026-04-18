@@ -15,12 +15,14 @@ This directory concentrates the agent workspace infrastructure for Chronicle and
 | `skills/agent-workspace-manager/SKILL.md` | Governance skill for `.agents/` | When a task creates or modifies skills, workflows, or memory |
 | `skills/phase-closeout/SKILL.md` | Phase closeout | When completing a roadmap phase (F0, F1, ...) |
 | `skills/update-project-docs/SKILL.md` | Consistent update of project docs | When stack, domain, structure change or a phase is closed |
+| `skills/test-fix/SKILL.md` | Diagnose and fix test failures | When `pnpm test` or `pnpm test:e2e` exits with errors |
 | `workflows/create-skill.md` | Runbook to create skills | When adding a new capability |
 | `workflows/create-rule.md` | Runbook to create canonical rules | When defining new agent rules |
 | `workflows/create-workflow.md` | Runbook to create workflows | When converting a repeatable task into a formal process |
 | `workflows/phase-closeout.md` | Canonical runbook for phase closeout | When executing the closeout of a roadmap phase |
 | `workflows/project-documentation.md` | Canonical runbook for project docs | When technical functional documentation is requested |
 | `workflows/update-memory.md` | Runbook to update memory | When recording context, decisions, or terminology changes |
+| `workflows/verify.md` | Run the test suite efficiently | During implementation, before committing, before phase closeout |
 | `rules/agents.md` | Canonical bootstrap rule | Always: before executing tasks with agents |
 | `rules/language-policy.md` | Language policy rule | Always: dictates English/Spanish artifact boundaries |
 
