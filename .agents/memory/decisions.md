@@ -379,4 +379,27 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 
 - F5 is complete in baseline state and the roadmap now reaches its first chronicle-generation milestone.
 - The application now supports the full core chain from observation capture to consumable narrative output in local storage.
-- Documentation state transitions to F5 and Dexie schema v5 as current baseline.
+
+---
+
+## [2026-04-18] Verification hardening — lockfile integrity preflight for CI/deploy parity
+
+**Context:** A deployment attempt in Vercel failed with `ERR_PNPM_OUTDATED_LOCKFILE` because `pnpm-lock.yaml` was out of sync with `package.json`. CI environments run installs with frozen lockfile by default, so dependency metadata drift can pass local checks if not explicitly validated.
+
+**Decision:** Updated existing canonical assets (no new skill/workflow created):
+
+- `.agents/workflows/verify.md` now starts with `pnpm install --frozen-lockfile` as a mandatory preflight before `pnpm check`.
+- `.agents/skills/phase-implementer/SKILL.md` now requires the same frozen-lockfile preflight in the full verification step.
+- `phase-implementer` explicitly states that `package.json` and `pnpm-lock.yaml` must be committed together when dependencies change and forbids proposing commits with metadata drift.
+
+**Justification:**
+
+- Aligns local verification with CI/deploy behavior (Vercel and similar providers).
+- Prevents avoidable deployment failures caused by lockfile drift.
+- Reuses and strengthens existing workflows/skills, avoiding process duplication.
+
+**Consequences:**
+
+- `pnpm install --frozen-lockfile` becomes part of the standard pre-commit/pre-deploy guardrail.
+- Dependency updates now have an explicit process invariant: metadata files remain synchronized.
+- Future phase implementations inherit this protection automatically through the canonical `phase-implementer` skill.

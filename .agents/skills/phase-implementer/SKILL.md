@@ -128,11 +128,23 @@ For each E2E spec in the plan:
 
 ### 11. Run full verification
 
+First run lockfile integrity preflight:
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+If this fails with lockfile drift:
+- Run `pnpm install` to regenerate `pnpm-lock.yaml`.
+- Ensure dependency metadata files stay synchronized.
+
 ```bash
 pnpm check
 ```
 
 This runs `typecheck → lint → test → test:e2e` in sequence. All checks must pass before committing.
+
+If dependencies changed in the phase, `package.json` and `pnpm-lock.yaml` must be committed together.
 
 If any check fails:
 - For test failures: consult `.agents/skills/test-fix/SKILL.md`.
@@ -165,6 +177,7 @@ Delegate to `.agents/skills/phase-closeout/SKILL.md`:
 
 - Feature branch with all implementation committed.
 - `pnpm check` green (typecheck + lint + unit + E2E tests).
+- Frozen lockfile preflight passes (`pnpm install --frozen-lockfile`).
 - Phase-closeout documentation commit proposed to the user.
 - `decisions.md` entry for the phase closure.
 - All project docs updated (`stack-and-architecture.md`, `project-context.md`, `glossary.md`, `README.md`, `.agents/README.md`).
@@ -177,5 +190,6 @@ Delegate to `.agents/skills/phase-closeout/SKILL.md`:
 - NEVER expose Dexie internals outside repositories.
 - NEVER write user-facing strings in English — all UI text must be in rioplatense Spanish.
 - NEVER skip full verification (`pnpm check`) before proposing the implementation commit.
+- NEVER propose a commit with dependency metadata drift between `package.json` and `pnpm-lock.yaml`.
 - NEVER skip `phase-closeout` — it is mandatory at the end of every phase.
 - NEVER merge directly to `master` — always propose a merge/PR to the user.
