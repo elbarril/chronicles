@@ -1,36 +1,29 @@
 ---
-description: Run the full test suite efficiently during implementation — no blocking processes, no unnecessary builds.
+description: Run project verification efficiently with a single command and optional troubleshooting fallbacks.
 ---
 
 # Verify
 
 ## Steps
 
-1. Run unit tests first — they are fast (~2 s) and confirm domain logic before exercising the UI:
-
-   ```bash
-   pnpm test
-   ```
-
-   If this fails, stop. Consult `.agents/skills/test-fix/SKILL.md` to diagnose and fix before continuing.
-
-2. Run E2E tests. The Playwright dev server starts automatically — no build required:
-
-   ```bash
-   pnpm test:e2e
-   ```
-
-   Output uses `list` reporter: it prints each result to stdout and exits cleanly (no HTTP server left running).
-
-   If this fails, read the full output. Match the failure to a class in `.agents/skills/test-fix/SKILL.md` and apply the fix.
-
-3. To run all checks in one command before committing or closing a phase:
+1. Run full verification in a single command before committing or closing a phase:
 
    ```bash
    pnpm check
    ```
 
-   This runs `typecheck → lint → test → test:e2e` in sequence. Fails fast on the first error.
+   This runs `typecheck → lint → test → test:e2e` in sequence and fails fast on the first error.
+
+2. If `pnpm check` fails and you need focused troubleshooting, run individual commands:
+
+   ```bash
+   pnpm test
+   pnpm test:e2e
+   ```
+
+   - Use `pnpm test` first for fast domain-level feedback.
+   - Use `pnpm test:e2e` to diagnose Playwright/UI flows.
+   - Match failures to `.agents/skills/test-fix/SKILL.md` and apply the corresponding fix pattern.
 
 ## Notes
 

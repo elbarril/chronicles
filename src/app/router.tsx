@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router";
 
 import { RootLayout } from "@/app/layout";
+import { ChronicleDetailPage } from "@/features/chronicles/pages/ChronicleDetailPage";
+import { ChronicleListPage } from "@/features/chronicles/pages/ChronicleListPage";
 import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
 import { EncounterListPage } from "@/features/encounters/pages/EncounterListPage";
 import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
@@ -77,6 +79,14 @@ export const router = createBrowserRouter([
       {
         path: "/import",
         element: <ImportPage />,
+      },
+      {
+        path: "/chronicles",
+        element: <ChronicleListPage />,
+      },
+      {
+        path: "/chronicles/:id",
+        element: <ChronicleDetailPage />,
       },
       {
         path: "*",

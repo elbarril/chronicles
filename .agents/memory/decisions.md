@@ -342,3 +342,41 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - F4 is complete in baseline state; roadmap focus can move to F5 (chronicle generation).
 - Export/import becomes an explicit operational capability in the product shell and architecture docs.
 - The project now has round-trip data portability without backend dependencies.
+
+---
+
+## [2026-04-18] Phase Closeout F5 — Chronicle Generation (First Prototype)
+
+**Context:** F5 required delivering a first functional chronicle-generation flow using the existing local-first encounter dataset, with deterministic output and no external AI service dependency.
+
+**Decision:** Implemented and closed F5 with the following scope:
+
+- **Domain:** added `Chronicle` entity in `src/domain/chronicle.ts` with Zod schema and input schema (`id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `updatedAt`).
+- **Error model:** added `CHRONICLE_NOT_FOUND`, `CHRONICLE_ENCOUNTER_REQUIRED`, and `CHRONICLE_GENERATION_FAILED` codes in `src/lib/error.ts`.
+- **Persistence:** Dexie schema upgraded to v5 with new `chronicles` table (`id, encounterId, generatedAt, createdAt`) and table binding in `src/infra/db/client.ts`.
+- **Repository:** new `src/infra/db/repositories/chronicle-repository.ts` with create/update/upsert-by-encounter/get/list/delete operations.
+- **Feature module (`src/features/chronicles/`):**
+  - Service (`chronicle-service.ts`) with deterministic narrative generation from encounter/group/participant/field/observation data.
+  - Hooks (`use-chronicles`, `use-chronicle`, `use-chronicle-actions`) for reactive reads and write actions.
+  - UI pages/components for `/chronicles` list and `/chronicles/:id` detail (`ChronicleListPage`, `ChronicleDetailPage`, `ChronicleCard`, `ChronicleViewer`).
+  - Spanish user-facing copy centralized in `lib/messages.ts`.
+- **Encounter integration:** added "Generar crónica" action in encounter detail header; if a chronicle already exists for the encounter, navigation goes directly to the existing chronicle; otherwise it generates and redirects.
+- **Routing/navigation:** registered `/chronicles` and `/chronicles/:id` routes and main navigation entry `Crónicas`.
+- **Testing:**
+  - Unit: `tests/unit/chronicle-schema.test.ts`, `tests/unit/chronicle-service.test.ts`.
+  - E2E: `tests/e2e/chronicle-generation.spec.ts` (happy path + empty-observation critical path).
+  - Verification: `pnpm check` green (typecheck, lint, unit, E2E), with one pre-existing lint warning in `FieldForm.tsx` unrelated to F5 scope.
+
+**Key technical decisions:**
+
+- **No external generation dependency:** chronicle generation remains deterministic and local, preserving offline and minimal-dependency principles.
+- **One chronicle per encounter:** repository uses upsert-by-`encounterId` to keep a stable artifact per encounter while supporting regeneration.
+- **Generation entrypoint from encounter detail:** minimizes user friction by placing chronicle creation in the natural post-observation workflow.
+
+**Skill evaluation:** No new skill required. F5 follows established repository/service/hooks/pages/testing patterns and remains covered by existing `phase-planner`, `phase-implementer`, `phase-closeout`, `update-project-docs`, and `verify` skills.
+
+**Consequences:**
+
+- F5 is complete in baseline state and the roadmap now reaches its first chronicle-generation milestone.
+- The application now supports the full core chain from observation capture to consumable narrative output in local storage.
+- Documentation state transitions to F5 and Dexie schema v5 as current baseline.

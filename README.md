@@ -25,7 +25,7 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - F2 completed (baseline): Observation Form Editor with compose/reorder/version and routes `/forms*`.
 - F3 completed (baseline): Groups/Participants CRUD, Encounter create/finish with form snapshot, Observation capture with dynamic fields and media.
 - F4 completed (baseline): Encounter ZIP export/import with preview+confirm, upsert-by-ID import, route `/import`.
-- Target next phase: F5 (Chronicle Generation prototype).
+- F5 completed (baseline): Deterministic chronicle generation from encounters, routes `/chronicles`, `/chronicles/:id`, and generation action from encounter detail.
 
 ## F1 Module: Fields
 
@@ -67,6 +67,14 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - Infra: `src/infra/export/manifest.ts`, `src/infra/export/encounter-exporter.ts`, `src/infra/export/encounter-importer.ts`.
 - Dependency: `jszip`.
 - Main tests: `tests/unit/zip-manifest.test.ts`, `tests/unit/encounter-exporter.test.ts`, `tests/unit/encounter-importer.test.ts`, `tests/e2e/encounter-export-import.spec.ts`.
+
+## F5 Module: Chronicle Generation
+
+- Routes/actions: `/chronicles`, `/chronicles/:id`, plus generation action from `/encounters/:id`.
+- Feature: `src/features/chronicles/`.
+- Domain: `src/domain/chronicle.ts`.
+- Persistence: `src/infra/db/repositories/chronicle-repository.ts` (Dexie schema v5 with `chronicles` table).
+- Main tests: `tests/unit/chronicle-schema.test.ts`, `tests/unit/chronicle-service.test.ts`, `tests/e2e/chronicle-generation.spec.ts`.
 
 ## Working with Agents
 
