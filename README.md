@@ -100,3 +100,22 @@ pnpm test:e2e
 pnpm build
 pnpm preview
 ```
+
+## Deployment (Vercel)
+
+This app is a static client-side build (`pnpm build` output in `dist`), so it can be deployed directly to Vercel.
+
+Pre-deploy checklist (mandatory):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+```
+
+- If frozen lockfile fails, run `pnpm install` and commit dependency metadata changes.
+- Keep `package.json` and `pnpm-lock.yaml` synchronized and committed together when dependencies change.
+- In Vercel logs, verify the deployed commit hash matches the latest `master` commit.
+
+Repository guardrail:
+
+- GitHub Action `.github/workflows/lockfile-integrity.yml` validates `pnpm install --frozen-lockfile` on `push` and `pull_request` to `master`.

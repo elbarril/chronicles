@@ -403,3 +403,24 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - `pnpm install --frozen-lockfile` becomes part of the standard pre-commit/pre-deploy guardrail.
 - Dependency updates now have an explicit process invariant: metadata files remain synchronized.
 - Future phase implementations inherit this protection automatically through the canonical `phase-implementer` skill.
+
+---
+
+## [2026-04-18] CI guardrail for lockfile drift and deployment documentation
+
+**Context:** Even after adding local process guardrails (`verify` workflow and `phase-implementer` skill), deployment failures can still happen if a stale commit is deployed or if contributors skip local preflight checks.
+
+**Decision:** Added repository-level enforcement and explicit deployment docs:
+
+- Created `.github/workflows/lockfile-integrity.yml` to run `pnpm install --frozen-lockfile` on `push` and `pull_request` to `master`.
+- Updated `README.md` with a dedicated "Deployment (Vercel)" section including mandatory pre-deploy checklist and commit-hash verification guidance.
+
+**Justification:**
+
+- Adds an automated, centralized protection layer independent of local environment discipline.
+- Improves deployment operability by documenting the exact validation path and the stale-commit detection check.
+
+**Consequences:**
+
+- Lockfile drift is now blocked by CI before or at integration time.
+- Vercel deploy troubleshooting is now first-class documentation in `README.md`.
