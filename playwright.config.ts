@@ -13,6 +13,15 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:4173",
+          localStorage: [{ name: "chronicle.onboardingCompleted", value: "true" }],
+        },
+      ],
+    },
   },
   projects: [
     {
