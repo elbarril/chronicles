@@ -12,15 +12,14 @@ import {
 } from "@/components/ui/dialog";
 import { type Observation } from "@/domain/observation";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
-import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 import { EncounterHeader } from "@/features/encounters/components/EncounterHeader";
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
-import { useExportEncounter } from "@/features/encounters/hooks/use-export-encounter";
 import { encounterMessages } from "@/features/encounters/lib/messages";
 import { ObservationForm } from "@/features/observations/components/ObservationForm";
 import { useObservationActions } from "@/features/observations/hooks/use-observation-actions";
+import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 
 export function EncounterDetailPage(): JSX.Element {
   const params = useParams();
@@ -31,7 +30,6 @@ export function EncounterDetailPage(): JSX.Element {
 
   const { encounter, fields, participants, observations, isLoading } = useEncounter(encounterId);
   const encounterActions = useEncounterActions();
-  const encounterExport = useExportEncounter();
   const chronicleActions = useChronicleActions();
   const observationActions = useObservationActions(fields);
 
@@ -95,14 +93,6 @@ export function EncounterDetailPage(): JSX.Element {
     }
   }
 
-  async function handleExportEncounter(): Promise<void> {
-    if (!encounter) {
-      return;
-    }
-
-    await encounterExport.exportEncounter(encounter.id);
-  }
-
   async function handleGenerateChronicle(): Promise<void> {
     if (!encounter) {
       return;
@@ -148,13 +138,10 @@ export function EncounterDetailPage(): JSX.Element {
         encounter={encounter}
         participantCount={participants.length}
         onFinish={handleFinishEncounter}
-        onExport={handleExportEncounter}
         onGenerateChronicle={handleGenerateChronicle}
         onArchive={handleArchiveEncounter}
         onRestore={handleRestoreEncounter}
-        isExporting={encounterExport.isExporting}
         isGeneratingChronicle={chronicleActions.isGenerating}
-        exportLabel={encounterMessages.exportButton}
         generateChronicleLabel={encounterMessages.generateChronicleButton}
         generatingChronicleLabel={encounterMessages.generatingChronicleButton}
         aiStatusSlot={<AiKeyStatusBadge />}
@@ -171,21 +158,24 @@ export function EncounterDetailPage(): JSX.Element {
             setEditingObservation(undefined);
             setIsDialogOpen(true);
           }}
+          data-tour="encounter.detail.new-observation"
         >
           Nueva observación
         </Button>
       </div>
 
-      <EncounterTimeline
-        observations={observations}
-        fields={fields}
-        participantById={participantById}
-        onEdit={(observation) => {
-          setEditingObservation(observation);
-          setIsDialogOpen(true);
-        }}
-        onDelete={observationActions.remove}
-      />
+      <div data-tour="encounter.detail.observations-list">
+        <EncounterTimeline
+          observations={observations}
+          fields={fields}
+          participantById={participantById}
+          onEdit={(observation) => {
+            setEditingObservation(observation);
+            setIsDialogOpen(true);
+          }}
+          onDelete={observationActions.remove}
+        />
+      </div>
 
       <Dialog
         open={isObservationNewRoute || isDialogOpen}
@@ -208,20 +198,22 @@ export function EncounterDetailPage(): JSX.Element {
             </DialogDescription>
           </DialogHeader>
 
-          <ObservationForm
-            fields={fields}
-            participants={participants.map((participant) => ({
-              id: participant.id,
-              displayName: participant.displayName,
-            }))}
-            initialObservation={editingObservation}
-            isSaving={observationActions.isSaving}
-            onSubmit={handleSubmitObservation}
-            onCancel={() => {
-              setEditingObservation(undefined);
-              setIsDialogOpen(false);
-            }}
-          />
+          <div data-tour="encounter.detail.observation-form">
+            <ObservationForm
+              fields={fields}
+              participants={participants.map((participant) => ({
+                id: participant.id,
+                displayName: participant.displayName,
+              }))}
+              initialObservation={editingObservation}
+              isSaving={observationActions.isSaving}
+              onSubmit={handleSubmitObservation}
+              onCancel={() => {
+                setEditingObservation(undefined);
+                setIsDialogOpen(false);
+              }}
+            />
+          </div>
 
           <DialogFooter>
             <Button

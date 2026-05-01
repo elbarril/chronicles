@@ -1,24 +1,38 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { type BrandColor, useTheme } from "@/app/theme";
 import { importMessages } from "@/features/import/lib/messages";
-import { confirmZipImport, parseZipForImport } from "@/features/import/services/import-service";
-import { type EncounterImportPreview } from "@/infra/export/encounter-importer";
+import {
+  confirmImport,
+  parseZipForImport,
+  type ImportPreview,
+} from "@/features/import/services/import-service";
+import { setUserName } from "@/features/settings/services/user-name-service";
 import { AppError } from "@/lib/error";
 
+interface ImportSuccess {
+  kind: "encounter" | "full";
+  /** Set when the import was a per-encounter ZIP, so the caller can offer
+   *  a "go to encounter" link. Empty for full-database imports. */
+  encounterId?: string;
+}
+
 export function useImportEncounter() {
+  const { setBrandColor } = useTheme();
+
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<EncounterImportPreview | null>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [importedEncounterId, setImportedEncounterId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<ImportSuccess | null>(null);
 
   async function handleFileDrop(nextFile: File): Promise<void> {
     setFile(nextFile);
     setPreview(null);
     setError(null);
-    setImportedEncounterId(null);
+    setSuccess(null);
     setIsParsing(true);
 
     try {
@@ -47,8 +61,23 @@ export function useImportEncounter() {
     setError(null);
 
     try {
-      await confirmZipImport(preview.data);
-      setImportedEncounterId(preview.data.encounter.id);
+      await confirmImport(preview);
+
+      if (preview.kind === "full") {
+        if (preview.preview.data.brandColor) {
+          setBrandColor(preview.preview.data.brandColor as BrandColor);
+        }
+        if (preview.preview.data.exportedBy) {
+          setUserName(preview.preview.data.exportedBy);
+        }
+        setSuccess({ kind: "full" });
+      } else {
+        setSuccess({
+          kind: "encounter",
+          encounterId: preview.preview.data.encounter.id,
+        });
+      }
+
       toast.success(importMessages.importSuccess);
     } catch (cause) {
       setError(importMessages.importError);
@@ -63,7 +92,7 @@ export function useImportEncounter() {
     setFile(null);
     setPreview(null);
     setError(null);
-    setImportedEncounterId(null);
+    setSuccess(null);
     setIsParsing(false);
     setIsImporting(false);
   }
@@ -74,7 +103,7 @@ export function useImportEncounter() {
     isParsing,
     isImporting,
     error,
-    importedEncounterId,
+    success,
     handleFileDrop,
     handleConfirm,
     handleReset,

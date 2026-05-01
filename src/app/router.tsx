@@ -17,7 +17,6 @@ import { HowItWorksPage } from "@/features/help/HowItWorksPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 import { SupportPage } from "@/features/home/SupportPage";
-import { ImportPage } from "@/features/import/pages/ImportPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -79,10 +78,6 @@ export const router = createBrowserRouter([
       {
         path: "/encounters/:id/observations/new",
         element: <EncounterDetailPage />,
-      },
-      {
-        path: "/import",
-        element: <ImportPage />,
       },
       {
         path: "/chronicles",

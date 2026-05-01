@@ -7,13 +7,10 @@ interface EncounterHeaderProps {
   encounter: Encounter;
   participantCount: number;
   onFinish: () => Promise<void>;
-  onExport: () => Promise<void>;
   onGenerateChronicle: () => Promise<void>;
   onArchive: () => Promise<void>;
   onRestore: () => Promise<void>;
-  isExporting: boolean;
   isGeneratingChronicle: boolean;
-  exportLabel: string;
   generateChronicleLabel: string;
   generatingChronicleLabel: string;
   aiStatusSlot?: ReactNode;
@@ -34,13 +31,10 @@ export function EncounterHeader({
   encounter,
   participantCount,
   onFinish,
-  onExport,
   onGenerateChronicle,
   onArchive,
   onRestore,
-  isExporting,
   isGeneratingChronicle,
-  exportLabel,
   generateChronicleLabel,
   generatingChronicleLabel,
   aiStatusSlot,
@@ -49,7 +43,10 @@ export function EncounterHeader({
   const isArchived = Boolean(encounter.archivedAt && encounter.archivedAt !== "");
 
   return (
-    <header className="border-border bg-card flex flex-col gap-4 rounded-md border p-4">
+    <header
+      className="border-border bg-card flex flex-col gap-4 rounded-md border p-4"
+      data-tour="encounter.detail.header"
+    >
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight break-words">{encounter.activity}</h1>
         <p className="text-muted-foreground text-sm">
@@ -83,20 +80,9 @@ export function EncounterHeader({
           onClick={() => {
             void onGenerateChronicle();
           }}
+          data-tour="encounter.detail.generate-chronicle"
         >
           {isGeneratingChronicle ? generatingChronicleLabel : generateChronicleLabel}
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full sm:w-auto"
-          disabled={isExporting}
-          onClick={() => {
-            void onExport();
-          }}
-        >
-          {isExporting ? "Exportando..." : exportLabel}
         </Button>
 
         {!isFinished ? (
@@ -107,6 +93,7 @@ export function EncounterHeader({
             onClick={() => {
               void onFinish();
             }}
+            data-tour="encounter.detail.finalize"
           >
             Finalizar encuentro
           </Button>
