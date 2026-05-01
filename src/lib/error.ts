@@ -25,6 +25,7 @@ export type ErrorCode =
   | "CHRONICLE_ENCOUNTER_REQUIRED"
   | "CHRONICLE_GENERATION_FAILED"
   | "OBSERVATION_NOT_FOUND"
+  | "DEMO_FORM_MISSING"
   | "UNKNOWN_ERROR";
 
 export class AppError extends Error {
