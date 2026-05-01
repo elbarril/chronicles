@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-04-18 (F5 implemented, chronicle generation baseline)
+Last updated: 2026-05-01 (encounter archive/restore + observation title)
 
 ---
 
@@ -146,17 +146,23 @@ chronicle/
 ├─ src/
 │  ├─ app/                              # shell, providers, router
 │  │  ├─ router.tsx
-│  │  ├─ layout.tsx
-│  │  └─ providers.tsx
+│  │  ├─ layout.tsx                     # 3-zone header + skip-link + onboarding mount
+│  │  ├─ providers.tsx                  # ThemeProvider + db.open + seedDefaults
+│  │  ├─ theme.tsx                      # ThemeProvider + useTheme (light/dark)
+│  │  ├─ MobileNavDrawer.tsx            # responsive nav drawer (Sheet)
+│  │  └─ nav-items.ts                   # canonical navigation list
 │  ├─ features/
 │  │  ├─ field-definitions/             # Field CRUD
-│  │  ├─ home/                          # Home and 404 pages
+│  │  ├─ home/                          # data-aware home dashboard + 404
 │  │  ├─ forms/                         # Observation Form assembly
 │  │  ├─ groups/                        # Group + Participant management
-│  │  ├─ encounters/                    # concrete sessions
-│  │  ├─ observations/                  # data capture
+│  │  ├─ encounters/                    # concrete sessions (with archive/restore)
+│  │  ├─ observations/                  # data capture (with title)
 │  │  ├─ import/                        # ZIP import flow with preview/confirm
-│  │  └─ chronicles/                    # chronicle generation/list/detail
+│  │  ├─ chronicles/                    # chronicle generation/list/detail
+│  │  ├─ defaults/                      # first-run seed + demo encounter management
+│  │  ├─ onboarding/                    # first-run welcome dialog
+│  │  └─ help/                          # /help and /how-it-works guides
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
@@ -168,18 +174,20 @@ chronicle/
 │  ├─ infra/
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
-│  │  │  ├─ client.ts                   # singleton instance + migrations up to v5
+│  │  │  ├─ client.ts                   # singleton instance + migrations up to v6
 │  │  │  └─ repositories/               # one file per entity
 │  │  ├─ media/
 │  │  │  ├─ store.ts                    # store/read Blobs
-│  │  │  └─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
+│  │  │  ├─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
+│  │  │  └─ use-media-object-url.ts     # mediaId → managed object URL hook
 │  │  ├─ export/
 │  │  │  ├─ manifest.ts                 # ZIP manifest schema/contract
 │  │  │  ├─ encounter-exporter.ts       # per-encounter ZIP generation and download
 │  │  │  └─ encounter-importer.ts       # ZIP parse + transactional upsert import
 │  │  └─ pwa/
 │  ├─ components/
-│  │  └─ ui/                            # shadcn primitives
+│  │  ├─ ui/                            # shadcn primitives
+│  │  └─ media/                         # MediaItem + MediaPreview (image/video/audio/file)
 │  ├─ hooks/
 │  ├─ lib/                              # generic utilities
 │  ├─ styles/
@@ -209,8 +217,8 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `participants` | `id`, `groupId`, `displayName` | index by `groupId` |
 | `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
 | `forms` | `id`, `name`, `fieldIds[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fieldIds` preserves order and uniqueness; version auto-increments on update |
-| `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment |
-| `observations` | `id`, `encounterId`, `participantId?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId` |
+| `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?`, `archivedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment; `archivedAt` is independent from `endedAt` and uses empty string for active |
+| `observations` | `id`, `encounterId`, `participantId?`, `title?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
 | `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt` | one chronicle per encounter (upsert by `encounterId`) |
 
@@ -268,6 +276,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F3** | **Encounters and Observation Capture (includes media)** | **Completed 2026-04-18 (baseline): Groups/Participants CRUD, encounter create/finish, observation capture with dynamic fields + media (file picker + in-app audio), Dexie schema v4, unit/E2E tests** |
 | **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests** |
 | **F5** | **Chronicle Generation (first prototype)** | **Completed 2026-04-18 (baseline): deterministic chronicle generation from encounter observations, `/chronicles` list + detail routes, generation action from encounter detail, Dexie schema v5 (`chronicles` table), unit/E2E tests** |
+| **F6** | **Post-F5 UX iteration: archive/restore + onboarding + defaults + responsive shell** | **Completed 2026-05-01: encounter archive/restore (Dexie v6, `archivedAt`), observation `title`, unified list tables, mobile nav drawer + theme provider, first-run onboarding dialog, default form + demo encounter seeding, inline media previews, data-aware home dashboard, `/help` and `/how-it-works` guides** |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 

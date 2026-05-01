@@ -424,3 +424,80 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 
 - Lockfile drift is now blocked by CI before or at integration time.
 - Vercel deploy troubleshooting is now first-class documentation in `README.md`.
+
+---
+
+## [2026-05-01] Encounter archive/restore + Observation title
+
+**Context:** Operational feedback after F5: practitioners want to keep finalized encounters around without cluttering the active list, and need a way to label individual observations beyond the participant name. The encounter and observation cards also mixed information and actions in their header, making them harder to scan on small screens.
+
+**Decision:**
+
+1. **Observation gets an optional `title`** (`string`, trimmed, non-empty). It is rendered as the primary heading of the observation card (with `"Sin título"` as fallback) and the participant name (or `"Sin participante"`) becomes the subtitle. The title is also surfaced in the chronicle body.
+2. **Encounter gets an optional `archivedAt`** (`"" | ISO datetime`) on top of the existing `endedAt`. Archive is independent from finalize: an encounter can be in progress, finalized, and/or archived. Archived encounters are excluded from the active/finished tabs and listed in a new **Archivados** tab. Both header and list rows expose **Archivar** / **Restaurar** actions, mirroring the rest of the entities (groups, fields, forms).
+3. **Encounter list adds a "Generar crónica" row action** alongside "Abrir", with the same upsert-by-encounterId semantics as the detail page button.
+4. **Encounter header and observation card layout reordered**: title → information → actions (always at the bottom of the container), instead of inlining buttons next to the heading.
+
+**Where:**
+
+- Domain: `src/domain/observation.ts`, `src/domain/encounter.ts`.
+- Persistence: `src/infra/db/schema.ts` (DB v6 with `archivedAt` index on `encounters`), `src/infra/db/client.ts` (forward migration that backfills `archivedAt: ""`), `src/infra/db/repositories/encounter-repository.ts` (`archiveEncounter`, `restoreEncounter`, `listArchivedEncounters`, status filter excludes archived), `src/infra/db/repositories/observation-repository.ts` (title pass-through).
+- Services + hooks: `src/features/encounters/services/encounter-service.ts` (`EncounterListFilter` adds `"archived"`, `archive/restoreEncounterDefinition`), `src/features/encounters/hooks/use-encounter-actions.ts`, `src/features/encounters/hooks/use-encounters.ts`, `src/features/observations/services/observation-service.ts`, `src/features/observations/hooks/use-observation-actions.ts`.
+- UI: `EncounterHeader.tsx`, `EncounterTimeline.tsx`, `EncounterListTable.tsx`, `EncounterListPage.tsx`, `EncounterDetailPage.tsx`, `ObservationForm.tsx`. Chronicle body in `chronicle-service.ts` includes the observation title when present.
+- Defaults seed (`features/defaults/services/defaults-service.ts`) initializes `archivedAt: ""` on the demo encounter so the schema validation passes after the v6 bump.
+- Tests: extended `tests/unit/encounter-schema.test.ts` and `tests/unit/observation-schema.test.ts`.
+
+**Justification:**
+
+- Title-as-primary aligns observations with how a practitioner narrates an event ("La pelea por el lápiz") and degrades gracefully when the field is left empty.
+- Archive parity with groups/fields/forms keeps the mental model consistent across the app and avoids deleting historical encounters.
+- Buttons-at-the-end is a small UX improvement that makes both desktop and mobile cards easier to scan.
+- Generating a chronicle straight from the list cuts an unnecessary navigation step for the most common follow-up action after finishing an encounter.
+
+**Consequences:**
+
+- Existing IndexedDB databases auto-migrate from v5 to v6 (no data loss; `archivedAt` is backfilled to empty string).
+- Encounter ZIP export/import still round-trips correctly because the new fields are optional in their Zod schemas; pre-v6 ZIPs import cleanly and re-exports include the new fields.
+- E2E tests for encounters/observations remain compatible because button labels and existing flows were preserved (only additions and reordering).
+
+---
+
+## [2026-05-01] F6 Post-F5 UX iteration: onboarding, defaults, app shell, help
+
+**Context:** After F5, the app is functionally complete but unfriendly to first-time users: an empty database with no guidance, no responsive shell, opaque media references, and entity lists with inconsistent layouts. We need to make Chronicle usable on phones and self-explanatory the first time it is opened, without adding any external services.
+
+**Decision:**
+
+1. **First-run experience.** Add a `defaults` feature that seeds the IndexedDB on first open with a default form (8 standard field types) and a fully-populated demo encounter (every field type, with synthetic media generated in-process and a pre-generated chronicle). The seed is idempotent: it only creates entities that are missing, so repeat opens and existing databases are safe. A `DemoEncounterButton` lets users load/restore or remove the demo encounter from the UI.
+2. **Onboarding dialog.** Show a minimal welcome modal on first run, gated by a single `chronicle.onboardingCompleted` flag in `localStorage`. Tests pre-mark the flag (Vitest setup + Playwright `storageState`) so unrelated specs are not affected.
+3. **App shell redesign.** Replace the inline button row with a three-zone header (brand · current page status pill · navigation trigger) and move the navigation behind a `MobileNavDrawer` (Sheet) usable at every breakpoint. Centralize the navigation list in `app/nav-items.ts`. Extract theme handling into a dedicated `ThemeProvider` (`app/theme.tsx`) that owns the persisted preference and the `documentElement.dark` class.
+4. **Inline media previews.** Add `components/media/{MediaItem, MediaPreview}` plus `infra/media/use-media-object-url` to render image/video/audio/file content inline in the observation form, observation list, and chronicle detail (`ChronicleMediaPanel`), instead of opaque media-id strings. Centralize value-to-text rendering in `features/observations/lib/format-observation-value.ts` and media-id collection in `features/observations/lib/collect-media-ids.ts`.
+5. **Unified list tables.** Refactor groups/fields/forms list tables and the chronicle list view to share the same visual language as the encounter list (sortable columns, archive/restore/edit/open actions in a consistent action bar at the bottom of each row). The previous `ChronicleCard` is replaced by `ChronicleListTable`.
+6. **Data-aware home dashboard.** Rewrite `HomePage` around a new `data-status-service` + `useDataStatus` hook so it reflects the actual state of the local database (counts of groups, fields, forms, encounters, chronicles) and offers contextual next steps.
+7. **Help section.** Add `/help` (data storage guide) and `/how-it-works` (end-to-end flow guide) inside the main layout so users can discover where their data lives and how the app is meant to be used, without leaving the app.
+
+**Where:**
+
+- New features: `src/features/onboarding/`, `src/features/defaults/`, `src/features/help/`.
+- New shell pieces: `src/app/MobileNavDrawer.tsx`, `src/app/nav-items.ts`, `src/app/theme.tsx`; refreshed `src/app/layout.tsx` and `src/app/providers.tsx` (`seedDefaultsIfMissing` after `db.open()`).
+- Media UI: `src/components/media/`, `src/infra/media/use-media-object-url.ts`, `src/features/observations/components/ObservationMediaList.tsx`, `src/features/observations/lib/{collect-media-ids,format-observation-value}.ts`, `src/features/chronicles/components/ChronicleMediaPanel.tsx`.
+- List/table refresh: `src/features/{chronicles,groups,field-definitions,forms}/components/*ListTable.tsx` and matching list/edit pages.
+- Home: `src/features/home/{HomePage.tsx,messages.ts,hooks/use-data-status.ts,services/data-status-service.ts}`.
+- Tests: unit tests for each new service/hook/component plus three new E2E specs (`defaults-restore`, `demo-encounter-media`, `responsive-nav`).
+- Tooling: `tests/unit/setup.ts` + `playwright.config.ts` pre-mark onboarding completed.
+
+**Justification:**
+
+- A first-time visitor now lands on an app that already has a usable form, a real demo encounter, and a generated chronicle to explore — no instructions required.
+- The mobile drawer and three-zone header make every breakpoint usable without rewriting layouts page by page.
+- Inline media previews remove a long-standing rough edge: until now, captured images, audios and files were referenced only by id in the UI.
+- Unified list tables make the app feel coherent across entities and reduce cognitive load when moving between sections.
+- The help section and data-aware home replace static marketing copy with answers to the two most common first questions ("what now?" and "where are my files?").
+- Everything stays local-first; no new external dependencies are introduced.
+
+**Consequences:**
+
+- The `defaults` seed runs on every open after `db.open()` but is idempotent — production databases that already have data are not modified.
+- Existing E2E specs continue to work thanks to onboarding pre-marking; any future spec that needs to assert the onboarding dialog must reset the `chronicle.onboardingCompleted` flag explicitly.
+- `ChronicleCard` is gone; any external caller importing it must move to `ChronicleListTable`.
+- The `chronicle-theme` and `chronicle.onboardingCompleted` `localStorage` keys are now part of the app's public surface; renaming them in the future requires a migration.

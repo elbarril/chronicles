@@ -26,6 +26,7 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - F3 completed (baseline): Groups/Participants CRUD, Encounter create/finish with form snapshot, Observation capture with dynamic fields and media.
 - F4 completed (baseline): Encounter ZIP export/import with preview+confirm, upsert-by-ID import, route `/import`.
 - F5 completed (baseline): Deterministic chronicle generation from encounters, routes `/chronicles`, `/chronicles/:id`, and generation action from encounter detail.
+- F6 completed (2026-05-01): Post-F5 UX iteration — encounter archive/restore (Dexie v6), observation `title`, unified list tables, responsive header + mobile nav drawer + theme provider, first-run onboarding dialog, defaults seeding (default form + demo encounter with media), inline media previews, data-aware home dashboard, and a help section (`/help`, `/how-it-works`).
 
 ## F1 Module: Fields
 
@@ -55,9 +56,9 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 
 - Routes: `/encounters`, `/encounters/new`, `/encounters/:id`, `/encounters/:id/observations/new`.
 - Feature: `src/features/encounters/`, `src/features/observations/`.
-- Domain: `src/domain/encounter.ts` (with form snapshot), `src/domain/observation.ts` (typed scalar + media values).
-- Persistence: `src/infra/db/repositories/encounter-repository.ts`, `src/infra/db/repositories/observation-repository.ts` (Dexie schema v4).
-- Media: `src/infra/media/store.ts` (Blob CRUD), `src/infra/media/recorder.ts` (in-app audio).
+- Domain: `src/domain/encounter.ts` (with form snapshot and optional `archivedAt`), `src/domain/observation.ts` (typed scalar + media values, optional `title`).
+- Persistence: `src/infra/db/repositories/encounter-repository.ts` (with `archiveEncounter`/`restoreEncounter`/`listArchivedEncounters`), `src/infra/db/repositories/observation-repository.ts` (Dexie schema v6).
+- Media: `src/infra/media/store.ts` (Blob CRUD), `src/infra/media/recorder.ts` (in-app audio), `src/infra/media/use-media-object-url.ts` (managed object URLs); preview components in `src/components/media/`.
 - Main tests: `tests/unit/encounter-schema.test.ts`, `tests/unit/observation-schema.test.ts`, `tests/e2e/encounter-capture.spec.ts`.
 
 ## F4 Module: Export / Import
@@ -70,11 +71,23 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 
 ## F5 Module: Chronicle Generation
 
-- Routes/actions: `/chronicles`, `/chronicles/:id`, plus generation action from `/encounters/:id`.
+- Routes/actions: `/chronicles`, `/chronicles/:id`, plus generation action from `/encounters/:id` and from each row of `/encounters`.
 - Feature: `src/features/chronicles/`.
 - Domain: `src/domain/chronicle.ts`.
 - Persistence: `src/infra/db/repositories/chronicle-repository.ts` (Dexie schema v5 with `chronicles` table).
 - Main tests: `tests/unit/chronicle-schema.test.ts`, `tests/unit/chronicle-service.test.ts`, `tests/e2e/chronicle-generation.spec.ts`.
+
+## F6 Module: Onboarding, Defaults, Help, and App Shell
+
+- Routes: `/help`, `/how-it-works`.
+- Features:
+  - `src/features/onboarding/` — first-run welcome dialog, gated by `chronicle.onboardingCompleted` in `localStorage`.
+  - `src/features/defaults/` — idempotent first-run seed (default form fields + form, demo group + participants, demo encounter with media + chronicle); exposes a `DemoEncounterButton` to load/restore or remove the demo encounter.
+  - `src/features/help/` — data storage and how-it-works guides for end users.
+- App shell: `src/app/MobileNavDrawer.tsx`, `src/app/nav-items.ts`, `src/app/theme.tsx` (light/dark with persisted preference), refreshed `src/app/layout.tsx` and `src/app/providers.tsx` (triggers `seedDefaultsIfMissing` after `db.open()`).
+- Home: `src/features/home/HomePage.tsx` is now a data-aware dashboard backed by `src/features/home/services/data-status-service.ts` and `use-data-status` hook.
+- Persistence: Dexie schema v6 — adds `archivedAt` index on `encounters` and forward migration that backfills existing rows.
+- Main tests: `tests/unit/onboarding-service.test.ts`, `tests/unit/onboarding-dialog.test.tsx`, `tests/unit/defaults-service.test.ts`, `tests/unit/seed-demo-encounter.test.ts`, `tests/unit/remove-demo-encounter.test.ts`, `tests/unit/help.test.tsx`, `tests/unit/how-it-works.test.tsx`, `tests/unit/observation-media-list.test.tsx`, `tests/unit/use-media-object-url.test.tsx`, `tests/unit/format-observation-value.test.ts`, `tests/e2e/responsive-nav.spec.ts`, `tests/e2e/defaults-restore.spec.ts`, `tests/e2e/demo-encounter-media.spec.ts`.
 
 ## Working with Agents
 
