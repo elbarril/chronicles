@@ -51,15 +51,7 @@ async function getRequiredText(zip: JSZip, fileName: string): Promise<string> {
   return entry.async("string");
 }
 
-export async function parseEncounterZip(file: File): Promise<EncounterImportPreview> {
-  let zip: JSZip;
-
-  try {
-    zip = await JSZip.loadAsync(file);
-  } catch {
-    throw new AppError("IMPORT_INVALID_ZIP", "Invalid ZIP file.");
-  }
-
+export async function parseEncounterZipFromJsZip(zip: JSZip): Promise<EncounterImportPreview> {
   try {
     const manifestRaw = parseJsonFile<unknown>(await getRequiredText(zip, "manifest.json"));
     const manifest = encounterZipManifestSchema.parse(manifestRaw);
@@ -126,6 +118,22 @@ export async function parseEncounterZip(file: File): Promise<EncounterImportPrev
 
     throw new AppError("IMPORT_INVALID_ZIP", "ZIP content is invalid.");
   }
+}
+
+/** Backwards-compatible entrypoint for callers that received a `File` and
+ *  expect a per-encounter ZIP. New callers should use the unified import
+ *  service in `features/import`, which can also parse the global
+ *  `chronicle-full-v1` format. */
+export async function parseEncounterZip(file: File): Promise<EncounterImportPreview> {
+  let zip: JSZip;
+
+  try {
+    zip = await JSZip.loadAsync(file);
+  } catch {
+    throw new AppError("IMPORT_INVALID_ZIP", "Invalid ZIP file.");
+  }
+
+  return parseEncounterZipFromJsZip(zip);
 }
 
 export async function importEncounterData(data: EncounterImportData): Promise<void> {
