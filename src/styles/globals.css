@@ -113,6 +113,42 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ─── Brand: Amber ─── */
+[data-brand="amber"] {
+  --primary: oklch(0.52 0.18 68);
+  --primary-foreground: oklch(0.98 0 0);
+  --ring: oklch(0.52 0.18 68);
+}
+[data-brand="amber"].dark {
+  --primary: oklch(0.80 0.15 75);
+  --primary-foreground: oklch(0.22 0.06 68);
+  --ring: oklch(0.80 0.15 75);
+}
+
+/* ─── Brand: Indigo ─── */
+[data-brand="indigo"] {
+  --primary: oklch(0.48 0.22 272);
+  --primary-foreground: oklch(0.98 0 0);
+  --ring: oklch(0.48 0.22 272);
+}
+[data-brand="indigo"].dark {
+  --primary: oklch(0.73 0.18 272);
+  --primary-foreground: oklch(0.15 0.05 272);
+  --ring: oklch(0.73 0.18 272);
+}
+
+/* ─── Brand: Forest ─── */
+[data-brand="forest"] {
+  --primary: oklch(0.44 0.12 155);
+  --primary-foreground: oklch(0.98 0 0);
+  --ring: oklch(0.44 0.12 155);
+}
+[data-brand="forest"].dark {
+  --primary: oklch(0.73 0.1 155);
+  --primary-foreground: oklch(0.15 0.04 155);
+  --ring: oklch(0.73 0.1 155);
+}
+
 * {
   @apply border-border;
 }
@@ -146,4 +182,39 @@ label:has(> input[type="radio"]:not(:disabled)) {
 button:disabled,
 [role="button"][aria-disabled="true"] {
   cursor: not-allowed;
+}
+
+/* Onboarding tour spotlight: highlights the element being described
+   by the floating tour card. */
+[data-tour-spotlight="active"] {
+  position: relative;
+  z-index: 40;
+  border-radius: 12px;
+  outline: 3px solid var(--color-primary);
+  outline-offset: 6px;
+  box-shadow:
+    0 0 0 6px color-mix(in oklch, var(--color-primary) 20%, transparent),
+    0 0 0 9999px color-mix(in oklch, var(--color-background) 55%, transparent);
+  animation: chronicle-tour-pulse 2s ease-in-out infinite;
+  transition: outline-offset 200ms ease;
+}
+
+@keyframes chronicle-tour-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 6px color-mix(in oklch, var(--color-primary) 20%, transparent),
+      0 0 0 9999px color-mix(in oklch, var(--color-background) 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 10px color-mix(in oklch, var(--color-primary) 28%, transparent),
+      0 0 0 9999px color-mix(in oklch, var(--color-background) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tour-spotlight="active"] {
+    animation: none;
+  }
 }

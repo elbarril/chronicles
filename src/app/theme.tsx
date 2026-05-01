@@ -9,13 +9,17 @@ import {
 } from "react";
 
 const THEME_KEY = "chronicle-theme";
+const BRAND_KEY = "chronicle-brand";
 
 export type Theme = "light" | "dark";
+export type BrandColor = "amber" | "indigo" | "forest";
 
 type ThemeContextValue = {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  brandColor: BrandColor;
+  setBrandColor: (brand: BrandColor) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -29,12 +33,24 @@ function getInitialTheme(): Theme {
   return "light";
 }
 
+function getInitialBrandColor(): BrandColor {
+  if (typeof window === "undefined") return "amber";
+  const stored = window.localStorage.getItem(BRAND_KEY);
+  if (stored === "amber" || stored === "indigo" || stored === "forest") return stored;
+  return "amber";
+}
+
 export function ThemeProvider({ children }: PropsWithChildren): JSX.Element {
   const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
+  const [brandColor, setBrandColorState] = useState<BrandColor>(() => getInitialBrandColor());
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.brand = brandColor;
+  }, [brandColor]);
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
@@ -49,9 +65,14 @@ export function ThemeProvider({ children }: PropsWithChildren): JSX.Element {
     });
   }, []);
 
+  const setBrandColor = useCallback((brand: BrandColor) => {
+    setBrandColorState(brand);
+    window.localStorage.setItem(BRAND_KEY, brand);
+  }, []);
+
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme, toggleTheme, setTheme }),
-    [theme, toggleTheme, setTheme],
+    () => ({ theme, toggleTheme, setTheme, brandColor, setBrandColor }),
+    [theme, toggleTheme, setTheme, brandColor, setBrandColor],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
