@@ -31,16 +31,15 @@ export const dataStorageGuide = {
   backupSection: {
     title: "Cómo cuidar tu trabajo",
     intro:
-      "La forma más segura de no perder un encuentro importante es exportarlo y guardar ese archivo en un lugar confiable.",
+      "La forma más segura de no perder lo que cargaste es exportar todo y guardar ese archivo en un lugar confiable.",
     points: [
-      "Desde el detalle de cada encuentro podés exportar un archivo .zip que incluye todas las observaciones y los archivos multimedia asociados.",
+      'Desde Configuración, con el botón "Exportar todo", generás un archivo .zip con todos tus campos, formularios, grupos, encuentros, observaciones, crónicas y archivos multimedia.',
       "Guardá esos .zip en un lugar seguro: una carpeta en la nube, un pendrive, o tu disco.",
-      "Para mover un encuentro a otro dispositivo o navegador, importá ese mismo .zip desde la sección Importar.",
-      "Si volvés a importar un .zip que ya estaba cargado, se actualizan los datos existentes en lugar de duplicarse.",
+      'Para mover tus datos a otro dispositivo o navegador, importá ese mismo .zip desde Configuración, en la sección "Importar".',
+      "Si volvés a importar un .zip que ya estaba cargado, se actualizan los datos existentes en lugar de duplicarse. También se siguen aceptando los .zip viejos que tenían un solo encuentro.",
       "Hacé exportaciones periódicas, sobre todo antes de limpiar el navegador, cambiar de equipo o trabajar con muchas fotos y videos.",
     ],
-    encountersLink: "Ir a encuentros",
-    importLink: "Ir a importar",
+    settingsLink: "Ir a Configuración",
   },
   recommendationsSection: {
     title: "Recomendaciones para el día a día",
@@ -65,9 +64,10 @@ export const aiSetupGuide = {
     description:
       "Si configurás una clave de API de Gemini (gratuita), Chronicle la usa para generar crónicas en prosa narrativa en lugar del resumen estructurado por defecto. El resultado es un texto corrido, organizado y más fácil de leer y compartir.",
     points: [
-      "La generación con IA es completamente opcional: sin clave, Chronicle funciona exactamente igual que siempre.",
-      "Si la clave está configurada, se usa automáticamente al generar o regenerar una crónica.",
-      "Si la llamada a la IA falla (sin conexión, cuota agotada, clave inválida), Chronicle genera la crónica localmente de todas formas.",
+      "La generación con IA es completamente opcional: sin clave, Chronicle funciona exactamente igual que siempre con su generador local.",
+      'Cuando la clave está configurada, al lado del botón "Generar crónica" se muestra el cartelito "IA activa" y la IA se usa automáticamente al generar o regenerar.',
+      "Si la generación con IA falla (sin conexión, cuota agotada o clave inválida), Chronicle te avisa con un mensaje claro y mantiene la última crónica que ya tenías guardada para ese encuentro.",
+      "Si volvés a generar una crónica y las observaciones no cambiaron, Chronicle reutiliza la última generada con IA en vez de gastar una nueva consulta a Gemini.",
     ],
   },
   privacySection: {
@@ -168,15 +168,16 @@ export const howItWorksGuide = {
     steps: workflowSteps,
   },
   share: {
-    title: "Compartir y mover encuentros",
+    title: "Compartir y mover datos",
     description:
-      "Como Chronicle no usa una nube, para mover un encuentro entre dispositivos o personas usás archivos .zip.",
+      "Como Chronicle no usa una nube, para mover lo que cargaste entre dispositivos o personas usás archivos .zip.",
     points: [
-      "Desde un encuentro podés exportar un .zip que incluye sus observaciones y archivos multimedia.",
-      "En la sección Importar cargás ese .zip en otro navegador o dispositivo y lo recuperás tal cual.",
-      "Si importás un encuentro que ya existía, se actualiza en lugar de duplicarse.",
+      'Desde Configuración usás "Exportar todo" para bajar un .zip con todos tus campos, formularios, grupos, encuentros, observaciones y crónicas.',
+      'En el otro navegador o dispositivo, entrás a Configuración y arrastrás ese .zip al área "Importar" para recuperar todo tal cual.',
+      "Si importás algo que ya existía, se actualiza en lugar de duplicarse. También se siguen aceptando los .zip viejos que tenían un solo encuentro.",
+      'Para compartir una crónica con alguien sin pasar la base entera, usá el botón "Compartir" desde el detalle de la crónica: usa la función nativa de tu sistema o copia el texto al portapapeles.',
     ],
-    importLink: { label: "Ir a importar", to: "/import" },
+    importLink: { label: "Ir a Configuración", to: "/settings" },
   },
   offline: {
     title: "Funciona sin internet",

@@ -548,3 +548,80 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - The onboarding dialog now has 3 steps; any spec that asserts step count or button visibility must match "Paso N de 3".
 - Existing pre-F7 chronicles in local databases are unaffected (`generatedWith` will be `undefined`, which the badge handles correctly by not showing).
 - No breaking changes to existing persistence schema (Dexie v6 unchanged).
+
+---
+
+## [2026-05-01] F8 — Always-available global export, user identity, and native chronicle share
+
+**Context:** F4–F7 only allowed exporting one encounter at a time, gated behind the encounter detail page. There was no way to back up the database before any encounter existed, and exported files were anonymous (filename was `chronicle-{activity}-{date}.zip` regardless of who or which device produced them). Users also asked for a way to share a generated chronicle with others using the native OS share sheet.
+
+**Decision:**
+
+1. **Global export is now the only export.** Introduced `chronicle-full-v1` manifest schema in `src/infra/export/manifest.ts` and a new `src/infra/export/full-exporter.ts` that dumps every Dexie table (`fields`, `forms`, `groups`, `participants`, `encounters`, `observations`, `chronicles`, `media`) plus the user's brand color and author name into a single ZIP. The `/encounters/:id` "Exportar encuentro" button and `useExportEncounter` hook are gone; `infra/export/encounter-exporter.ts` and its test are deleted. The Gemini API key is intentionally NOT included in the export.
+2. **Importer dispatches on schema.** `features/import/services/import-service.ts` reads `manifest.json`, recognises both `chronicle-full-v1` (new) and `chronicle-encounter-v1` (legacy) and routes to the appropriate parser (`parseFullZip` / `parseEncounterZipFromJsZip`). `ImportPreview` renders different summaries for each kind; the success card no longer assumes there is a single encounter to link to.
+3. **User identity is now first-class.** New `src/features/settings/services/user-name-service.ts` persists the user name under `chronicle.userName`, with a default detected from `navigator.userAgent` (e.g. `Chrome en Linux`). After the tour finishes, `WelcomeNamePrompt` (mounted in `RootLayout`) auto-opens once and prompts the user; a `chronicle.userNamePromptShown` flag prevents re-asking. The Settings page exposes a `UserNameForm` for later edits. Exported file names follow `chronicle-{slug(name)}-{YYYY-MM-DD}.zip` and the manifest carries `exportedBy` so the import preview can show the author.
+4. **Tour rewired around the new model.** The encounter-detail "Exportar el encuentro" stop is gone; the Settings hub-stop now visits two stops: `settings.export` (the new export button) and `import.dropzone`. A new `chronicle.detail.share` stop highlights the share button.
+5. **Native share for chronicles.** New `useShareChronicle` hook calls `navigator.share({ title, text })` with a clipboard fallback (`navigator.clipboard.writeText`); a "Compartir" button on `ChronicleDetailPage` is wired to it. AbortError (user cancellation) is silently ignored — no fallback toast.
+
+**Where:**
+
+- New: `src/infra/export/full-exporter.ts`, `src/infra/export/full-importer.ts`, `src/features/settings/components/{ExportSection,UserNameForm}.tsx`, `src/features/settings/hooks/{use-export-all,use-user-name}.ts`, `src/features/settings/services/user-name-service.ts`, `src/features/onboarding/components/WelcomeNamePrompt.tsx`, `src/features/chronicles/hooks/use-share-chronicle.ts`.
+- Updated: `src/infra/export/manifest.ts` (adds `FULL_MANIFEST_SCHEMA`, `fullZipManifestSchema`, `anyManifestSchema`), `src/infra/export/encounter-importer.ts` (splits `parseEncounterZip` from `parseEncounterZipFromJsZip`), `src/features/import/services/import-service.ts` (dispatches by schema), `src/features/import/hooks/use-import-encounter.ts`, `src/features/import/components/ImportPreview.tsx`, `src/features/import/components/ImportSection.tsx`, `src/features/import/lib/messages.ts`, `src/features/encounters/components/EncounterHeader.tsx`, `src/features/encounters/pages/EncounterDetailPage.tsx`, `src/features/encounters/lib/messages.ts`, `src/features/onboarding/messages.ts`, `src/features/onboarding/hooks/use-onboarding.ts` (dispatches `chronicle:tour-finished`), `src/features/settings/pages/SettingsPage.tsx`, `src/features/settings/lib/messages.ts`, `src/features/chronicles/pages/ChronicleDetailPage.tsx`, `src/features/chronicles/lib/messages.ts`, `src/app/layout.tsx`, `src/lib/error.ts` (drops `EXPORT_ENCOUNTER_NOT_FOUND`), `playwright.config.ts` and `tests/unit/setup.ts` (pre-mark `chronicle.userNamePromptShown`).
+- Deleted: `src/features/encounters/hooks/use-export-encounter.ts`, `src/infra/export/encounter-exporter.ts`, `tests/unit/encounter-exporter.test.ts`.
+- Tests added: `tests/unit/full-exporter.test.ts`, `tests/unit/full-importer.test.ts`, `tests/unit/user-name-service.test.ts`, `tests/unit/use-share-chronicle.test.tsx`, `tests/unit/welcome-name-prompt.test.tsx`. `tests/unit/onboarding-dialog.test.tsx` and `tests/e2e/encounter-export-import.spec.ts` updated to match the new tour and Settings layout.
+
+**Justification:**
+
+- Exporting "everything always" matches user expectations for a backup-style action and removes the discoverability problem of a button buried in a per-encounter detail view.
+- Reusing the existing `chronicle-encounter-v1` parser keeps backward compatibility — pre-F8 ZIPs in the wild still import cleanly.
+- Putting the name prompt at the end of the tour (instead of inside it) avoids fragmenting the guided storytelling and gives the user a chance to opt-out without losing context.
+- `localStorage` for the name and prompt-shown flag is consistent with how the rest of the app's preferences are persisted (theme, brand color, Gemini key, onboarding flag); no new persistence layer is needed.
+- Native share + clipboard fallback respects the local-first principle and adds zero external dependencies.
+
+**Consequences:**
+
+- New `localStorage` keys form part of the public surface: `chronicle.userName`, `chronicle.userNamePromptShown`. Renaming them in the future requires a migration.
+- `Chronicle` and Dexie schema are unchanged; the export is purely an additive "all the existing tables in one ZIP" file format. No DB migration was needed.
+- Existing per-encounter ZIPs remain importable indefinitely, but no new per-encounter exports are produced.
+- The encounter detail page now has fewer actions in its header (no "Exportar"). E2E specs that depended on `data-tour="encounter.detail.export"` have been removed/updated.
+- The full export contains binary media inside `media/<id>` files compressed with DEFLATE level 6. Larger databases produce larger ZIPs — same trade-off as before, just over more entities.
+- `WelcomeNamePrompt` requires the `chronicle:tour-finished` custom event (or a `storage` event on the same key) to react inside the same render tree. Tests pre-mark `chronicle.userNamePromptShown` so unrelated specs are not affected.
+
+---
+
+## [2026-05-01] Post-F8 polish — home as nav hub, AI input-hash cache, hard fail on first AI error, AI key status badge
+
+**Context:** After F8 the data-aware home dashboard (counts, helper cards, demo encounter button) duplicated information that already lived in `/settings`, `/support`, and the new home grid. The chronicle generation flow also wasted Gemini API quota on regenerations whose underlying observation set had not changed, and silently fell back to a deterministic chronicle when the API errored — masking misconfigured keys, exhausted quota, and transient outages from the user. Finally, the "Generar crónica" button had no signal that explained why output sometimes used AI and sometimes did not.
+
+**Decision:**
+
+1. **Home is now a pure nav hub.** `HomePage` was rewritten as an icon grid of every top-level section (`Campos`, `Formularios`, `Grupos`, `Encuentros`, `Crónicas`, `Configuración`, `Cómo funciona`, `Ayuda`, `Soporte`). The data-aware welcome card, demo encounter toggle, "quick check" card, and the data-status summary moved to a new `/support` page (`SupportPage`). The `/import` route was removed — importing is part of `/settings` (`ImportSection`) which is the authoritative entry point post-F8.
+2. **`Chronicle.generatedWith === "gemini"` records a stable `inputHash`.** The hash is a SHA-256 over a canonical projection of the encounter, group name, participants by id, fields by id, and observations (`infra/ai/chronicle-input-hash.ts`). On subsequent generations or regenerations, the service compares the current hash against the saved one and short-circuits the Gemini call when they match, returning the cached chronicle untouched. Deterministic chronicles never store the hash.
+3. **No deterministic fallback after a Gemini error.** When the user has a configured API key, an error from the Gemini API used to silently regenerate a deterministic chronicle. We now keep the last saved chronicle (if any) and surface a category-specific warning toast (`aiFallbackWarning`, `aiRateLimitWarning` for `AI_RATE_LIMITED`, `aiKeyInvalidWarning` for `AI_KEY_INVALID`). If no chronicle exists yet, we throw — the encounter page stays put and shows `chronicleMessages.createError`. This makes upstream problems visible instead of papering over them.
+4. **`AiKeyStatusBadge` next to every "Generar crónica" entry point.** The badge reads the live state of the Gemini key from `localStorage` and renders one of three visuals: `Sin clave`, `Clave configurada`, or a "ver configuración" link. It is mounted inside `EncounterHeader` (encounter detail) and reused on encounter list rows so the user always knows which generator will run before clicking.
+5. **Encounter detail always asks the service to generate.** `handleGenerateChronicle` no longer special-cases "chronicle already exists, jump to it" — it always calls `chronicleActions.generate`, which internally honours the input-hash cache for AI chronicles and re-runs deterministic generation otherwise. This collapses two code paths into one and gives the cache a single, predictable owner.
+
+**Where:**
+
+- `src/features/home/HomePage.tsx` (rewrite), `src/features/home/SupportPage.tsx` (new), `src/features/home/messages.ts` (`supportMessages` block), `src/app/router.tsx` (`/support` added, `/import` removed), `src/app/nav-items.ts` (`Importar` entry removed), `src/features/import/pages/ImportPage.tsx` (deleted).
+- `src/domain/chronicle.ts` (adds `inputHash?: string` on `Chronicle` and `ChronicleInput`), `src/infra/db/repositories/chronicle-repository.ts` (round-trips `inputHash`), `src/infra/ai/chronicle-input-hash.ts` (new SHA-256 helper), `src/features/chronicles/services/chronicle-service.ts` (cache + no-fallback logic), `src/features/chronicles/hooks/use-chronicle-actions.ts` (toast classification by `aiFailCode`), `src/features/chronicles/lib/messages.ts` (`aiRateLimitWarning`, `aiKeyInvalidWarning`, `aiFallbackWarning`).
+- `src/lib/error.ts` (adds `AI_RATE_LIMITED`), `src/infra/ai/gemini-client.ts` (maps HTTP 429 → `AI_RATE_LIMITED`).
+- `src/features/settings/components/AiKeyStatusBadge.tsx` (new), `src/features/encounters/components/EncounterHeader.tsx` and `src/features/encounters/pages/EncounterDetailPage.tsx` (mount the badge), `src/features/encounters/pages/EncounterListPage.tsx` (mount the badge per row).
+- `src/features/encounters/pages/EncounterDetailPage.tsx` simplifies `handleGenerateChronicle` to always call `generate`.
+- E2E updates for the new layout: `tests/e2e/demo-encounter-media.spec.ts` drives the demo from `/support`, `tests/e2e/responsive-nav.spec.ts` desktop case asserts the home nav hub + always-visible hamburger, `tests/e2e/chronicle-ai-generation.spec.ts` "no fallback" case asserts the user stays on the encounter page with `createError`.
+
+**Justification:**
+
+- A single information architecture for the home page — nav-only — eliminates the divergence between the welcome dashboard, the support page, and the global navigation drawer. Helper content (demo encounter, status, quick check) is still one click away under `/support` and discoverable via the home grid.
+- The input-hash cache is cheap (SHA-256 over a ~few-KB JSON projection) and saves the user's Gemini quota in the most common pattern: opening the encounter, generating a chronicle, then later opening the same encounter and regenerating without changing anything.
+- Surfacing AI errors instead of silently swallowing them aligns with the agent role of "make decisions focused on quality and delivery" — false positives (silent deterministic fallback) hide real configuration bugs.
+- The status badge addresses the ambiguity that "Generar crónica" gave no hint about whether AI would run.
+- Always asking the service to generate keeps the cache as the single source of truth instead of duplicating the "is there one already?" check at every call site.
+
+**Consequences:**
+
+- The `Chronicle.inputHash` field is additive: existing pre-cache chronicles still work and will get a hash filled in on the next AI generation. No Dexie schema migration was required (the field is not indexed).
+- The `/import` route is gone. Anyone landing on `/import` from a stale link gets the 404 page; importing happens at `/settings`. The nav drawer no longer lists `Importar`.
+- The AI generation flow is now error-visible: misconfigured keys, exhausted quotas, and transient API errors surface to the user instead of being masked.
+- The `Cargar encuentro de prueba` button has moved from the home dashboard to `/support`. The `removeOnly` twin in list pages is unchanged.
+- `AiKeyStatusBadge` reads `localStorage` directly and re-evaluates on `storage` events; tests that toggle the key inside the same window must dispatch a `storage` event or remount the component.

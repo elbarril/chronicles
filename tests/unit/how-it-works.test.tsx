@@ -41,12 +41,12 @@ describe("How it works route", () => {
     expect(screen.getByText(/el flujo en 6 pasos/i)).toBeInTheDocument();
     expect(screen.getByText(/1\. definí los campos/i)).toBeInTheDocument();
     expect(screen.getByText(/6\. generá la crónica/i)).toBeInTheDocument();
-    expect(screen.getByText(/compartir y mover encuentros/i)).toBeInTheDocument();
+    expect(screen.getByText(/compartir y mover datos/i)).toBeInTheDocument();
     expect(screen.getByText(/funciona sin internet/i)).toBeInTheDocument();
     expect(screen.getByText(/antes de arrancar/i)).toBeInTheDocument();
   });
 
-  it("links to fields, forms, groups, encounters, chronicles, import and help", () => {
+  it("links to fields, forms, groups, encounters, chronicles, settings and help", () => {
     renderHowItWorks();
 
     expect(screen.getByRole("link", { name: /^ir a campos$/i })).toHaveAttribute("href", "/fields");
@@ -63,9 +63,10 @@ describe("How it works route", () => {
       "href",
       "/chronicles",
     );
-    expect(screen.getByRole("link", { name: /^ir a importar$/i })).toHaveAttribute(
+    // Post-F8: import lives at /settings; the share section now links there.
+    expect(screen.getByRole("link", { name: /^ir a configuración$/i })).toHaveAttribute(
       "href",
-      "/import",
+      "/settings",
     );
     expect(screen.getByRole("link", { name: /^cómo se guardan tus datos$/i })).toHaveAttribute(
       "href",

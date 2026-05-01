@@ -44,13 +44,12 @@ describe("Help route", () => {
     expect(screen.getByText(/^privacidad$/i)).toBeInTheDocument();
   });
 
-  it("links to encounters and import flows from the backup section", () => {
+  it("links to Settings from the backup section (single canonical export/import surface post-F8)", () => {
     renderHelp();
 
-    expect(screen.getByRole("link", { name: /ir a encuentros/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /ir a configuración/i })).toHaveAttribute(
       "href",
-      "/encounters",
+      "/settings",
     );
-    expect(screen.getByRole("link", { name: /ir a importar/i })).toHaveAttribute("href", "/import");
   });
 });

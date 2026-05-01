@@ -53,10 +53,7 @@ export function DataStorageGuide({ showQuickLinks = true }: DataStorageGuideProp
           {showQuickLinks ? (
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link to="/encounters">{dataStorageGuide.backupSection.encountersLink}</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/import">{dataStorageGuide.backupSection.importLink}</Link>
+                <Link to="/settings">{dataStorageGuide.backupSection.settingsLink}</Link>
               </Button>
             </div>
           ) : null}

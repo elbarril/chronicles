@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-05-01 (F7: optional Gemini AI chronicle generation, BYOK, /settings page)
+Last updated: 2026-05-01 (F8: always-available global ZIP export from Settings, post-tour user-name prompt, native chronicle share)
 
 ---
 
@@ -55,7 +55,7 @@ Translated to technology:
 | PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
-| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained encounter export/import with media blobs. |
+| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v1`) plus backward-compatible reader for legacy per-encounter ZIPs (`chronicle-encounter-v1`). |
 | Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
 | Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
@@ -65,11 +65,31 @@ Translated to technology:
 F7 introduces an **opt-in** AI layer over the deterministic chronicle generator. Key design invariants:
 
 - **BYOK (Bring Your Own Key):** the user provides their own Google Gemini API key, stored in `localStorage` under `chronicle.geminiApiKey`. The key is never sent to any Chronicle server because there is no Chronicle server.
-- **Graceful fallback:** if no key is set → deterministic generation (identical to pre-F7 behavior). If the key is set but the Gemini call fails → toast notification + automatic fallback to deterministic.
 - **No mandatory network dependency:** the app remains fully functional offline; AI generation only activates when the user has configured a key and a network connection is available.
-- **New infra layer:** `src/infra/ai/` contains `gemini-client.ts` (raw fetch to `generativelanguage.googleapis.com`) and `gemini-chronicle-generator.ts` (prompt builder in rioplatense Spanish, skips media fields).
+- **No fallback after a Gemini error.** When no key is set the service runs deterministic generation (identical to pre-F7 behavior). When a key is configured and the Gemini call fails the service does **not** silently produce a deterministic chronicle: it surfaces a category-specific warning toast (`aiFallbackWarning` / `aiRateLimitWarning` for HTTP 429 / `aiKeyInvalidWarning` for HTTP 400/403) and either returns the previously saved chronicle untouched or, if none exists, throws so the encounter page can show `chronicleMessages.createError`. This makes upstream problems visible.
+- **Input-hash cache.** AI chronicles store a SHA-256 fingerprint over a canonical projection of the encounter, group name, participants, fields and observations (`infra/ai/chronicle-input-hash.ts`, persisted as `Chronicle.inputHash`). On subsequent generations the service compares the current hash against the saved one and short-circuits the Gemini API call when nothing has changed, returning the cached chronicle. Deterministic chronicles never store the hash.
+- **AI key status badge.** `AiKeyStatusBadge` reads the live state of `chronicle.geminiApiKey` from `localStorage` and renders a `Sin clave` / `Clave configurada` chip next to every "Generar crónica" entry point so the user always knows which generator will run before clicking.
+- **New infra layer:** `src/infra/ai/` contains `gemini-client.ts` (raw fetch to `generativelanguage.googleapis.com`, maps HTTP 429 to `AI_RATE_LIMITED`), `gemini-chronicle-generator.ts` (prompt builder in rioplatense Spanish, skips media fields) and `chronicle-input-hash.ts`.
 - **New settings feature:** `src/features/settings/` exposes a `/settings` route with API key form (masked input, show/hide, save, clear).
 - **AI badge:** `ChronicleViewer` displays a "Generada con IA" badge when `chronicle.generatedWith === "gemini"`.
+
+### F8: Always-available Global Export, User Identity, Native Share
+
+F8 reshapes how data leaves Chronicle so a backup is one click away regardless of how empty the database is. Key design invariants:
+
+- **One export path, in Settings.** `/settings` exposes "Exportar todo": a single button that produces a `chronicle-full-v1` ZIP with every Dexie table, every media blob, and the user's brand color and author name. The previous per-encounter export button on `/encounters/:id` was removed; the only way to back up data is now the global export.
+- **Backward-compatible importer.** `src/features/import/services/import-service.ts` reads `manifest.json`, dispatches between `chronicle-full-v1` (new) and `chronicle-encounter-v1` (legacy) and routes to the right parser. Pre-F8 ZIPs in the wild still import cleanly. Legacy `parseEncounterZip(file)` and `importEncounterData(data)` are kept as backward-compatible exports.
+- **User identity is local-only.** New `src/features/settings/services/user-name-service.ts` persists the name under `chronicle.userName`. Default is detected from `navigator.userAgent` (e.g. `Chrome en Linux`). After the tour finishes, `WelcomeNamePrompt` (mounted in `RootLayout`) prompts the user once; a `chronicle.userNamePromptShown` flag prevents re-asking. The Settings page exposes `UserNameForm` to edit later. Exported file names follow `chronicle-{slug(name)}-{YYYY-MM-DD}.zip` and the manifest carries `exportedBy`.
+- **Native share for chronicles.** `useShareChronicle` calls `navigator.share({ title, text })` with a clipboard fallback (`navigator.clipboard.writeText`); the chronicle detail header surfaces a "Compartir" button. AbortError (user cancellation) is silently ignored.
+- **Tour rewired.** The encounter-detail "Exportar el encuentro" stop is gone. The Settings hub-stop now visits `settings.export` and `import.dropzone`. A new `chronicle.detail.share` stop highlights the share button. The outro mentions that the user will be asked for their name next.
+
+### Post-F8 Polish: Home as Nav Hub, Help Page Consolidation, AI Polish
+
+Released alongside F8 to consolidate the information architecture and tighten the AI integration:
+
+- **Home is a pure nav hub.** `src/features/home/HomePage.tsx` was rewritten as an icon grid of every top-level section (`Campos`, `Formularios`, `Grupos`, `Encuentros`, `Crónicas`, `Configuración`, `Cómo funciona`, `Ayuda`, `Soporte`). Each tile carries a `data-tour` attribute used by the onboarding tour to point to the correct hub stop. The data-aware welcome card, demo encounter toggle, "quick check" card, and the data-status summary moved to a new `/support` page (`SupportPage`).
+- **`/import` removed from the router.** Importing happens inside `/settings` via `ImportSection`. The legacy `ImportPage` route was dropped from `src/app/router.tsx` and the `Importar` entry was removed from `src/app/nav-items.ts`.
+- **AI integration polish.** See the F7 section above for the input-hash cache, the no-fallback-on-Gemini-error policy, and the `AiKeyStatusBadge`. These three additions happened after F8 was already in place but logically extend F7's AI layer rather than F8's export work.
 
 ### Explicitly Discarded Dependencies in v1
 
@@ -186,8 +206,9 @@ chronicle/
 │  │  └─ chronicle.ts
 │  ├─ infra/
 │  │  ├─ ai/
-│  │  │  ├─ gemini-client.ts            # raw fetch to Gemini REST API
-│  │  │  └─ gemini-chronicle-generator.ts # prompt builder + generator (skips media)
+│  │  │  ├─ gemini-client.ts            # raw fetch to Gemini REST API (HTTP 429 → AI_RATE_LIMITED)
+│  │  │  ├─ gemini-chronicle-generator.ts # prompt builder + generator (skips media)
+│  │  │  └─ chronicle-input-hash.ts     # SHA-256 fingerprint over the AI prompt input (cache key)
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
 │  │  │  ├─ client.ts                   # singleton instance + migrations up to v6
@@ -197,9 +218,10 @@ chronicle/
 │  │  │  ├─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
 │  │  │  └─ use-media-object-url.ts     # mediaId → managed object URL hook
 │  │  ├─ export/
-│  │  │  ├─ manifest.ts                 # ZIP manifest schema/contract
-│  │  │  ├─ encounter-exporter.ts       # per-encounter ZIP generation and download
-│  │  │  └─ encounter-importer.ts       # ZIP parse + transactional upsert import
+│  │  │  ├─ manifest.ts                 # Both `chronicle-full-v1` and `chronicle-encounter-v1` schemas + discriminator
+│  │  │  ├─ full-exporter.ts            # Global ZIP generation + download (every table + media + brand/name)
+│  │  │  ├─ full-importer.ts            # Global ZIP parse + transactional upsert
+│  │  │  └─ encounter-importer.ts       # Legacy per-encounter ZIP parse + upsert (read-only backward compat)
 │  │  └─ pwa/
 │  ├─ components/
 │  │  ├─ ui/                            # shadcn primitives
@@ -236,7 +258,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?`, `archivedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment; `archivedAt` is independent from `endedAt` and uses empty string for active |
 | `observations` | `id`, `encounterId`, `participantId?`, `title?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
-| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` — optional field, no Dexie migration required |
+| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?`, `inputHash?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` and `inputHash?` (SHA-256 fingerprint, only set when `generatedWith === "gemini"`) — both optional, no Dexie migration required |
 
 **Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`.
 
@@ -290,10 +312,12 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F1** | **Field CRUD** | **Completed 2026-04-18 (baseline): create/edit/archive/list, routes `/fields*`, validation by type and unit/E2E tests** |
 | **F2** | **Observation Form Editor** | **Completed 2026-04-18 (baseline): create/edit/archive/restore/list, routes `/forms*`, ordered field composition with accessible reorder, auto version bump, unit/E2E tests** |
 | **F3** | **Encounters and Observation Capture (includes media)** | **Completed 2026-04-18 (baseline): Groups/Participants CRUD, encounter create/finish, observation capture with dynamic fields + media (file picker + in-app audio), Dexie schema v4, unit/E2E tests** |
-| **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests** |
+| **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests. Superseded by F8 / post-F8 polish — the `/import` route is gone and the encounter-level export was removed; the legacy `chronicle-encounter-v1` parser is kept for read-only backward compatibility.** |
 | **F5** | **Chronicle Generation (first prototype)** | **Completed 2026-04-18 (baseline): deterministic chronicle generation from encounter observations, `/chronicles` list + detail routes, generation action from encounter detail, Dexie schema v5 (`chronicles` table), unit/E2E tests** |
 | **F6** | **Post-F5 UX iteration: archive/restore + onboarding + defaults + responsive shell** | **Completed 2026-05-01: encounter archive/restore (Dexie v6, `archivedAt`), observation `title`, unified list tables, mobile nav drawer + theme provider, first-run onboarding dialog, default form + demo encounter seeding, inline media previews, data-aware home dashboard, `/help` and `/how-it-works` guides** |
-| **F7** | **Optional Gemini AI chronicle generation (BYOK)** | **Completed 2026-05-01: opt-in `gemini-2.0-flash` generation with BYOK (`localStorage`); graceful fallback to deterministic; `generatedWith` field on `Chronicle`; `/settings` route with masked API key form; `AiSetupGuide` shared component; onboarding 3rd step; "Generada con IA" badge; `infra/ai/` layer; unit + E2E tests green** |
+| **F7** | **Optional Gemini AI chronicle generation (BYOK)** | **Completed 2026-05-01: opt-in `gemini-2.5-flash` generation with BYOK (`localStorage`); `generatedWith` field on `Chronicle`; `/settings` route with masked API key form; `AiSetupGuide` shared component; onboarding 3rd step; "Generada con IA" badge; `infra/ai/` layer; input-hash cache (`Chronicle.inputHash`) added post-F8; no deterministic fallback on Gemini error (category-specific toast instead); `AiKeyStatusBadge` next to every "Generar crónica" entry point; unit + E2E tests green** |
+| **F8** | **Always-available global export + user identity + chronicle share** | **Completed 2026-05-01: `chronicle-full-v1` ZIP export from `/settings` (covers every table, media, brand color and author name); per-encounter "Exportar" button removed; importer dispatches between full and legacy `chronicle-encounter-v1` ZIPs; `chronicle.userName` + post-tour `WelcomeNamePrompt` (default detected from `navigator.userAgent`); `useShareChronicle` with `navigator.share` + clipboard fallback wired to a "Compartir" button on chronicle detail; new tour stops `settings.export` and `chronicle.detail.share`; new unit and E2E tests** |
+| **Post-F8 polish** | **Home as nav hub, support page consolidation, AI cache and AI key status** | **Completed 2026-05-01: `HomePage` rewritten as a pure icon-grid nav hub; new `/support` route hosts the demo encounter toggle, the data-aware status panel, and the quick-check helper; `/import` route removed (Settings is the canonical importer); `Chronicle.inputHash` SHA-256 cache short-circuits redundant Gemini calls; `AiKeyStatusBadge` always visible next to "Generar crónica"; tests updated to match the new layout** |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 

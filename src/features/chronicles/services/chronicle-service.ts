@@ -164,7 +164,13 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   }
 
   // API key configured: check cache, then attempt Gemini
-  const hashInput = { encounter, groupName: group.name, participantsById, fieldsById, observations };
+  const hashInput = {
+    encounter,
+    groupName: group.name,
+    participantsById,
+    fieldsById,
+    observations,
+  };
   const existingChronicle = await getChronicleByEncounterId(encounterId);
 
   if (existingChronicle?.generatedWith === "gemini" && existingChronicle.inputHash) {

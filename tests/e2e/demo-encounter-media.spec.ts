@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("demo encounter ships pre-populated with all field types and chronicle ready", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/support");
 
   await page.getByRole("button", { name: "Cargar encuentro de prueba" }).click();
 
@@ -53,25 +53,27 @@ test("demo encounter ships pre-populated with all field types and chronicle read
   await expect(page.getByRole("link", { name: "Descargar Archivo" })).toBeVisible();
 });
 
-test("'Cargar encuentro de prueba' lives only on the home page", async ({ page }) => {
-  // Without demo content, only the home shows the create button.
-  await page.goto("/");
+test("'Cargar encuentro de prueba' lives only on the support page", async ({ page }) => {
+  // Without demo content, only the support page shows the create button.
+  await page.goto("/support");
   await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeVisible();
 
-  for (const path of ["/fields", "/forms", "/groups", "/encounters", "/chronicles"]) {
+  // Home (now a pure nav hub) and list pages never offer the create
+  // button while the demo is absent.
+  for (const path of ["/", "/fields", "/forms", "/groups", "/encounters", "/chronicles"]) {
     await page.goto(path);
     await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeHidden();
     await expect(page.getByRole("button", { name: "Eliminar contenido de prueba" })).toBeHidden();
   }
 
-  // Create the demo from the home toggle.
-  await page.goto("/");
+  // Create the demo from the support page toggle.
+  await page.goto("/support");
   await page.getByRole("button", { name: "Cargar encuentro de prueba" }).click();
   await expect(page).toHaveURL(/\/encounters\/[0-9a-f-]+/i);
 
-  // Once the demo exists, the home toggle flips to "Eliminar" and the
+  // Once the demo exists, the support toggle flips to "Eliminar" and the
   // create entry point disappears across the app.
-  await page.goto("/");
+  await page.goto("/support");
   await expect(page.getByRole("button", { name: "Eliminar contenido de prueba" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeHidden();
 
@@ -85,7 +87,7 @@ test("'Cargar encuentro de prueba' lives only on the home page", async ({ page }
 });
 
 test("delete demo content from any list page restores the create button", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/support");
   await page.getByRole("button", { name: "Cargar encuentro de prueba" }).click();
   await expect(page).toHaveURL(/\/encounters\/[0-9a-f-]+/i);
 
@@ -124,8 +126,8 @@ test("delete demo content from any list page restores the create button", async 
   await page.goto("/fields");
   await expect(page.getByRole("cell", { name: "Booleano", exact: true })).toBeHidden();
 
-  // The home toggle is back to "Cargar" — pressing it re-creates everything.
-  await page.goto("/");
+  // The support toggle is back to "Cargar" — pressing it re-creates everything.
+  await page.goto("/support");
   await page.getByRole("button", { name: "Cargar encuentro de prueba" }).click();
   await expect(page).toHaveURL(/\/encounters\/[0-9a-f-]+/i);
   await expect(page.getByRole("heading", { name: "Actividad de prueba" })).toBeVisible();

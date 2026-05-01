@@ -54,10 +54,20 @@ test.describe("responsive navigation - tablet portrait (iPad Mini size)", () => 
 });
 
 test.describe("responsive navigation - desktop (default viewport)", () => {
-  test("shows inline nav and hides hamburger", async ({ page }) => {
+  test("home page renders the nav hub grid and the hamburger trigger remains available", async ({
+    page,
+  }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("navigation", { name: "Navegación principal" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Abrir menú de navegación" })).toBeHidden();
+    // The home page itself acts as the desktop nav hub: a grid of links
+    // that point to every top-level section.
+    const hubNav = page.getByRole("navigation", { name: "Accesos directos a secciones" });
+    await expect(hubNav).toBeVisible();
+    await expect(hubNav.getByRole("link", { name: "Campos" })).toBeVisible();
+    await expect(hubNav.getByRole("link", { name: "Configuración" })).toBeVisible();
+
+    // The hamburger trigger is the single navigation surface across all
+    // breakpoints (no separate inline desktop nav anymore).
+    await expect(page.getByRole("button", { name: "Abrir menú de navegación" })).toBeVisible();
   });
 });
