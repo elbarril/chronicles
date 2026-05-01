@@ -10,6 +10,7 @@ import { AppError } from "@/lib/error";
 const {
   upsertChronicleByEncounterMock,
   getChronicleByIdMock,
+  getChronicleByEncounterIdMock,
   deleteChronicleMock,
   getEncounterByIdMock,
   listFieldsByIdsMock,
@@ -19,9 +20,11 @@ const {
   hasGeminiApiKeyMock,
   getGeminiApiKeyMock,
   generateChronicleWithGeminiMock,
+  computeChronicleInputHashMock,
 } = vi.hoisted(() => ({
   upsertChronicleByEncounterMock: vi.fn(),
   getChronicleByIdMock: vi.fn(),
+  getChronicleByEncounterIdMock: vi.fn(),
   deleteChronicleMock: vi.fn(),
   getEncounterByIdMock: vi.fn(),
   listFieldsByIdsMock: vi.fn(),
@@ -31,14 +34,19 @@ const {
   hasGeminiApiKeyMock: vi.fn(),
   getGeminiApiKeyMock: vi.fn(),
   generateChronicleWithGeminiMock: vi.fn(),
+  computeChronicleInputHashMock: vi.fn(),
 }));
 
 vi.mock("@/infra/db/repositories/chronicle-repository", () => ({
   upsertChronicleByEncounter: upsertChronicleByEncounterMock,
   getChronicleById: getChronicleByIdMock,
-  getChronicleByEncounterId: vi.fn(),
+  getChronicleByEncounterId: getChronicleByEncounterIdMock,
   deleteChronicle: deleteChronicleMock,
   listChronicles: vi.fn(),
+}));
+
+vi.mock("@/infra/ai/chronicle-input-hash", () => ({
+  computeChronicleInputHash: computeChronicleInputHashMock,
 }));
 
 vi.mock("@/infra/db/repositories/encounter-repository", () => ({
@@ -139,6 +147,9 @@ describe("chronicle service", () => {
     vi.clearAllMocks();
     hasGeminiApiKeyMock.mockReturnValue(false);
     getGeminiApiKeyMock.mockReturnValue(null);
+    // Default: no existing chronicle and a fixed hash value
+    getChronicleByEncounterIdMock.mockResolvedValue(undefined);
+    computeChronicleInputHashMock.mockResolvedValue("hash-abc123");
   });
 
   it("throws when generating without an existing encounter", async () => {
@@ -273,5 +284,123 @@ describe("chronicle service", () => {
       name: "AppError",
       code: "CHRONICLE_NOT_FOUND",
     } satisfies Pick<AppError, "name" | "code">);
+  });
+
+  describe("AI cache behaviour", () => {
+    function stubGeminiReady(encounterId: string) {
+      const fieldId = crypto.randomUUID();
+      const participantId = crypto.randomUUID();
+      stubEncounterData(encounterId, fieldId, participantId);
+      hasGeminiApiKeyMock.mockReturnValue(true);
+      getGeminiApiKeyMock.mockReturnValue("AIzaTest");
+      generateChronicleWithGeminiMock.mockResolvedValue("Crónica con IA.");
+    }
+
+    it("returns cached chronicle without calling Gemini when hash matches", async () => {
+      const encounterId = crypto.randomUUID();
+      stubGeminiReady(encounterId);
+
+      const now = new Date().toISOString();
+      const cachedChronicle = {
+        id: crypto.randomUUID(),
+        encounterId,
+        title: "Crónica · Actividad de prueba",
+        body: "Crónica previa con IA.",
+        generatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        generatedWith: "gemini" as const,
+        inputHash: "hash-abc123",
+      };
+      getChronicleByEncounterIdMock.mockResolvedValue(cachedChronicle);
+      computeChronicleInputHashMock.mockResolvedValue("hash-abc123");
+
+      const result = await generateChronicle(encounterId);
+
+      expect(result.usedAi).toBe(true);
+      expect(result.aiFailed).toBe(false);
+      expect(result.chronicle).toStrictEqual(cachedChronicle);
+      expect(generateChronicleWithGeminiMock).not.toHaveBeenCalled();
+      expect(upsertChronicleByEncounterMock).not.toHaveBeenCalled();
+    });
+
+    it("calls Gemini and saves new hash when hash does not match (observations changed)", async () => {
+      const encounterId = crypto.randomUUID();
+      stubGeminiReady(encounterId);
+
+      const now = new Date().toISOString();
+      getChronicleByEncounterIdMock.mockResolvedValue({
+        id: crypto.randomUUID(),
+        encounterId,
+        title: "Crónica · Actividad de prueba",
+        body: "Crónica previa.",
+        generatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        generatedWith: "gemini" as const,
+        inputHash: "hash-old",
+      });
+      // Current observations produce a different hash
+      computeChronicleInputHashMock.mockResolvedValue("hash-new");
+
+      const result = await generateChronicle(encounterId);
+
+      expect(result.usedAi).toBe(true);
+      expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
+      expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
+        expect.objectContaining({ generatedWith: "gemini", inputHash: "hash-new" }),
+      );
+    });
+
+    it("bypasses cache and calls Gemini when force=true even if hash matches", async () => {
+      const encounterId = crypto.randomUUID();
+      stubGeminiReady(encounterId);
+
+      const now = new Date().toISOString();
+      getChronicleByEncounterIdMock.mockResolvedValue({
+        id: crypto.randomUUID(),
+        encounterId,
+        title: "Crónica · Actividad de prueba",
+        body: "Crónica previa.",
+        generatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        generatedWith: "gemini" as const,
+        inputHash: "hash-abc123",
+      });
+      computeChronicleInputHashMock.mockResolvedValue("hash-abc123");
+
+      const result = await generateChronicle(encounterId, { force: true });
+
+      expect(result.usedAi).toBe(true);
+      expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
+      expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
+        expect.objectContaining({ generatedWith: "gemini", inputHash: "hash-abc123" }),
+      );
+    });
+
+    it("skips cache check when existing chronicle was generated deterministically", async () => {
+      const encounterId = crypto.randomUUID();
+      stubGeminiReady(encounterId);
+
+      const now = new Date().toISOString();
+      // Chronicle exists but was NOT generated by Gemini — cache doesn't apply
+      getChronicleByEncounterIdMock.mockResolvedValue({
+        id: crypto.randomUUID(),
+        encounterId,
+        title: "Crónica · Actividad de prueba",
+        body: "Crónica determinista.",
+        generatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        generatedWith: "deterministic" as const,
+        inputHash: undefined,
+      });
+
+      const result = await generateChronicle(encounterId);
+
+      expect(result.usedAi).toBe(true);
+      expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
+    });
   });
 });

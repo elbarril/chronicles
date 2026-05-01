@@ -3,6 +3,7 @@ import { type Encounter } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
 import { formatObservationValueAsText } from "@/features/observations/lib/format-observation-value";
 import { hasGeminiApiKey, getGeminiApiKey } from "@/features/settings/services/settings-service";
+import { computeChronicleInputHash } from "@/infra/ai/chronicle-input-hash";
 import { generateChronicleWithGemini } from "@/infra/ai/gemini-chronicle-generator";
 import {
   deleteChronicle,
@@ -106,6 +107,15 @@ function buildChronicleTitle(encounter: Encounter): string {
   return `Crónica · ${encounter.activity}`;
 }
 
+export interface GenerateChronicleOptions {
+  /**
+   * When true, skip the cache check and always call the Gemini API.
+   * Used by the "Regenerar crónica" action so the user can explicitly
+   * request a fresh narrative even when the observations have not changed.
+   */
+  force?: boolean;
+}
+
 export interface GenerateChronicleResult {
   chronicle: Chronicle;
   usedAi: boolean;
@@ -113,7 +123,10 @@ export interface GenerateChronicleResult {
   aiFailCode?: ErrorCode;
 }
 
-export async function generateChronicle(encounterId: string): Promise<GenerateChronicleResult> {
+export async function generateChronicle(
+  encounterId: string,
+  options: GenerateChronicleOptions = {},
+): Promise<GenerateChronicleResult> {
   const encounter = await getEncounterById(encounterId);
 
   if (!encounter) {
@@ -146,7 +159,29 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   if (hasGeminiApiKey()) {
     const apiKey = getGeminiApiKey();
     if (apiKey) {
+      const hashInput = {
+        encounter,
+        groupName: group.name,
+        participantsById,
+        fieldsById,
+        observations,
+      };
+
+      // Cache check: if the observations haven't changed since the last Gemini
+      // generation, return the existing chronicle without consuming API quota.
+      // The user can bypass this with force=true (e.g. "Regenerar" button).
+      if (!options.force) {
+        const existing = await getChronicleByEncounterId(encounterId);
+        if (existing?.generatedWith === "gemini" && existing.inputHash) {
+          const currentHash = await computeChronicleInputHash(hashInput);
+          if (existing.inputHash === currentHash) {
+            return { chronicle: existing, usedAi: true, aiFailed: false };
+          }
+        }
+      }
+
       try {
+        const inputHash = await computeChronicleInputHash(hashInput);
         const aiBody = await generateChronicleWithGemini({
           apiKey,
           encounter,
@@ -161,15 +196,13 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
           title,
           body: aiBody,
           generatedWith: "gemini",
+          inputHash,
         });
 
         return { chronicle, usedAi: true, aiFailed: false };
       } catch (aiError) {
         // Capture the specific error code to surface a meaningful toast
-        aiFailCode =
-          aiError instanceof AppError
-            ? aiError.code
-            : "AI_GENERATION_FAILED";
+        aiFailCode = aiError instanceof AppError ? aiError.code : "AI_GENERATION_FAILED";
       }
     }
   }

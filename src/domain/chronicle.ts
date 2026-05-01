@@ -11,6 +11,10 @@ export interface Chronicle {
   createdAt: string;
   updatedAt: string;
   generatedWith?: ChronicleGeneratedWith;
+  /** SHA-256 fingerprint of the prompt input used for Gemini generation.
+   *  Present only when generatedWith === "gemini". Used to skip redundant
+   *  API calls when the underlying observations have not changed. */
+  inputHash?: string;
 }
 
 export const chronicleSchema = z.object({
@@ -22,6 +26,7 @@ export const chronicleSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   generatedWith: z.enum(["deterministic", "gemini"]).optional(),
+  inputHash: z.string().optional(),
 });
 
 export const chronicleInputSchema = z.object({
@@ -29,6 +34,7 @@ export const chronicleInputSchema = z.object({
   title: z.string().trim().min(1),
   body: z.string().trim().min(1),
   generatedWith: z.enum(["deterministic", "gemini"]).optional(),
+  inputHash: z.string().optional(),
 });
 
 export type ChronicleInput = z.infer<typeof chronicleInputSchema>;
