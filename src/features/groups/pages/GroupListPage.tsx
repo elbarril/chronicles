@@ -26,23 +26,28 @@ export function GroupListPage(): JSX.Element {
 
         <div className="flex flex-wrap items-center gap-2">
           <DemoEncounterButton removeOnly />
-          <Button asChild>
+          <Button asChild data-tour="groups.new-button">
             <Link to="/groups/new">Nuevo grupo</Link>
           </Button>
         </div>
       </header>
 
-      <div className="flex gap-2" role="tablist" aria-label="Filtros de estado de grupos">
+      <div
+        className="flex gap-2"
+        role="tablist"
+        aria-label="Filtros de estado de grupos"
+        data-tour="groups.list-region"
+      >
         <Button
           type="button"
-          variant={status === "active" ? "default" : "outline"}
+          variant={status === "active" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "active" })}
         >
           Activos
         </Button>
         <Button
           type="button"
-          variant={status === "archived" ? "default" : "outline"}
+          variant={status === "archived" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "archived" })}
         >
           Archivados

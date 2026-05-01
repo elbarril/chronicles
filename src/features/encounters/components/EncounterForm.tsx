@@ -72,7 +72,7 @@ export function EncounterForm({
           control={form.control}
           name="groupId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem data-tour="encounters.new.group-selector">
               <FormLabel>Grupo</FormLabel>
               <FormControl>
                 <select
@@ -96,7 +96,7 @@ export function EncounterForm({
           control={form.control}
           name="formId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem data-tour="encounters.new.form-selector">
               <FormLabel>Formulario</FormLabel>
               <FormControl>
                 <select
@@ -117,7 +117,7 @@ export function EncounterForm({
         />
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} data-tour="encounters.new.start-button">
             {isSaving ? "Guardando..." : "Crear encuentro"}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

@@ -94,7 +94,7 @@ export function FieldForm({
             control={form.control}
             name="label"
             render={({ field }) => (
-              <FormItem>
+              <FormItem data-tour="fields.new.name-input">
                 <FormLabel>Nombre del campo</FormLabel>
                 <FormControl>
                   <Input placeholder="Ej: Nivel de participación" {...field} />
@@ -132,7 +132,7 @@ export function FieldForm({
             control={form.control}
             name="type"
             render={({ field }) => (
-              <FormItem>
+              <FormItem data-tour="fields.type-selector">
                 <FormLabel>Tipo</FormLabel>
                 <FormControl>
                   <select
@@ -543,7 +543,7 @@ export function FieldForm({
         </fieldset>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} data-tour="fields.save-button">
             {isSaving ? "Guardando..." : "Guardar campo"}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

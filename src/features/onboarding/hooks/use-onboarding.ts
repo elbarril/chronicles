@@ -18,6 +18,11 @@ export function useOnboarding(): UseOnboardingResult {
   const dismiss = useCallback(() => {
     markOnboardingCompleted();
     setIsOpen(false);
+    if (typeof window !== "undefined") {
+      // Notify the rest of the app (e.g. WelcomeNamePrompt) that the
+      // tour just finished without waiting for a reload or storage tick.
+      window.dispatchEvent(new CustomEvent("chronicle:tour-finished"));
+    }
   }, []);
 
   const reopen = useCallback(() => {

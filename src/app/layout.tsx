@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "react-router";
 import { MobileNavDrawer } from "@/app/MobileNavDrawer";
 import { navItems } from "@/app/nav-items";
 import { OnboardingDialog } from "@/features/onboarding/components/OnboardingDialog";
+import { WelcomeNamePrompt } from "@/features/onboarding/components/WelcomeNamePrompt";
 import { cn } from "@/lib/utils";
 
 function getCurrentPageLabel(pathname: string): string {
@@ -72,6 +73,7 @@ export function RootLayout(): JSX.Element {
       </footer>
 
       <OnboardingDialog />
+      <WelcomeNamePrompt />
     </div>
   );
 }

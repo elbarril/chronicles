@@ -39,23 +39,28 @@ export function FieldListPage(): JSX.Element {
           >
             {defaultsMessages.loadDefaultFields}
           </Button>
-          <Button asChild>
+          <Button asChild data-tour="fields.new-button">
             <Link to="/fields/new">Nuevo campo</Link>
           </Button>
         </div>
       </header>
 
-      <div className="flex gap-2" role="tablist" aria-label="Filtros de estado de campos">
+      <div
+        className="flex gap-2"
+        role="tablist"
+        aria-label="Filtros de estado de campos"
+        data-tour="fields.list-region"
+      >
         <Button
           type="button"
-          variant={status === "active" ? "default" : "outline"}
+          variant={status === "active" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "active" })}
         >
           Activos
         </Button>
         <Button
           type="button"
-          variant={status === "archived" ? "default" : "outline"}
+          variant={status === "archived" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "archived" })}
         >
           Archivados

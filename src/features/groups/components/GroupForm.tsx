@@ -69,7 +69,7 @@ export function GroupForm({
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
+            <FormItem data-tour="groups.new.name-input">
               <FormLabel>Nombre del grupo</FormLabel>
               <FormControl>
                 <Input placeholder="Ej: Sala Azul" {...field} />
@@ -86,7 +86,11 @@ export function GroupForm({
             const participantNames = field.value ?? [];
 
             return (
-              <section className="space-y-3" aria-labelledby="participants-title">
+              <section
+                className="space-y-3"
+                aria-labelledby="participants-title"
+                data-tour="groups.new.participants"
+              >
                 <header className="flex items-center justify-between gap-2">
                   <h2 id="participants-title" className="text-base font-semibold">
                     Participantes
@@ -141,7 +145,7 @@ export function GroupForm({
         />
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} data-tour="groups.new.save-button">
             {isSaving ? "Guardando..." : "Guardar grupo"}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

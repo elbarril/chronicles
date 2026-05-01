@@ -22,19 +22,25 @@ export function ChronicleListPage(): JSX.Element {
         <DemoEncounterButton removeOnly />
       </header>
 
-      {isLoading ? <p className="text-muted-foreground text-sm">Cargando crónicas...</p> : null}
+      <div data-tour="chronicles.list-region">
+        {isLoading ? <p className="text-muted-foreground text-sm">Cargando crónicas...</p> : null}
 
-      {!isLoading && chronicles.length === 0 ? (
-        <section className="bg-muted/40 rounded-3xl p-6 text-center" aria-live="polite">
-          <h2 className="text-lg font-semibold">{chronicleMessages.emptyTitle}</h2>
-          <p className="text-muted-foreground mt-2 text-sm">{chronicleMessages.emptyDescription}</p>
-          <Button asChild variant="outline" className="mt-4">
-            <Link to="/encounters">{chronicleMessages.goToEncounters}</Link>
-          </Button>
-        </section>
-      ) : null}
+        {!isLoading && chronicles.length === 0 ? (
+          <section className="bg-muted/40 rounded-3xl p-6 text-center" aria-live="polite">
+            <h2 className="text-lg font-semibold">{chronicleMessages.emptyTitle}</h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {chronicleMessages.emptyDescription}
+            </p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link to="/encounters">{chronicleMessages.goToEncounters}</Link>
+            </Button>
+          </section>
+        ) : null}
 
-      {!isLoading && chronicles.length > 0 ? <ChronicleListTable chronicles={chronicles} /> : null}
+        {!isLoading && chronicles.length > 0 ? (
+          <ChronicleListTable chronicles={chronicles} />
+        ) : null}
+      </div>
     </section>
   );
 }

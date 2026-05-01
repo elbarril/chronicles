@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("can export an encounter and import it back from zip", async ({ page }, testInfo) => {
+test("can export everything from settings and import it back", async ({ page }, testInfo) => {
   const suffix = Date.now().toString();
   const groupName = `Grupo Export ${suffix}`;
   const fieldName = `Nota Export ${suffix}`;
@@ -42,26 +42,33 @@ test("can export an encounter and import it back from zip", async ({ page }, tes
   await page.getByLabel(new RegExp(fieldName)).fill("Observación exportable");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Exportar todo" })).toBeVisible();
+
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: "Exportar encuentro" }).click(),
+    page.getByRole("button", { name: /^Exportar todo/ }).click(),
   ]);
 
-  const downloadPath = testInfo.outputPath(`encounter-${suffix}.zip`);
+  const downloadPath = testInfo.outputPath(`chronicle-${suffix}.zip`);
   await download.saveAs(downloadPath);
 
-  await page.goto("/import");
+  // Now drop the same ZIP into the import section in the same page.
   await page.locator('input[type="file"]').setInputFiles(downloadPath);
 
-  await expect(page.getByRole("heading", { name: "Vista previa de importación" })).toBeVisible();
-  await expect(page.getByText(activityName)).toBeVisible();
-  await expect(page.getByText(`Grupo: ${groupName}`)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Vista previa de importación completa" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Importar" }).click();
 
-  await expect(page.getByText("Importación finalizada")).toBeVisible();
-  await page.getByRole("link", { name: "Ir al encuentro" }).click();
+  // The success card title is "Importación completada" — there is also a
+  // toast with the same text but a trailing dot, which would trigger
+  // strict-mode if we matched too loosely.
+  await expect(page.getByText("Importación completada", { exact: true })).toBeVisible();
 
-  await expect(page).toHaveURL(/\/encounters\/.+/);
-  await expect(page.getByRole("heading", { name: activityName })).toBeVisible();
+  // Sanity check: the encounter we created should still be there.
+  await page.goto("/encounters");
+  await expect(page.getByRole("heading", { name: "Encuentros" })).toBeVisible();
+  await expect(page.getByRole("link", { name: activityName }).first()).toBeVisible();
 });

@@ -2,8 +2,8 @@ import { Settings, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
-import { hasGeminiApiKey } from "@/features/settings/services/settings-service";
 import { settingsMessages } from "@/features/settings/lib/messages";
+import { hasGeminiApiKey } from "@/features/settings/services/settings-service";
 
 export function AiKeyStatusBadge(): JSX.Element {
   const [isConfigured] = useState(() => hasGeminiApiKey());

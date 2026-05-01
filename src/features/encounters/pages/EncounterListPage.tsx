@@ -60,7 +60,7 @@ export function EncounterListPage(): JSX.Element {
 
         <div className="flex flex-wrap items-center gap-2">
           <DemoEncounterButton removeOnly />
-          <Button asChild>
+          <Button asChild data-tour="encounters.new-button">
             <Link to="/encounters/new">Nuevo encuentro</Link>
           </Button>
         </div>
@@ -70,24 +70,25 @@ export function EncounterListPage(): JSX.Element {
         className="flex flex-wrap gap-2"
         role="tablist"
         aria-label="Filtros de estado de encuentros"
+        data-tour="encounters.filter-bar"
       >
         <Button
           type="button"
-          variant={status === "inProgress" ? "default" : "outline"}
+          variant={status === "inProgress" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "inProgress" })}
         >
           En curso
         </Button>
         <Button
           type="button"
-          variant={status === "finished" ? "default" : "outline"}
+          variant={status === "finished" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "finished" })}
         >
           Finalizados
         </Button>
         <Button
           type="button"
-          variant={status === "archived" ? "default" : "outline"}
+          variant={status === "archived" ? "tab-active" : "outline"}
           onClick={() => setSearchParams({ status: "archived" })}
         >
           Archivados

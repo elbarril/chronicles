@@ -145,7 +145,7 @@ export function FormBuilder({
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
+            <FormItem data-tour="forms.new.name-input">
               <FormLabel>Nombre del formulario</FormLabel>
               <FormControl>
                 <Input placeholder="Ej: Sesión grupal" {...field} />
@@ -155,7 +155,11 @@ export function FormBuilder({
           )}
         />
 
-        <section className="grid gap-4 lg:grid-cols-2" aria-labelledby="available-fields-title">
+        <section
+          className="grid gap-4 lg:grid-cols-2"
+          aria-labelledby="available-fields-title"
+          data-tour="forms.new.field-picker"
+        >
           <div className="border-border rounded-md border p-4">
             <h2 id="available-fields-title" className="text-base font-semibold">
               Campos disponibles
@@ -279,7 +283,7 @@ export function FormBuilder({
         />
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} data-tour="forms.new.save-button">
             {isSaving ? "Guardando..." : "Guardar formulario"}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

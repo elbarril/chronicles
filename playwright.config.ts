@@ -18,7 +18,10 @@ export default defineConfig({
       origins: [
         {
           origin: "http://localhost:4173",
-          localStorage: [{ name: "chronicle.onboardingCompleted", value: "true" }],
+          localStorage: [
+            { name: "chronicle.onboardingCompleted", value: "true" },
+            { name: "chronicle.userNamePromptShown", value: "true" },
+          ],
         },
       ],
     },
