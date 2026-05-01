@@ -208,11 +208,53 @@ describe("chronicle service", () => {
 
     expect(result.usedAi).toBe(false);
     expect(result.aiFailed).toBe(true);
+    expect(result.aiFailCode).toBe("AI_GENERATION_FAILED");
     expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
       expect.objectContaining({
         generatedWith: "deterministic",
       }),
     );
+  });
+
+  it("exposes aiFailCode=AI_RATE_LIMITED when Gemini returns 429", async () => {
+    const encounterId = crypto.randomUUID();
+    const fieldId = crypto.randomUUID();
+    const participantId = crypto.randomUUID();
+    stubEncounterData(encounterId, fieldId, participantId);
+
+    hasGeminiApiKeyMock.mockReturnValue(true);
+    getGeminiApiKeyMock.mockReturnValue("AIzaTest");
+    generateChronicleWithGeminiMock.mockRejectedValue(
+      new AppError("AI_RATE_LIMITED", "Gemini API rate limit or quota exceeded."),
+    );
+
+    const result = await generateChronicle(encounterId);
+
+    expect(result.usedAi).toBe(false);
+    expect(result.aiFailed).toBe(true);
+    expect(result.aiFailCode).toBe("AI_RATE_LIMITED");
+    expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
+      expect.objectContaining({ generatedWith: "deterministic" }),
+    );
+  });
+
+  it("exposes aiFailCode=AI_KEY_INVALID when Gemini returns 403", async () => {
+    const encounterId = crypto.randomUUID();
+    const fieldId = crypto.randomUUID();
+    const participantId = crypto.randomUUID();
+    stubEncounterData(encounterId, fieldId, participantId);
+
+    hasGeminiApiKeyMock.mockReturnValue(true);
+    getGeminiApiKeyMock.mockReturnValue("AIzaBad");
+    generateChronicleWithGeminiMock.mockRejectedValue(
+      new AppError("AI_KEY_INVALID", "Gemini API key is not authorized."),
+    );
+
+    const result = await generateChronicle(encounterId);
+
+    expect(result.usedAi).toBe(false);
+    expect(result.aiFailed).toBe(true);
+    expect(result.aiFailCode).toBe("AI_KEY_INVALID");
   });
 
   it("throws not found when requesting unknown chronicle detail", async () => {

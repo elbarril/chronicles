@@ -52,6 +52,9 @@ export async function generateText(request: GeminiGenerateRequest): Promise<stri
     if (response.status === 403 || status === "PERMISSION_DENIED") {
       throw new AppError("AI_KEY_INVALID", "Gemini API key is not authorized.");
     }
+    if (response.status === 429 || status === "RESOURCE_EXHAUSTED") {
+      throw new AppError("AI_RATE_LIMITED", "Gemini API rate limit or quota exceeded.");
+    }
     throw new AppError(
       "AI_GENERATION_FAILED",
       `Gemini API error: ${data.error?.message ?? response.statusText}`,

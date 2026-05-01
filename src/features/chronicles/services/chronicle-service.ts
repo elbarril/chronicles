@@ -15,7 +15,7 @@ import { getEncounterById } from "@/infra/db/repositories/encounter-repository";
 import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
 import { getGroupById, listParticipantsByGroup } from "@/infra/db/repositories/group-repository";
 import { listObservationsByEncounter } from "@/infra/db/repositories/observation-repository";
-import { AppError } from "@/lib/error";
+import { AppError, type ErrorCode } from "@/lib/error";
 
 export interface ChronicleListItem {
   chronicle: Chronicle;
@@ -110,6 +110,7 @@ export interface GenerateChronicleResult {
   chronicle: Chronicle;
   usedAi: boolean;
   aiFailed: boolean;
+  aiFailCode?: ErrorCode;
 }
 
 export async function generateChronicle(encounterId: string): Promise<GenerateChronicleResult> {
@@ -140,6 +141,8 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   const title = buildChronicleTitle(encounter);
 
   // Attempt Gemini generation if API key is configured
+  let aiFailCode: ErrorCode | undefined;
+
   if (hasGeminiApiKey()) {
     const apiKey = getGeminiApiKey();
     if (apiKey) {
@@ -161,8 +164,12 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
         });
 
         return { chronicle, usedAi: true, aiFailed: false };
-      } catch {
-        // AI failed — fall through to deterministic generation
+      } catch (aiError) {
+        // Capture the specific error code to surface a meaningful toast
+        aiFailCode =
+          aiError instanceof AppError
+            ? aiError.code
+            : "AI_GENERATION_FAILED";
       }
     }
   }
@@ -184,7 +191,7 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   });
 
   const aiFailed = hasGeminiApiKey();
-  return { chronicle, usedAi: false, aiFailed };
+  return { chronicle, usedAi: false, aiFailed, aiFailCode };
 }
 
 export async function listGeneratedChronicles(): Promise<ChronicleListItem[]> {

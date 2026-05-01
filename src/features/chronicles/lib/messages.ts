@@ -19,6 +19,10 @@ export const chronicleMessages = {
   regenerateSuccess: "Crónica regenerada con éxito.",
   regenerateSuccessAi: "Crónica regenerada con IA con éxito.",
   aiFallbackWarning: "No se pudo usar IA para la generación. La crónica se generó localmente.",
+  aiRateLimitWarning:
+    "Alcanzaste el límite de solicitudes de la API de Gemini. La crónica se generó localmente.",
+  aiKeyInvalidWarning:
+    "La clave de API de Gemini es inválida. Revisá tu configuración. La crónica se generó localmente.",
   deleteSuccess: "Crónica eliminada.",
   deleteError: "No pudimos eliminar la crónica.",
   viewerTitle: "Contenido de la crónica",

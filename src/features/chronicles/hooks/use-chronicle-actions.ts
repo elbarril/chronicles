@@ -5,9 +5,16 @@ import { type Chronicle } from "@/domain/chronicle";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
 import {
   generateChronicle,
+  type GenerateChronicleResult,
   removeChronicle,
 } from "@/features/chronicles/services/chronicle-service";
 import { AppError } from "@/lib/error";
+
+function aiFallbackMessage(result: GenerateChronicleResult): string {
+  if (result.aiFailCode === "AI_RATE_LIMITED") return chronicleMessages.aiRateLimitWarning;
+  if (result.aiFailCode === "AI_KEY_INVALID") return chronicleMessages.aiKeyInvalidWarning;
+  return chronicleMessages.aiFallbackWarning;
+}
 
 export function useChronicleActions() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -19,7 +26,7 @@ export function useChronicleActions() {
     try {
       const result = await generateChronicle(encounterId);
       if (result.aiFailed) {
-        toast.warning(chronicleMessages.aiFallbackWarning);
+        toast.warning(aiFallbackMessage(result));
       } else if (result.usedAi) {
         toast.success(chronicleMessages.createSuccessAi);
       } else {
@@ -45,7 +52,7 @@ export function useChronicleActions() {
     try {
       const result = await generateChronicle(encounterId);
       if (result.aiFailed) {
-        toast.warning(chronicleMessages.aiFallbackWarning);
+        toast.warning(aiFallbackMessage(result));
       } else if (result.usedAi) {
         toast.success(chronicleMessages.regenerateSuccessAi);
       } else {
