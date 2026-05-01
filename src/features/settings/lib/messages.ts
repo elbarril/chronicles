@@ -1,6 +1,24 @@
 export const settingsMessages = {
   pageTitle: "Configuración",
   pageDescription: "Ajustá las opciones de Chronicle según tus necesidades.",
+  appearanceSectionTitle: "Apariencia",
+  appearanceSectionDescription: "Elegí el color de acento de la aplicación.",
+  exportSectionTitle: "Exportar todo",
+  exportSectionDescription:
+    "Generá un archivo .zip con todos tus datos: campos, formularios, grupos, encuentros, observaciones, crónicas y archivos multimedia. También se guardan tus preferencias (color y nombre).",
+  exportButton: "Exportar todo",
+  exportingButton: "Exportando...",
+  exportSuccess: "Exportación completada.",
+  exportError: "No pudimos exportar tus datos.",
+  importSectionTitle: "Importar datos",
+  importSectionDescription:
+    "Importá un archivo .zip exportado desde Chronicle para restaurar tus datos en este navegador.",
+  brandAmber: "Ámbar",
+  brandAmberDescription: "Cálido y editorial — evoca tinta y crónicas.",
+  brandIndigo: "Índigo",
+  brandIndigoDescription: "Institucional y claro — académico y confiable.",
+  brandForest: "Verde campo",
+  brandForestDescription: "Terroso y enfocado — trabajo de campo y observación.",
   aiSectionTitle: "Generación de crónicas con IA",
   apiKeyLabel: "Clave de API de Gemini",
   apiKeyPlaceholder: "AIza...",
@@ -17,4 +35,12 @@ export const settingsMessages = {
   aiStatusConfigure: "Configurar IA",
   aiStatusActiveAriaLabel: "Gemini configurado. Ir a Configuración.",
   aiStatusConfigureAriaLabel: "Sin clave de IA. Ir a Configuración.",
+  userNameSectionTitle: "Tu nombre",
+  userNameSectionDescription:
+    "Se usa como autor en los archivos exportados. Lo podés cambiar cuando quieras.",
+  userNameLabel: "Nombre",
+  userNamePlaceholder: "Cómo querés que aparezca",
+  userNameSaveButton: "Guardar nombre",
+  userNameSaveSuccess: "Nombre guardado.",
+  userNameSaveError: "El nombre no puede estar vacío.",
 } as const;
