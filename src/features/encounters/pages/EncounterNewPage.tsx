@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
+import { Button } from "@/components/ui/button";
 import { EncounterForm } from "@/features/encounters/components/EncounterForm";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
 import { getDefaultEncounterInput } from "@/features/encounters/lib/encounter-defaults";
@@ -60,6 +61,12 @@ export function EncounterNewPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-new-title">
+      <nav aria-label="Migas de pan">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/encounters">← Volver a encuentros</Link>
+        </Button>
+      </nav>
+
       <header>
         <h1 id="encounter-new-title" className="text-3xl font-bold tracking-tight">
           Nuevo encuentro

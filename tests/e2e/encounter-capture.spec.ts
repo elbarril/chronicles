@@ -98,7 +98,8 @@ test("can create encounter and capture multiple observations with media files", 
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   await expect(page.getByText("Segunda observación")).toBeVisible();
-  await expect(page.getByText("Archivo adjunto")).toHaveCount(2);
+  await expect(page.getByRole("img", { name: imageFieldName })).toBeVisible();
+  await expect(page.getByLabel(`Reproducir ${audioFieldName}`)).toBeVisible();
 
   await page.getByRole("button", { name: "Finalizar encuentro" }).click();
   await expect(page.getByText("Encuentro finalizado", { exact: true })).toBeVisible();

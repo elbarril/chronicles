@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { MediaItem } from "@/components/media/MediaItem";
+import { MediaPreview } from "@/components/media/MediaPreview";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -27,6 +29,7 @@ interface ParticipantOption {
 
 interface ObservationFormValues {
   participantId?: string;
+  title?: string;
   values: Record<string, unknown>;
 }
 
@@ -53,6 +56,7 @@ function getDefaultValue(field: Field): unknown {
 function buildInitialValues(fields: Field[], observation?: Observation): ObservationFormValues {
   return {
     participantId: observation?.participantId,
+    title: observation?.title ?? "",
     values: Object.fromEntries(
       fields.map((field) => [field.id, observation?.values[field.id] ?? getDefaultValue(field)]),
     ),
@@ -72,7 +76,9 @@ function parseFieldValue(field: Field, value: string): unknown {
   return value;
 }
 
-function isMediaField(field: Field): boolean {
+type MediaField = Field & { type: "image" | "video" | "audio" | "file" };
+
+function isMediaField(field: Field): field is MediaField {
   return (
     field.type === "image" ||
     field.type === "video" ||
@@ -89,6 +95,78 @@ function getMediaConfig(field: Field): { accept?: string; multiple?: boolean } {
   return field.config as { accept?: string; multiple?: boolean };
 }
 
+type MediaFieldKind = "audio" | "video" | "image" | "file";
+
+function isMediaRefValue(value: unknown): value is { mediaId: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "mediaId" in value &&
+    typeof (value as { mediaId: unknown }).mediaId === "string"
+  );
+}
+
+function isMediaRefListValue(value: unknown): value is { mediaIds: string[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "mediaIds" in value &&
+    Array.isArray((value as { mediaIds: unknown }).mediaIds)
+  );
+}
+
+function MediaFieldPreview({
+  value,
+  kind,
+  label,
+}: {
+  value: unknown;
+  kind: MediaFieldKind;
+  label: string;
+}): JSX.Element | null {
+  if (value instanceof Blob) {
+    return <MediaPreview blob={value} kind={kind} label={label} />;
+  }
+
+  if (Array.isArray(value) && value.every((item): item is Blob => item instanceof Blob)) {
+    if (value.length === 0) {
+      return null;
+    }
+
+    return (
+      <ul className="space-y-2">
+        {value.map((blob, index) => (
+          <li key={index}>
+            <MediaPreview blob={blob} kind={kind} label={label} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (isMediaRefValue(value)) {
+    return <MediaItem mediaId={value.mediaId} kind={kind} label={label} />;
+  }
+
+  if (isMediaRefListValue(value)) {
+    if (value.mediaIds.length === 0) {
+      return null;
+    }
+
+    return (
+      <ul className="space-y-2">
+        {value.mediaIds.map((mediaId) => (
+          <li key={mediaId}>
+            <MediaItem mediaId={mediaId} kind={kind} label={label} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return null;
+}
+
 export function ObservationForm({
   fields,
   participants,
@@ -99,6 +177,7 @@ export function ObservationForm({
 }: ObservationFormProps): JSX.Element {
   const formSchema = z.object({
     participantId: z.string().uuid().optional(),
+    title: z.string().optional(),
     values: z.record(z.string(), z.unknown()),
   });
 
@@ -155,6 +234,25 @@ export function ObservationForm({
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Título (opcional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  value={String(field.value ?? "")}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  placeholder="Sin título"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="participantId"
@@ -244,6 +342,12 @@ export function ObservationForm({
                             </Button>
                           </div>
                         ) : null}
+
+                        <MediaFieldPreview
+                          value={valueField.value}
+                          kind={field.type}
+                          label={field.label}
+                        />
                       </div>
                     ) : field.type === "longText" ? (
                       <textarea
@@ -315,8 +419,8 @@ export function ObservationForm({
           />
         ))}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
             {isSaving
               ? "Guardando..."
               : initialObservation
@@ -324,7 +428,12 @@ export function ObservationForm({
                 : "Guardar observación"}
           </Button>
           {onCancel ? (
-            <Button type="button" variant="secondary" onClick={onCancel}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={onCancel}
+            >
               Cancelar
             </Button>
           ) : null}

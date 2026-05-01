@@ -1,10 +1,13 @@
 import { encounterInputSchema, type Encounter, type EncounterInput } from "@/domain/encounter";
 import { type ObservationForm } from "@/domain/form";
 import {
+  archiveEncounter,
   createEncounter,
   finishEncounter,
   getEncounterById,
+  listArchivedEncounters,
   listEncounterByStatus,
+  restoreEncounter,
   updateEncounter,
 } from "@/infra/db/repositories/encounter-repository";
 import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
@@ -59,6 +62,7 @@ export async function createEncounterDefinition(input: EncounterInput): Promise<
     activity: parsed.activity,
     startedAt: parsed.startedAt ?? new Date().toISOString(),
     endedAt: "",
+    archivedAt: "",
   });
 }
 
@@ -87,10 +91,34 @@ export async function finishEncounterDefinition(id: string): Promise<Encounter> 
   return finished;
 }
 
-export async function listEncounterDefinitions(
-  status: "inProgress" | "finished",
-): Promise<Encounter[]> {
-  return listEncounterByStatus(status);
+export type EncounterListFilter = "inProgress" | "finished" | "archived";
+
+export async function listEncounterDefinitions(filter: EncounterListFilter): Promise<Encounter[]> {
+  if (filter === "archived") {
+    return listArchivedEncounters();
+  }
+
+  return listEncounterByStatus(filter);
+}
+
+export async function archiveEncounterDefinition(id: string): Promise<Encounter> {
+  const archived = await archiveEncounter(id);
+
+  if (!archived) {
+    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found for archive.");
+  }
+
+  return archived;
+}
+
+export async function restoreEncounterDefinition(id: string): Promise<Encounter> {
+  const restored = await restoreEncounter(id);
+
+  if (!restored) {
+    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found for restore.");
+  }
+
+  return restored;
 }
 
 export async function getEncounterDefinition(id: string): Promise<Encounter | undefined> {

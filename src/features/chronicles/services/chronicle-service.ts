@@ -1,7 +1,7 @@
 import { type Chronicle } from "@/domain/chronicle";
 import { type Encounter } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
-import { type ObservationValue } from "@/domain/observation";
+import { formatObservationValueAsText } from "@/features/observations/lib/format-observation-value";
 import {
   deleteChronicle,
   getChronicleByEncounterId,
@@ -36,32 +36,6 @@ function formatDateTime(value: string): string {
     dateStyle: "short",
     timeStyle: "short",
   });
-}
-
-function formatObservationValue(value: ObservationValue): string {
-  if (typeof value === "string") {
-    return value.trim() === "" ? "Sin dato" : value;
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.length === 0 ? "Sin dato" : value.join(", ");
-  }
-
-  if (typeof value === "object" && value !== null) {
-    if ("mediaId" in value) {
-      return "Archivo multimedia adjunto";
-    }
-
-    if ("mediaIds" in value) {
-      return `${value.mediaIds.length} archivo(s) multimedia adjunto(s)`;
-    }
-  }
-
-  return "Sin dato";
 }
 
 function buildChronicleBody(input: {
@@ -100,9 +74,11 @@ function buildChronicleBody(input: {
       ? input.participantsById.get(observation.participantId)
       : undefined;
 
+    const titleSuffix = observation.title?.trim() ? ` · ${observation.title.trim()}` : "";
+
     lines.push(
       "",
-      `Observación ${index + 1}`,
+      `Observación ${index + 1}${titleSuffix}`,
       `- Fecha: ${formatDateTime(observation.createdAt)}`,
       `- Participante: ${participantName ?? "Sin participante asignado"}`,
     );
@@ -115,8 +91,7 @@ function buildChronicleBody(input: {
       }
 
       const rawValue = observation.values[fieldId];
-      const formattedValue =
-        rawValue === undefined ? "Sin dato" : formatObservationValue(rawValue as ObservationValue);
+      const formattedValue = formatObservationValueAsText(field, rawValue);
 
       lines.push(`- ${field.label}: ${formattedValue}`);
     });

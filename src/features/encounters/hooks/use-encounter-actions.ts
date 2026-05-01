@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { type EncounterInput } from "@/domain/encounter";
 import { encounterMessages } from "@/features/encounters/lib/messages";
 import {
+  archiveEncounterDefinition,
   createEncounterDefinition,
   finishEncounterDefinition,
+  restoreEncounterDefinition,
   updateEncounterDefinition,
 } from "@/features/encounters/services/encounter-service";
 import { AppError } from "@/lib/error";
@@ -70,10 +72,42 @@ export function useEncounterActions() {
     }
   }
 
+  async function archive(id: string) {
+    try {
+      const encounter = await archiveEncounterDefinition(id);
+      toast.success(encounterMessages.archivedSuccess);
+      return encounter;
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
+          ? encounterMessages.notFound
+          : encounterMessages.archiveError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
+  async function restore(id: string) {
+    try {
+      const encounter = await restoreEncounterDefinition(id);
+      toast.success(encounterMessages.restoredSuccess);
+      return encounter;
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
+          ? encounterMessages.notFound
+          : encounterMessages.restoreError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
   return {
     isSaving,
     create,
     update,
     finish,
+    archive,
+    restore,
   };
 }

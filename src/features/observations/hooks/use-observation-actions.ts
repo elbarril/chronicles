@@ -13,11 +13,13 @@ import { AppError } from "@/lib/error";
 interface ObservationCreateInput {
   encounterId: string;
   participantId?: string;
+  title?: string;
   values: Record<string, unknown>;
 }
 
 interface ObservationUpdateInput {
   participantId?: string;
+  title?: string;
   values: Record<string, unknown>;
 }
 
