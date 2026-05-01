@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { type Observation } from "@/domain/observation";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
+import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 import { EncounterHeader } from "@/features/encounters/components/EncounterHeader";
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
@@ -156,6 +157,7 @@ export function EncounterDetailPage(): JSX.Element {
         exportLabel={encounterMessages.exportButton}
         generateChronicleLabel={encounterMessages.generateChronicleButton}
         generatingChronicleLabel={encounterMessages.generatingChronicleButton}
+        aiStatusSlot={<AiKeyStatusBadge />}
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

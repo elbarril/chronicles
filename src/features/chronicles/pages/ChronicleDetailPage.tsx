@@ -6,6 +6,7 @@ import { ChronicleViewer } from "@/features/chronicles/components/ChronicleViewe
 import { useChronicle } from "@/features/chronicles/hooks/use-chronicle";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
+import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString("es-AR", {
@@ -65,6 +66,10 @@ export function ChronicleDetailPage(): JSX.Element {
         </dl>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="sm:mr-auto">
+            <AiKeyStatusBadge />
+          </div>
+
           <Button
             type="button"
             variant="outline"

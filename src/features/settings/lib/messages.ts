@@ -13,4 +13,8 @@ export const settingsMessages = {
   saveError: "La clave no puede estar vacía.",
   showKey: "Mostrar clave",
   hideKey: "Ocultar clave",
+  aiStatusActive: "IA activa",
+  aiStatusConfigure: "Configurar IA",
+  aiStatusActiveAriaLabel: "Gemini configurado. Ir a Configuración.",
+  aiStatusConfigureAriaLabel: "Sin clave de IA. Ir a Configuración.",
 } as const;

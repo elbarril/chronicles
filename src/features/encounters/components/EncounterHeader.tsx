@@ -1,3 +1,5 @@
+import { type ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
 import { type Encounter } from "@/domain/encounter";
 
@@ -14,6 +16,7 @@ interface EncounterHeaderProps {
   exportLabel: string;
   generateChronicleLabel: string;
   generatingChronicleLabel: string;
+  aiStatusSlot?: ReactNode;
 }
 
 function formatDate(value: string): string {
@@ -40,6 +43,7 @@ export function EncounterHeader({
   exportLabel,
   generateChronicleLabel,
   generatingChronicleLabel,
+  aiStatusSlot,
 }: EncounterHeaderProps): JSX.Element {
   const isFinished = Boolean(encounter.endedAt && encounter.endedAt !== "");
   const isArchived = Boolean(encounter.archivedAt && encounter.archivedAt !== "");
@@ -69,7 +73,8 @@ export function EncounterHeader({
         </div>
       </dl>
 
-      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
+      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
+        {aiStatusSlot ? <div className="sm:mr-auto">{aiStatusSlot}</div> : null}
         <Button
           type="button"
           variant="outline"
