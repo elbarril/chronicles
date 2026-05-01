@@ -50,7 +50,7 @@ export function useChronicleActions() {
     setIsGenerating(true);
 
     try {
-      const result = await generateChronicle(encounterId, { force: true });
+      const result = await generateChronicle(encounterId);
       if (result.aiFailed) {
         toast.warning(aiFallbackMessage(result));
       } else if (result.usedAi) {

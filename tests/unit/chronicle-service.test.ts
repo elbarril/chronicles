@@ -205,7 +205,7 @@ describe("chronicle service", () => {
     );
   });
 
-  it("falls back to deterministic and sets aiFailed=true when Gemini throws", async () => {
+  it("throws when Gemini fails and no existing chronicle is available", async () => {
     const encounterId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
@@ -214,20 +214,16 @@ describe("chronicle service", () => {
     hasGeminiApiKeyMock.mockReturnValue(true);
     getGeminiApiKeyMock.mockReturnValue("AIzaTest");
     generateChronicleWithGeminiMock.mockRejectedValue(new Error("Network error"));
+    // No existing chronicle
+    getChronicleByEncounterIdMock.mockResolvedValue(undefined);
 
-    const result = await generateChronicle(encounterId);
-
-    expect(result.usedAi).toBe(false);
-    expect(result.aiFailed).toBe(true);
-    expect(result.aiFailCode).toBe("AI_GENERATION_FAILED");
-    expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        generatedWith: "deterministic",
-      }),
-    );
+    await expect(generateChronicle(encounterId)).rejects.toMatchObject({
+      code: "AI_GENERATION_FAILED",
+    } satisfies Pick<AppError, "code">);
+    expect(upsertChronicleByEncounterMock).not.toHaveBeenCalled();
   });
 
-  it("exposes aiFailCode=AI_RATE_LIMITED when Gemini returns 429", async () => {
+  it("returns existing chronicle with aiFailed=true when Gemini fails and chronicle exists", async () => {
     const encounterId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
@@ -239,17 +235,32 @@ describe("chronicle service", () => {
       new AppError("AI_RATE_LIMITED", "Gemini API rate limit or quota exceeded."),
     );
 
+    const now = new Date().toISOString();
+    const existingChronicle = {
+      id: crypto.randomUUID(),
+      encounterId,
+      title: "Crónica · Actividad de prueba",
+      body: "Crónica previa con IA.",
+      generatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      generatedWith: "gemini" as const,
+      inputHash: "hash-old",
+    };
+    getChronicleByEncounterIdMock.mockResolvedValue(existingChronicle);
+    // Hash changed so cache check doesn't return early
+    computeChronicleInputHashMock.mockResolvedValue("hash-new");
+
     const result = await generateChronicle(encounterId);
 
-    expect(result.usedAi).toBe(false);
     expect(result.aiFailed).toBe(true);
     expect(result.aiFailCode).toBe("AI_RATE_LIMITED");
-    expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
-      expect.objectContaining({ generatedWith: "deterministic" }),
-    );
+    expect(result.usedAi).toBe(true);
+    expect(result.chronicle).toStrictEqual(existingChronicle);
+    expect(upsertChronicleByEncounterMock).not.toHaveBeenCalled();
   });
 
-  it("exposes aiFailCode=AI_KEY_INVALID when Gemini returns 403", async () => {
+  it("throws AI_KEY_INVALID when Gemini returns 403 and no existing chronicle", async () => {
     const encounterId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
@@ -260,12 +271,12 @@ describe("chronicle service", () => {
     generateChronicleWithGeminiMock.mockRejectedValue(
       new AppError("AI_KEY_INVALID", "Gemini API key is not authorized."),
     );
+    getChronicleByEncounterIdMock.mockResolvedValue(undefined);
 
-    const result = await generateChronicle(encounterId);
-
-    expect(result.usedAi).toBe(false);
-    expect(result.aiFailed).toBe(true);
-    expect(result.aiFailCode).toBe("AI_KEY_INVALID");
+    await expect(generateChronicle(encounterId)).rejects.toMatchObject({
+      code: "AI_KEY_INVALID",
+    } satisfies Pick<AppError, "code">);
+    expect(upsertChronicleByEncounterMock).not.toHaveBeenCalled();
   });
 
   it("throws not found when requesting unknown chronicle detail", async () => {
@@ -349,33 +360,6 @@ describe("chronicle service", () => {
       expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
       expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
         expect.objectContaining({ generatedWith: "gemini", inputHash: "hash-new" }),
-      );
-    });
-
-    it("bypasses cache and calls Gemini when force=true even if hash matches", async () => {
-      const encounterId = crypto.randomUUID();
-      stubGeminiReady(encounterId);
-
-      const now = new Date().toISOString();
-      getChronicleByEncounterIdMock.mockResolvedValue({
-        id: crypto.randomUUID(),
-        encounterId,
-        title: "Crónica · Actividad de prueba",
-        body: "Crónica previa.",
-        generatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-        generatedWith: "gemini" as const,
-        inputHash: "hash-abc123",
-      });
-      computeChronicleInputHashMock.mockResolvedValue("hash-abc123");
-
-      const result = await generateChronicle(encounterId, { force: true });
-
-      expect(result.usedAi).toBe(true);
-      expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
-      expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
-        expect.objectContaining({ generatedWith: "gemini", inputHash: "hash-abc123" }),
       );
     });
 
