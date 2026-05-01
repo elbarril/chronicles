@@ -501,3 +501,50 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - Existing E2E specs continue to work thanks to onboarding pre-marking; any future spec that needs to assert the onboarding dialog must reset the `chronicle.onboardingCompleted` flag explicitly.
 - `ChronicleCard` is gone; any external caller importing it must move to `ChronicleListTable`.
 - The `chronicle-theme` and `chronicle.onboardingCompleted` `localStorage` keys are now part of the app's public surface; renaming them in the future requires a migration.
+
+---
+
+## [2026-05-01] Phase Closeout F7 — Optional Gemini AI Chronicle Generation (BYOK)
+
+**Context:** After F6 the deterministic chronicle generator worked well but produced formulaic output. Users wanted richer, more readable narratives. Adding an AI service mandatorily would violate the minimal-external-dependency principle, so an opt-in BYOK model was chosen.
+
+**Decision:** Implemented and closed F7 with the following scope:
+
+- **AI provider:** Google Gemini (`gemini-2.0-flash`) via direct `fetch` against `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`. No SDK added.
+- **BYOK model:** user stores their own Google Gemini API key in `localStorage` under `chronicle.geminiApiKey`. The key never leaves the browser (there is no server). If unset, the app behaves identically to pre-F7.
+- **Fallback strategy:** if the API key is set but the Gemini call fails (network error, invalid key, quota, etc.) → display a toast (`aiFallbackToast`) and silently fall back to the deterministic generator. The chronicle is always generated; the user is never left with an empty result.
+- **Domain:** `Chronicle` gains an optional `generatedWith?: "deterministic" | "gemini"` field. No Dexie schema migration needed (field is not indexed and was absent in pre-F7 records — correctly read as `undefined`).
+- **Error model:** added `"AI_GENERATION_FAILED"` and `"AI_KEY_INVALID"` codes in `src/lib/error.ts`.
+- **Infrastructure (`src/infra/ai/`):**
+  - `gemini-client.ts` — raw `fetch` wrapper; throws `AppError` with `AI_KEY_INVALID` on 400/403, `AI_GENERATION_FAILED` on other HTTP errors.
+  - `gemini-chronicle-generator.ts` — builds a structured rioplatense-Spanish prompt from encounter/observation data, skips media-type field values (not textually representable), calls the client.
+- **Settings feature (`src/features/settings/`):**
+  - `settings-service.ts` — `localStorage` CRUD for the API key.
+  - `use-settings.ts` — reactive hook over the service.
+  - `ApiKeyForm.tsx` — masked `<input type="password">` with show/hide toggle, save, and clear actions.
+  - `SettingsPage.tsx` — page at `/settings` composing `AiSetupGuide` + `ApiKeyForm`.
+- **Shared component (`src/features/help/components/AiSetupGuide.tsx`):** explains BYOK, links to Google AI Studio, and renders the inline `ApiKeyForm`. Reused in both `SettingsPage` and the onboarding step 3.
+- **Onboarding update:** added a 3rd step "Generación con IA (opcional)" rendering `AiSetupGuide`; the dialog now shows "Paso N de 3"; "Empezar a usar Chronicle" button moved to step 3.
+- **ChronicleViewer badge:** "Generada con IA" badge shown when `chronicle.generatedWith === "gemini"`.
+- **Routing/navigation:** `/settings` route added to router + `nav-items.ts` with label "Configuración".
+- **Testing:**
+  - Unit: `tests/unit/settings-service.test.ts` (5 tests), `tests/unit/gemini-chronicle-generator.test.ts` (3 tests), updated `tests/unit/chronicle-service.test.ts` (6 tests), updated `tests/unit/onboarding-dialog.test.tsx` (4 tests, reflects 3-step flow).
+  - E2E: `tests/e2e/settings-api-key.spec.ts`, `tests/e2e/chronicle-ai-generation.spec.ts` (Playwright `route()` intercept for Gemini API).
+  - All 104 unit tests green; typecheck and lint clean.
+
+**Key technical decisions:**
+
+- **No Gemini SDK**: avoided to prevent adding a package dependency for a single HTTP call. The REST endpoint is stable and the raw-fetch approach is simpler to test and audit.
+- **`localStorage` for key storage**: consistent with the "no server" principle; the user controls their own credential, with explicit UI for clearing it.
+- **Graceful fallback, not hard failure**: ensuring every generation call produces a result (even if deterministic) prevents the AI layer from ever blocking the user's workflow.
+- **`AiSetupGuide` as a shared component**: used in both the settings page and onboarding step 3 to avoid duplicating the setup instructions.
+
+**Skill evaluation:** No new project-specific skill required. F7 patterns (BYOK localStorage service + infra client + feature module + shared guide component) are a natural extension of the established conventions already covered by `phase-planner`, `phase-implementer`, `phase-closeout`, and `update-project-docs`.
+
+**Consequences:**
+
+- `chronicle.geminiApiKey` is a new `localStorage` key in the app's public surface; renaming it in the future requires a migration strategy.
+- The `chronicle-service.ts` return type changed to include `{ usedAi, aiFailed }` metadata; callers that destructure the return value must be aware of these new fields.
+- The onboarding dialog now has 3 steps; any spec that asserts step count or button visibility must match "Paso N de 3".
+- Existing pre-F7 chronicles in local databases are unaffected (`generatedWith` will be `undefined`, which the badge handles correctly by not showing).
+- No breaking changes to existing persistence schema (Dexie v6 unchanged).

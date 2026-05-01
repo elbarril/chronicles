@@ -16,6 +16,9 @@ const {
   getGroupByIdMock,
   listParticipantsByGroupMock,
   listObservationsByEncounterMock,
+  hasGeminiApiKeyMock,
+  getGeminiApiKeyMock,
+  generateChronicleWithGeminiMock,
 } = vi.hoisted(() => ({
   upsertChronicleByEncounterMock: vi.fn(),
   getChronicleByIdMock: vi.fn(),
@@ -25,6 +28,9 @@ const {
   getGroupByIdMock: vi.fn(),
   listParticipantsByGroupMock: vi.fn(),
   listObservationsByEncounterMock: vi.fn(),
+  hasGeminiApiKeyMock: vi.fn(),
+  getGeminiApiKeyMock: vi.fn(),
+  generateChronicleWithGeminiMock: vi.fn(),
 }));
 
 vi.mock("@/infra/db/repositories/chronicle-repository", () => ({
@@ -52,9 +58,87 @@ vi.mock("@/infra/db/repositories/observation-repository", () => ({
   listObservationsByEncounter: listObservationsByEncounterMock,
 }));
 
+vi.mock("@/features/settings/services/settings-service", () => ({
+  hasGeminiApiKey: hasGeminiApiKeyMock,
+  getGeminiApiKey: getGeminiApiKeyMock,
+}));
+
+vi.mock("@/infra/ai/gemini-chronicle-generator", () => ({
+  generateChronicleWithGemini: generateChronicleWithGeminiMock,
+}));
+
+function stubEncounterData(encounterId: string, fieldId: string, participantId: string) {
+  const now = new Date().toISOString();
+
+  getEncounterByIdMock.mockResolvedValue({
+    id: encounterId,
+    groupId: crypto.randomUUID(),
+    formId: crypto.randomUUID(),
+    formVersion: 1,
+    fieldIds: [fieldId],
+    activity: "Actividad de prueba",
+    startedAt: now,
+    endedAt: "",
+    createdAt: now,
+    updatedAt: now,
+    archivedAt: "",
+  });
+  getGroupByIdMock.mockResolvedValue({
+    id: crypto.randomUUID(),
+    institutionId: "00000000-0000-4000-8000-000000000001",
+    name: "Grupo Alfa",
+    createdAt: now,
+    updatedAt: now,
+    archivedAt: "",
+  });
+  listParticipantsByGroupMock.mockResolvedValue([
+    {
+      id: participantId,
+      groupId: crypto.randomUUID(),
+      displayName: "Sofía",
+      createdAt: now,
+      updatedAt: now,
+      archivedAt: "",
+    },
+  ]);
+  listFieldsByIdsMock.mockResolvedValue([
+    {
+      id: fieldId,
+      key: "nota",
+      label: "Nota",
+      type: "text",
+      required: true,
+      config: {},
+      createdAt: now,
+      updatedAt: now,
+      archivedAt: "",
+    },
+  ]);
+  listObservationsByEncounterMock.mockResolvedValue([
+    {
+      id: crypto.randomUUID(),
+      encounterId,
+      participantId,
+      values: { [fieldId]: "Observación clave" },
+      createdAt: now,
+    },
+  ]);
+  upsertChronicleByEncounterMock.mockResolvedValue({
+    id: crypto.randomUUID(),
+    encounterId,
+    title: "Crónica · Actividad de prueba",
+    body: "body",
+    generatedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 describe("chronicle service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hasGeminiApiKeyMock.mockReturnValue(false);
+    getGeminiApiKeyMock.mockReturnValue(null);
   });
 
   it("throws when generating without an existing encounter", async () => {
@@ -66,90 +150,67 @@ describe("chronicle service", () => {
     } satisfies Pick<AppError, "name" | "code">);
   });
 
-  it("builds deterministic chronicle text and upserts it", async () => {
+  it("builds deterministic chronicle and returns usedAi=false when no API key", async () => {
     const encounterId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
-    const now = new Date().toISOString();
+    stubEncounterData(encounterId, fieldId, participantId);
 
-    getEncounterByIdMock.mockResolvedValue({
-      id: encounterId,
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      formVersion: 1,
-      fieldIds: [fieldId],
-      activity: "Actividad de prueba",
-      startedAt: now,
-      endedAt: "",
-      createdAt: now,
-      updatedAt: now,
-    });
-    getGroupByIdMock.mockResolvedValue({
-      id: crypto.randomUUID(),
-      institutionId: "00000000-0000-4000-8000-000000000001",
-      name: "Grupo Alfa",
-      createdAt: now,
-      updatedAt: now,
-      archivedAt: "",
-    });
-    listParticipantsByGroupMock.mockResolvedValue([
-      {
-        id: participantId,
-        groupId: crypto.randomUUID(),
-        displayName: "Sofía",
-        createdAt: now,
-        updatedAt: now,
-        archivedAt: "",
-      },
-    ]);
-    listFieldsByIdsMock.mockResolvedValue([
-      {
-        id: fieldId,
-        key: "nota",
-        label: "Nota",
-        type: "text",
-        required: true,
-        config: {},
-        createdAt: now,
-        updatedAt: now,
-        archivedAt: "",
-      },
-    ]);
-    listObservationsByEncounterMock.mockResolvedValue([
-      {
-        id: crypto.randomUUID(),
-        encounterId,
-        participantId,
-        values: {
-          [fieldId]: "Observación clave",
-        },
-        createdAt: now,
-      },
-    ]);
+    const result = await generateChronicle(encounterId);
 
-    upsertChronicleByEncounterMock.mockResolvedValue({
-      id: crypto.randomUUID(),
-      encounterId,
-      title: "Crónica · Actividad de prueba",
-      body: "body",
-      generatedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    await generateChronicle(encounterId);
-
+    expect(result.usedAi).toBe(false);
+    expect(result.aiFailed).toBe(false);
+    expect(generateChronicleWithGeminiMock).not.toHaveBeenCalled();
     expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
       expect.objectContaining({
         encounterId,
         title: "Crónica · Actividad de prueba",
         body: expect.stringContaining("Grupo: Grupo Alfa"),
+        generatedWith: "deterministic",
       }),
     );
+  });
 
+  it("uses Gemini when API key is configured and returns usedAi=true", async () => {
+    const encounterId = crypto.randomUUID();
+    const fieldId = crypto.randomUUID();
+    const participantId = crypto.randomUUID();
+    stubEncounterData(encounterId, fieldId, participantId);
+
+    hasGeminiApiKeyMock.mockReturnValue(true);
+    getGeminiApiKeyMock.mockReturnValue("AIzaTest");
+    generateChronicleWithGeminiMock.mockResolvedValue("Crónica con IA.");
+
+    const result = await generateChronicle(encounterId);
+
+    expect(result.usedAi).toBe(true);
+    expect(result.aiFailed).toBe(false);
+    expect(generateChronicleWithGeminiMock).toHaveBeenCalledOnce();
     expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: expect.stringContaining("Nota: Observación clave"),
+        body: "Crónica con IA.",
+        generatedWith: "gemini",
+      }),
+    );
+  });
+
+  it("falls back to deterministic and sets aiFailed=true when Gemini throws", async () => {
+    const encounterId = crypto.randomUUID();
+    const fieldId = crypto.randomUUID();
+    const participantId = crypto.randomUUID();
+    stubEncounterData(encounterId, fieldId, participantId);
+
+    hasGeminiApiKeyMock.mockReturnValue(true);
+    getGeminiApiKeyMock.mockReturnValue("AIzaTest");
+    generateChronicleWithGeminiMock.mockRejectedValue(new Error("Network error"));
+
+    const result = await generateChronicle(encounterId);
+
+    expect(result.usedAi).toBe(false);
+    expect(result.aiFailed).toBe(true);
+    expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generatedWith: "deterministic",
       }),
     );
   });

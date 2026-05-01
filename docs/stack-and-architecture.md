@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-05-01 (encounter archive/restore + observation title)
+Last updated: 2026-05-01 (F7: optional Gemini AI chronicle generation, BYOK, /settings page)
 
 ---
 
@@ -60,6 +60,17 @@ Translated to technology:
 | Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
 
+### F7: Optional External AI Integration (Google Gemini)
+
+F7 introduces an **opt-in** AI layer over the deterministic chronicle generator. Key design invariants:
+
+- **BYOK (Bring Your Own Key):** the user provides their own Google Gemini API key, stored in `localStorage` under `chronicle.geminiApiKey`. The key is never sent to any Chronicle server because there is no Chronicle server.
+- **Graceful fallback:** if no key is set → deterministic generation (identical to pre-F7 behavior). If the key is set but the Gemini call fails → toast notification + automatic fallback to deterministic.
+- **No mandatory network dependency:** the app remains fully functional offline; AI generation only activates when the user has configured a key and a network connection is available.
+- **New infra layer:** `src/infra/ai/` contains `gemini-client.ts` (raw fetch to `generativelanguage.googleapis.com`) and `gemini-chronicle-generator.ts` (prompt builder in rioplatense Spanish, skips media fields).
+- **New settings feature:** `src/features/settings/` exposes a `/settings` route with API key form (masked input, show/hide, save, clear).
+- **AI badge:** `ChronicleViewer` displays a "Generada con IA" badge when `chronicle.generatedWith === "gemini"`.
+
 ### Explicitly Discarded Dependencies in v1
 
 - **No custom backend** (Node/Express/Nest/etc.): adds no value in local-first v1.
@@ -67,6 +78,7 @@ Translated to technology:
 - **No global state manager** (Redux, Zustand): Dexie live queries + React local state suffice.
 - **No heavy UI kit** (MUI, Chakra): shadcn + Tailwind offer total control with less weight.
 - **No ORM**: Dexie is already the typed layer over IndexedDB.
+- **No Gemini SDK library**: the AI client uses `fetch` directly against the REST endpoint to avoid adding a package dependency for a single HTTP call.
 
 ### Criteria for Introducing New Dependencies
 
@@ -159,10 +171,11 @@ chronicle/
 │  │  ├─ encounters/                    # concrete sessions (with archive/restore)
 │  │  ├─ observations/                  # data capture (with title)
 │  │  ├─ import/                        # ZIP import flow with preview/confirm
-│  │  ├─ chronicles/                    # chronicle generation/list/detail
+│  │  ├─ chronicles/                    # chronicle generation/list/detail (+ AI badge)
 │  │  ├─ defaults/                      # first-run seed + demo encounter management
-│  │  ├─ onboarding/                    # first-run welcome dialog
-│  │  └─ help/                          # /help and /how-it-works guides
+│  │  ├─ onboarding/                    # first-run welcome dialog (3 steps: what/storage/AI)
+│  │  ├─ settings/                      # /settings: Gemini API key management (BYOK)
+│  │  └─ help/                          # /help, /how-it-works, AiSetupGuide component
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
@@ -172,6 +185,9 @@ chronicle/
 │  │  ├─ observation.ts
 │  │  └─ chronicle.ts
 │  ├─ infra/
+│  │  ├─ ai/
+│  │  │  ├─ gemini-client.ts            # raw fetch to Gemini REST API
+│  │  │  └─ gemini-chronicle-generator.ts # prompt builder + generator (skips media)
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
 │  │  │  ├─ client.ts                   # singleton instance + migrations up to v6
@@ -220,7 +236,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?`, `archivedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment; `archivedAt` is independent from `endedAt` and uses empty string for active |
 | `observations` | `id`, `encounterId`, `participantId?`, `title?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
-| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt` | one chronicle per encounter (upsert by `encounterId`) |
+| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` — optional field, no Dexie migration required |
 
 **Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`.
 
@@ -277,6 +293,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F4** | **Export/Import (Encounter ZIP + media)** | **Completed 2026-04-18 (baseline): encounter-level self-contained ZIP export, `/import` preview+confirm flow, upsert-by-ID import, JSZip-based infra, unit/E2E tests** |
 | **F5** | **Chronicle Generation (first prototype)** | **Completed 2026-04-18 (baseline): deterministic chronicle generation from encounter observations, `/chronicles` list + detail routes, generation action from encounter detail, Dexie schema v5 (`chronicles` table), unit/E2E tests** |
 | **F6** | **Post-F5 UX iteration: archive/restore + onboarding + defaults + responsive shell** | **Completed 2026-05-01: encounter archive/restore (Dexie v6, `archivedAt`), observation `title`, unified list tables, mobile nav drawer + theme provider, first-run onboarding dialog, default form + demo encounter seeding, inline media previews, data-aware home dashboard, `/help` and `/how-it-works` guides** |
+| **F7** | **Optional Gemini AI chronicle generation (BYOK)** | **Completed 2026-05-01: opt-in `gemini-2.0-flash` generation with BYOK (`localStorage`); graceful fallback to deterministic; `generatedWith` field on `Chronicle`; `/settings` route with masked API key form; `AiSetupGuide` shared component; onboarding 3rd step; "Generada con IA" badge; `infra/ai/` layer; unit + E2E tests green** |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 

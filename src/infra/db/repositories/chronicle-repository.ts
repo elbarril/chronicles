@@ -16,6 +16,7 @@ export async function createChronicle(data: ChronicleInput): Promise<Chronicle> 
     generatedAt: now,
     createdAt: now,
     updatedAt: now,
+    generatedWith: data.generatedWith,
   });
 
   await db.chronicles.add(chronicle);
@@ -25,7 +26,7 @@ export async function createChronicle(data: ChronicleInput): Promise<Chronicle> 
 
 export async function updateChronicle(
   id: string,
-  data: Pick<ChronicleInput, "title" | "body">,
+  data: Pick<ChronicleInput, "title" | "body" | "generatedWith">,
 ): Promise<Chronicle | null> {
   const previous = await db.chronicles.get(id);
 
@@ -39,6 +40,7 @@ export async function updateChronicle(
     body: data.body.trim(),
     generatedAt: nowIsoString(),
     updatedAt: nowIsoString(),
+    generatedWith: data.generatedWith,
   });
 
   await db.chronicles.put(next);
@@ -59,6 +61,7 @@ export async function upsertChronicleByEncounter(data: ChronicleInput): Promise<
     body: data.body.trim(),
     generatedAt: nowIsoString(),
     updatedAt: nowIsoString(),
+    generatedWith: data.generatedWith,
   });
 
   await db.chronicles.put(next);

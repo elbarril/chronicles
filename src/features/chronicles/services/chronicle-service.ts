@@ -2,6 +2,8 @@ import { type Chronicle } from "@/domain/chronicle";
 import { type Encounter } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
 import { formatObservationValueAsText } from "@/features/observations/lib/format-observation-value";
+import { hasGeminiApiKey, getGeminiApiKey } from "@/features/settings/services/settings-service";
+import { generateChronicleWithGemini } from "@/infra/ai/gemini-chronicle-generator";
 import {
   deleteChronicle,
   getChronicleByEncounterId,
@@ -104,7 +106,13 @@ function buildChronicleTitle(encounter: Encounter): string {
   return `Crónica · ${encounter.activity}`;
 }
 
-export async function generateChronicle(encounterId: string): Promise<Chronicle> {
+export interface GenerateChronicleResult {
+  chronicle: Chronicle;
+  usedAi: boolean;
+  aiFailed: boolean;
+}
+
+export async function generateChronicle(encounterId: string): Promise<GenerateChronicleResult> {
   const encounter = await getEncounterById(encounterId);
 
   if (!encounter) {
@@ -129,7 +137,37 @@ export async function generateChronicle(encounterId: string): Promise<Chronicle>
     participants.map((participant) => [participant.id, participant.displayName]),
   );
   const fieldsById = new Map(fields.map((field) => [field.id, field]));
+  const title = buildChronicleTitle(encounter);
 
+  // Attempt Gemini generation if API key is configured
+  if (hasGeminiApiKey()) {
+    const apiKey = getGeminiApiKey();
+    if (apiKey) {
+      try {
+        const aiBody = await generateChronicleWithGemini({
+          apiKey,
+          encounter,
+          groupName: group.name,
+          participantsById,
+          fieldsById,
+          observations,
+        });
+
+        const chronicle = await upsertChronicleByEncounter({
+          encounterId: encounter.id,
+          title,
+          body: aiBody,
+          generatedWith: "gemini",
+        });
+
+        return { chronicle, usedAi: true, aiFailed: false };
+      } catch {
+        // AI failed — fall through to deterministic generation
+      }
+    }
+  }
+
+  // Deterministic fallback (always available)
   const body = buildChronicleBody({
     encounter,
     groupName: group.name,
@@ -138,11 +176,15 @@ export async function generateChronicle(encounterId: string): Promise<Chronicle>
     observations,
   });
 
-  return upsertChronicleByEncounter({
+  const chronicle = await upsertChronicleByEncounter({
     encounterId: encounter.id,
-    title: buildChronicleTitle(encounter),
+    title,
     body,
+    generatedWith: "deterministic",
   });
+
+  const aiFailed = hasGeminiApiKey();
+  return { chronicle, usedAi: false, aiFailed };
 }
 
 export async function listGeneratedChronicles(): Promise<ChronicleListItem[]> {

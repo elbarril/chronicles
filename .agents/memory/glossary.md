@@ -21,3 +21,6 @@ Canonical terminology of the Chronicle project. Every agent must use these terms
 | Encuentro de prueba | Demo Encounter | Pre-populated example encounter seeded by the `defaults` feature on first run, exercising every field type with synthetic media; can be removed and restored from the UI. |
 | Bienvenida / Onboarding | Onboarding | First-run welcome dialog presented to new users, gated by the `chronicle.onboardingCompleted` flag in `localStorage`. |
 | Tema | Theme | Light/dark visual mode handled by `ThemeProvider`, persisted in `localStorage` (`chronicle-theme`) with `prefers-color-scheme` fallback. |
+| Configuración / Ajustes | Settings | User preferences page at `/settings` — currently holds the Gemini API key form for BYOK AI generation. |
+| Clave de API / BYOK | BYOK (Bring Your Own Key) | User-provided Google Gemini API key stored in `localStorage` under `chronicle.geminiApiKey`. The key is never sent to any server; Chronicle has no backend. |
+| Generada con IA | AI-generated | Chronicle whose `generatedWith` field equals `"gemini"`, indicated by a visible badge in `ChronicleViewer`. |

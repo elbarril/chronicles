@@ -59,6 +59,48 @@ export const dataStorageGuide = {
   },
 } as const;
 
+export const aiSetupGuide = {
+  whatSection: {
+    title: "Qué hace la generación con IA",
+    description:
+      "Si configurás una clave de API de Gemini (gratuita), Chronicle la usa para generar crónicas en prosa narrativa en lugar del resumen estructurado por defecto. El resultado es un texto corrido, organizado y más fácil de leer y compartir.",
+    points: [
+      "La generación con IA es completamente opcional: sin clave, Chronicle funciona exactamente igual que siempre.",
+      "Si la clave está configurada, se usa automáticamente al generar o regenerar una crónica.",
+      "Si la llamada a la IA falla (sin conexión, cuota agotada, clave inválida), Chronicle genera la crónica localmente de todas formas.",
+    ],
+  },
+  privacySection: {
+    title: "Privacidad y datos enviados",
+    description:
+      "Cuando generás una crónica con IA, se envían los datos de texto del encuentro a los servidores de Google a través de la API de Gemini. Es importante que sepas exactamente qué se envía y qué no:",
+    sentPoints: [
+      "Nombre de la actividad y del grupo.",
+      "Fechas y horarios del encuentro.",
+      "Nombres de los participantes.",
+      "Los valores de texto de las observaciones (campos de texto, números, fechas, elecciones, etc.).",
+    ],
+    notSentPoints: [
+      "Archivos multimedia: imágenes, videos, audios y documentos nunca se envían.",
+      "La clave de API nunca sale de tu navegador ni pasa por ningún servidor de Chronicle.",
+    ],
+    warning:
+      "Si trabajás con datos sensibles o la institución tiene restricciones de confidencialidad, no configures la clave y usá la generación local.",
+  },
+  setupSection: {
+    title: "Cómo obtener tu clave gratuita",
+    steps: [
+      "Entrá a Google AI Studio en aistudio.google.com con tu cuenta de Google.",
+      'Hacé clic en "Get API key" y luego en "Create API key".',
+      "Copiá la clave generada (empieza con AIza...).",
+      "Volvé a la página de Configuración de Chronicle y pegala en el campo de clave de API.",
+    ],
+    note: "El tier gratuito de Gemini incluye hasta 1.500 requests por día y 1 millón de tokens por minuto, más que suficiente para generar crónicas.",
+    ctaLabel: "Ir a Configuración",
+    ctaTo: "/settings",
+  },
+} as const;
+
 export const howItWorksPage = {
   pageTitle: "Cómo funciona Chronicle",
   pageDescription:
@@ -104,7 +146,7 @@ const workflowSteps: readonly WorkflowStep[] = [
   {
     title: "6. Generá la crónica",
     description:
-      "Cuando tenés observaciones cargadas, podés generar una crónica desde el detalle del encuentro. Es un texto narrativo que ordena todo lo que registraste para que puedas leerlo o compartirlo.",
+      "Cuando tenés observaciones cargadas, podés generar una crónica desde el detalle del encuentro. Es un texto narrativo que ordena todo lo que registraste para que puedas leerlo o compartirlo. Si configuraste una clave de API de Gemini en Configuración, la crónica se genera con IA y resulta en prosa más rica y fluida.",
     cta: { label: "Ir a crónicas", to: "/chronicles" },
   },
 ];

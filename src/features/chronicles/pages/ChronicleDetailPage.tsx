@@ -99,7 +99,10 @@ export function ChronicleDetailPage(): JSX.Element {
         </div>
       </header>
 
-      <ChronicleViewer body={detail.chronicle.body} />
+      <ChronicleViewer
+        body={detail.chronicle.body}
+        generatedWith={detail.chronicle.generatedWith}
+      />
 
       {detail.encounter ? <ChronicleMediaPanel encounterId={detail.encounter.id} /> : null}
     </section>

@@ -27,6 +27,7 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - F4 completed (baseline): Encounter ZIP export/import with preview+confirm, upsert-by-ID import, route `/import`.
 - F5 completed (baseline): Deterministic chronicle generation from encounters, routes `/chronicles`, `/chronicles/:id`, and generation action from encounter detail.
 - F6 completed (2026-05-01): Post-F5 UX iteration — encounter archive/restore (Dexie v6), observation `title`, unified list tables, responsive header + mobile nav drawer + theme provider, first-run onboarding dialog, defaults seeding (default form + demo encounter with media), inline media previews, data-aware home dashboard, and a help section (`/help`, `/how-it-works`).
+- F7 completed (2026-05-01): Optional Gemini AI chronicle generation (BYOK) — user-provided API key stored in `localStorage`; graceful fallback to deterministic; `generatedWith` field on chronicles; `/settings` route; 3-step onboarding; "Generada con IA" badge; `infra/ai/` layer; unit + E2E tests green.
 
 ## F1 Module: Fields
 
@@ -88,6 +89,15 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - Home: `src/features/home/HomePage.tsx` is now a data-aware dashboard backed by `src/features/home/services/data-status-service.ts` and `use-data-status` hook.
 - Persistence: Dexie schema v6 — adds `archivedAt` index on `encounters` and forward migration that backfills existing rows.
 - Main tests: `tests/unit/onboarding-service.test.ts`, `tests/unit/onboarding-dialog.test.tsx`, `tests/unit/defaults-service.test.ts`, `tests/unit/seed-demo-encounter.test.ts`, `tests/unit/remove-demo-encounter.test.ts`, `tests/unit/help.test.tsx`, `tests/unit/how-it-works.test.tsx`, `tests/unit/observation-media-list.test.tsx`, `tests/unit/use-media-object-url.test.tsx`, `tests/unit/format-observation-value.test.ts`, `tests/e2e/responsive-nav.spec.ts`, `tests/e2e/defaults-restore.spec.ts`, `tests/e2e/demo-encounter-media.spec.ts`.
+
+## F7 Module: AI Chronicle Generation (BYOK)
+
+- Routes: `/settings`.
+- Features: `src/features/settings/` (API key CRUD), `src/features/help/components/AiSetupGuide.tsx` (shared setup guide).
+- Infra: `src/infra/ai/gemini-client.ts`, `src/infra/ai/gemini-chronicle-generator.ts`.
+- Domain: `src/domain/chronicle.ts` — `generatedWith?: "deterministic" | "gemini"` optional field (no Dexie migration).
+- AI provider: Google Gemini `gemini-2.0-flash` via REST (no SDK). Key in `localStorage["chronicle.geminiApiKey"]`.
+- Main tests: `tests/unit/settings-service.test.ts`, `tests/unit/gemini-chronicle-generator.test.ts`, `tests/e2e/settings-api-key.spec.ts`, `tests/e2e/chronicle-ai-generation.spec.ts`.
 
 ## Working with Agents
 

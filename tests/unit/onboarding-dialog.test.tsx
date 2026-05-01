@@ -40,26 +40,36 @@ describe("OnboardingDialog", () => {
 
     const dialog = getDialog();
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText(/paso 1 de 2/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/paso 1 de 3/i)).toBeInTheDocument();
     expect(within(dialog).getByText(/para qué sirve chronicle/i)).toBeInTheDocument();
   });
 
-  it("navigates to the second step and finishes, persisting the completion flag", async () => {
+  it("navigates through all steps and finishes, persisting the completion flag", async () => {
     const user = userEvent.setup();
     renderApp();
 
     const dialog = getDialog();
     expect(within(dialog).getByRole("button", { name: /anterior/i })).toBeDisabled();
 
+    // Step 2: data storage
     await user.click(within(dialog).getByRole("button", { name: /siguiente/i }));
 
     const dialogStep2 = screen.getByRole("dialog", { name: /cómo se guardan tus datos/i });
-    expect(within(dialogStep2).getByText(/paso 2 de 2/i)).toBeInTheDocument();
+    expect(within(dialogStep2).getByText(/paso 2 de 3/i)).toBeInTheDocument();
     expect(within(dialogStep2).getByText(/tus datos viven en este navegador/i)).toBeInTheDocument();
     expect(within(dialogStep2).getByRole("button", { name: /anterior/i })).toBeEnabled();
 
+    // Step 3: AI setup
+    await user.click(within(dialogStep2).getByRole("button", { name: /siguiente/i }));
+
+    const dialogStep3 = screen.getByRole("dialog", {
+      name: /generación de crónicas con ia/i,
+    });
+    expect(within(dialogStep3).getByText(/paso 3 de 3/i)).toBeInTheDocument();
+    expect(within(dialogStep3).getByText(/qué hace la generación con ia/i)).toBeInTheDocument();
+
     await user.click(
-      within(dialogStep2).getByRole("button", { name: /empezar a usar chronicle/i }),
+      within(dialogStep3).getByRole("button", { name: /empezar a usar chronicle/i }),
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

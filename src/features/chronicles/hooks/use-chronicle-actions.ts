@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { type Chronicle } from "@/domain/chronicle";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
 import {
   generateChronicle,
@@ -12,13 +13,19 @@ export function useChronicleActions() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  async function generate(encounterId: string) {
+  async function generate(encounterId: string): Promise<Chronicle> {
     setIsGenerating(true);
 
     try {
-      const chronicle = await generateChronicle(encounterId);
-      toast.success(chronicleMessages.createSuccess);
-      return chronicle;
+      const result = await generateChronicle(encounterId);
+      if (result.aiFailed) {
+        toast.warning(chronicleMessages.aiFallbackWarning);
+      } else if (result.usedAi) {
+        toast.success(chronicleMessages.createSuccessAi);
+      } else {
+        toast.success(chronicleMessages.createSuccess);
+      }
+      return result.chronicle;
     } catch (error) {
       const message =
         error instanceof AppError && error.code === "CHRONICLE_ENCOUNTER_REQUIRED"
@@ -32,13 +39,19 @@ export function useChronicleActions() {
     }
   }
 
-  async function regenerate(encounterId: string) {
+  async function regenerate(encounterId: string): Promise<Chronicle> {
     setIsGenerating(true);
 
     try {
-      const chronicle = await generateChronicle(encounterId);
-      toast.success(chronicleMessages.regenerateSuccess);
-      return chronicle;
+      const result = await generateChronicle(encounterId);
+      if (result.aiFailed) {
+        toast.warning(chronicleMessages.aiFallbackWarning);
+      } else if (result.usedAi) {
+        toast.success(chronicleMessages.regenerateSuccessAi);
+      } else {
+        toast.success(chronicleMessages.regenerateSuccess);
+      }
+      return result.chronicle;
     } catch (error) {
       const message =
         error instanceof AppError && error.code === "CHRONICLE_ENCOUNTER_REQUIRED"

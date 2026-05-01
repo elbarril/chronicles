@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AiSetupGuide } from "@/features/help/components/AiSetupGuide";
 import { DataStorageGuide } from "@/features/help/components/DataStorageGuide";
 import { HowItWorksGuide } from "@/features/help/components/HowItWorksGuide";
 import { useOnboarding } from "@/features/onboarding/hooks/use-onboarding";
@@ -70,8 +71,10 @@ function OnboardingDialogContent({ onDismiss }: OnboardingDialogContentProps): J
         >
           {stepIndex === 0 ? (
             <HowItWorksGuide showQuickLinks={false} showNextStep={false} />
-          ) : (
+          ) : stepIndex === 1 ? (
             <DataStorageGuide showQuickLinks={false} />
+          ) : (
+            <AiSetupGuide showCta={true} />
           )}
         </div>
 

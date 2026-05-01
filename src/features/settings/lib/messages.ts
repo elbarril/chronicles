@@ -1,0 +1,16 @@
+export const settingsMessages = {
+  pageTitle: "Configuración",
+  pageDescription: "Ajustá las opciones de Chronicle según tus necesidades.",
+  aiSectionTitle: "Generación de crónicas con IA",
+  apiKeyLabel: "Clave de API de Gemini",
+  apiKeyPlaceholder: "AIza...",
+  apiKeyConfigured: "Clave configurada",
+  apiKeyNotConfigured: "Sin clave configurada",
+  saveButton: "Guardar clave",
+  clearButton: "Quitar clave",
+  saveSuccess: "Clave de API guardada.",
+  clearSuccess: "Clave de API eliminada.",
+  saveError: "La clave no puede estar vacía.",
+  showKey: "Mostrar clave",
+  hideKey: "Ocultar clave",
+} as const;
