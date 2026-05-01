@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { type Observation } from "@/domain/observation";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
-import { getChronicleForEncounter } from "@/features/chronicles/services/chronicle-service";
 import { EncounterHeader } from "@/features/encounters/components/EncounterHeader";
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
@@ -105,13 +104,6 @@ export function EncounterDetailPage(): JSX.Element {
 
   async function handleGenerateChronicle(): Promise<void> {
     if (!encounter) {
-      return;
-    }
-
-    const existingChronicle = await getChronicleForEncounter(encounter.id);
-
-    if (existingChronicle) {
-      navigate(`/chronicles/${existingChronicle.id}`);
       return;
     }
 
