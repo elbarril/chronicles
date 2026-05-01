@@ -56,18 +56,12 @@ test("demo encounter ships pre-populated with all field types and chronicle read
 test("'Cargar encuentro de prueba' lives only on the home page", async ({ page }) => {
   // Without demo content, only the home shows the create button.
   await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: "Cargar encuentro de prueba" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeVisible();
 
   for (const path of ["/fields", "/forms", "/groups", "/encounters", "/chronicles"]) {
     await page.goto(path);
-    await expect(
-      page.getByRole("button", { name: "Cargar encuentro de prueba" }),
-    ).toBeHidden();
-    await expect(
-      page.getByRole("button", { name: "Eliminar contenido de prueba" }),
-    ).toBeHidden();
+    await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Eliminar contenido de prueba" })).toBeHidden();
   }
 
   // Create the demo from the home toggle.
@@ -78,23 +72,15 @@ test("'Cargar encuentro de prueba' lives only on the home page", async ({ page }
   // Once the demo exists, the home toggle flips to "Eliminar" and the
   // create entry point disappears across the app.
   await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: "Eliminar contenido de prueba" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Cargar encuentro de prueba" }),
-  ).toBeHidden();
+  await expect(page.getByRole("button", { name: "Eliminar contenido de prueba" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeHidden();
 
   // Every list page that renders demo content surfaces the destructive
   // twin and never offers the create button.
   for (const path of ["/fields", "/forms", "/groups", "/encounters", "/chronicles"]) {
     await page.goto(path);
-    await expect(
-      page.getByRole("button", { name: "Eliminar contenido de prueba" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Cargar encuentro de prueba" }),
-    ).toBeHidden();
+    await expect(page.getByRole("button", { name: "Eliminar contenido de prueba" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cargar encuentro de prueba" })).toBeHidden();
   }
 });
 
@@ -124,9 +110,7 @@ test("delete demo content from any list page restores the create button", async 
   // Delete from the chronicles list — the toggle button now reads "Eliminar".
   await page.getByRole("button", { name: "Eliminar contenido de prueba" }).click();
 
-  await expect(
-    page.getByRole("link", { name: "Crónica · Actividad de prueba" }),
-  ).toBeHidden();
+  await expect(page.getByRole("link", { name: "Crónica · Actividad de prueba" })).toBeHidden();
 
   await page.goto("/encounters?status=inProgress");
   await expect(page.getByRole("cell", { name: "Actividad de prueba" })).toBeHidden();
