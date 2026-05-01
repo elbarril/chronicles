@@ -29,6 +29,11 @@ function buildSummary(counts: DataStatusCounts): string {
   return parts.join(" · ");
 }
 
+export const supportMessages = {
+  title: "Soporte",
+  subtitle: "Herramientas de diagnóstico y datos de prueba.",
+} as const;
+
 export const homeMessages = {
   welcomeTitle: "Bienvenido a Chronicle",
   welcomeSubtitle:

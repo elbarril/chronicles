@@ -32,17 +32,31 @@ describe("Home route", () => {
     expect(screen.getByRole("heading", { name: /bienvenido a chronicle/i })).toBeInTheDocument();
   });
 
-  it("renders the quick check section with a single action button", () => {
+  it("renders the navigation grid with all section links", () => {
     renderHome();
 
-    expect(screen.getByText(/chequeo rápido del formulario/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /probar setup/i })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: /accesos directos a secciones/i });
+    expect(nav).toBeInTheDocument();
+
+    // Each nav section should render as a link
+    expect(screen.getByRole("link", { name: /campos/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /formularios/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /grupos/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /encuentros/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /crónicas/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /configuración/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /soporte/i })).toBeInTheDocument();
   });
 
-  it("renders the data status section", () => {
+  it("nav links point to the correct routes", () => {
     renderHome();
 
-    expect(screen.getByText(/estado de datos/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /campos/i })).toHaveAttribute("href", "/fields");
+    expect(screen.getByRole("link", { name: /grupos/i })).toHaveAttribute("href", "/groups");
+    expect(screen.getByRole("link", { name: /configuración/i })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+    expect(screen.getByRole("link", { name: /soporte/i })).toHaveAttribute("href", "/support");
   });
 });

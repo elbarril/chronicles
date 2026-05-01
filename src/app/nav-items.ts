@@ -14,4 +14,5 @@ export const navItems: readonly NavItem[] = [
   { to: "/settings", label: "Configuración" },
   { to: "/how-it-works", label: "Cómo funciona" },
   { to: "/help", label: "Ayuda" },
+  { to: "/support", label: "Soporte" },
 ];

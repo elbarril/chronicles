@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,12 @@ type OnboardingDialogContentProps = {
 
 function OnboardingDialogContent({ onDismiss }: OnboardingDialogContentProps): JSX.Element | null {
   const [stepIndex, setStepIndex] = useState(0);
+  const scrollRegionRef = useRef<HTMLDivElement>(null);
   const currentStep = onboardingMessages.steps[stepIndex];
+
+  useEffect(() => {
+    scrollRegionRef.current?.scrollTo?.({ top: 0 });
+  }, [stepIndex]);
 
   if (!currentStep) {
     return null;
@@ -65,6 +70,7 @@ function OnboardingDialogContent({ onDismiss }: OnboardingDialogContentProps): J
         </DialogHeader>
 
         <div
+          ref={scrollRegionRef}
           className="-mr-2 max-h-[60vh] overflow-y-auto pr-2"
           role="region"
           aria-label={currentStep.title}
