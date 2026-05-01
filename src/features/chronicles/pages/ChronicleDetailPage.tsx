@@ -1,3 +1,4 @@
+import { Share2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { ChronicleMediaPanel } from "@/features/chronicles/components/ChronicleM
 import { ChronicleViewer } from "@/features/chronicles/components/ChronicleViewer";
 import { useChronicle } from "@/features/chronicles/hooks/use-chronicle";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
+import { useShareChronicle } from "@/features/chronicles/hooks/use-share-chronicle";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
 import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 
@@ -21,6 +23,7 @@ export function ChronicleDetailPage(): JSX.Element {
   const chronicleId = params.id ?? "";
   const { detail, isLoading } = useChronicle(chronicleId);
   const actions = useChronicleActions();
+  const shareAction = useShareChronicle();
 
   if (!chronicleId) {
     return <p className="text-muted-foreground text-sm">{chronicleMessages.detailNotFound}</p>;
@@ -83,10 +86,30 @@ export function ChronicleDetailPage(): JSX.Element {
               const next = await actions.regenerate(detail.encounter.id);
               navigate(`/chronicles/${next.id}`, { replace: true });
             }}
+            data-tour="chronicle.detail.regenerate"
           >
             {actions.isGenerating
               ? chronicleMessages.regenerateLoadingButton
               : chronicleMessages.regenerateButton}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={shareAction.isSharing}
+            onClick={() => {
+              void shareAction.share({
+                title: detail.chronicle.title,
+                body: detail.chronicle.body,
+              });
+            }}
+            data-tour="chronicle.detail.share"
+          >
+            <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            {shareAction.isSharing
+              ? chronicleMessages.sharingButton
+              : chronicleMessages.shareButton}
           </Button>
 
           <Button
@@ -104,12 +127,18 @@ export function ChronicleDetailPage(): JSX.Element {
         </div>
       </header>
 
-      <ChronicleViewer
-        body={detail.chronicle.body}
-        generatedWith={detail.chronicle.generatedWith}
-      />
+      <div data-tour="chronicle.detail.content">
+        <ChronicleViewer
+          body={detail.chronicle.body}
+          generatedWith={detail.chronicle.generatedWith}
+        />
+      </div>
 
-      {detail.encounter ? <ChronicleMediaPanel encounterId={detail.encounter.id} /> : null}
+      {detail.encounter ? (
+        <div data-tour="chronicle.detail.media">
+          <ChronicleMediaPanel encounterId={detail.encounter.id} />
+        </div>
+      ) : null}
     </section>
   );
 }

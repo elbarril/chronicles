@@ -10,6 +10,11 @@ export const chronicleMessages = {
   encounterLabel: "Encuentro",
   regenerateButton: "Regenerar crónica",
   regenerateLoadingButton: "Regenerando...",
+  shareButton: "Compartir",
+  sharingButton: "Compartiendo...",
+  shareCopiedFallback:
+    "Tu navegador no soporta compartir, así que copiamos la crónica al portapapeles.",
+  shareUnavailable: "No pudimos compartir la crónica. Probá copiar el texto manualmente.",
   deleteButton: "Eliminar crónica",
   createSuccess: "Crónica generada con éxito.",
   createSuccessAi: "Crónica generada con IA con éxito.",
@@ -18,7 +23,8 @@ export const chronicleMessages = {
   notFound: "No encontramos la crónica.",
   regenerateSuccess: "Crónica regenerada con éxito.",
   regenerateSuccessAi: "Crónica regenerada con IA con éxito.",
-  aiFallbackWarning: "No se pudo contactar la API de Gemini. Se muestra la última crónica guardada.",
+  aiFallbackWarning:
+    "No se pudo contactar la API de Gemini. Se muestra la última crónica guardada.",
   aiRateLimitWarning:
     "Alcanzaste el límite de solicitudes de la API de Gemini. Se muestra la última crónica guardada.",
   aiKeyInvalidWarning: "La clave de API de Gemini es inválida. Revisá tu configuración.",
