@@ -1,6 +1,9 @@
 import { Link, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
+import { useDefaultsActions } from "@/features/defaults/hooks/use-defaults-actions";
+import { defaultsMessages } from "@/features/defaults/lib/messages";
 import { FieldListTable } from "@/features/field-definitions/components/FieldListTable";
 import { useFieldActions } from "@/features/field-definitions/hooks/use-field-actions";
 import { useFields } from "@/features/field-definitions/hooks/use-fields";
@@ -10,6 +13,7 @@ export function FieldListPage(): JSX.Element {
   const status = searchParams.get("status") === "archived" ? "archived" : "active";
   const { fields, isLoading } = useFields(status);
   const actions = useFieldActions();
+  const defaults = useDefaultsActions();
 
   return (
     <section className="space-y-6" aria-labelledby="field-list-title">
@@ -23,9 +27,22 @@ export function FieldListPage(): JSX.Element {
           </p>
         </div>
 
-        <Button asChild>
-          <Link to="/fields/new">Nuevo campo</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DemoEncounterButton removeOnly />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={defaults.isLoading}
+            onClick={() => {
+              void defaults.restoreFields();
+            }}
+          >
+            {defaultsMessages.loadDefaultFields}
+          </Button>
+          <Button asChild>
+            <Link to="/fields/new">Nuevo campo</Link>
+          </Button>
+        </div>
       </header>
 
       <div className="flex gap-2" role="tablist" aria-label="Filtros de estado de campos">

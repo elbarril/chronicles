@@ -34,7 +34,7 @@ export function ImportDropZone({ fileName, isParsing, onFile }: ImportDropZonePr
           tabIndex={0}
           aria-label={importMessages.dropZoneTitle}
           aria-dropeffect="copy"
-          className={`border-border rounded-md border-2 border-dashed p-6 transition ${
+          className={`border-border cursor-pointer rounded-md border-2 border-dashed p-6 transition ${
             isDragging ? "bg-muted/60" : "bg-background"
           }`}
           onDragOver={(event) => {

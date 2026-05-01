@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
 import { GroupListTable } from "@/features/groups/components/GroupListTable";
 import { useGroupActions } from "@/features/groups/hooks/use-group-actions";
 import { useGroups } from "@/features/groups/hooks/use-groups";
@@ -23,9 +24,12 @@ export function GroupListPage(): JSX.Element {
           </p>
         </div>
 
-        <Button asChild>
-          <Link to="/groups/new">Nuevo grupo</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DemoEncounterButton removeOnly />
+          <Button asChild>
+            <Link to="/groups/new">Nuevo grupo</Link>
+          </Button>
+        </div>
       </header>
 
       <div className="flex gap-2" role="tablist" aria-label="Filtros de estado de grupos">

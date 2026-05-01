@@ -19,4 +19,10 @@ export const chronicleMessages = {
   deleteSuccess: "Crónica eliminada.",
   deleteError: "No pudimos eliminar la crónica.",
   viewerTitle: "Contenido de la crónica",
+  mediaPanelTitle: "Material multimedia del encuentro",
+  mediaPanelDescription:
+    "Audios, imágenes y archivos cargados en las observaciones de este encuentro.",
+  mediaPanelEmpty: "Este encuentro no tiene material multimedia adjunto.",
+  mediaPanelLoading: "Cargando material multimedia…",
+  mediaPanelObservationFallback: "Observación sin participante",
 } as const;
