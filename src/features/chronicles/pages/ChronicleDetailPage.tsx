@@ -1,6 +1,7 @@
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { ChronicleMediaPanel } from "@/features/chronicles/components/ChronicleMediaPanel";
 import { ChronicleViewer } from "@/features/chronicles/components/ChronicleViewer";
 import { useChronicle } from "@/features/chronicles/hooks/use-chronicle";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
@@ -41,8 +42,14 @@ export function ChronicleDetailPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="chronicle-detail-title">
+      <nav aria-label="Migas de pan">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/chronicles">← Volver a crónicas</Link>
+        </Button>
+      </nav>
+
       <header className="space-y-3">
-        <h1 id="chronicle-detail-title" className="text-3xl font-bold tracking-tight">
+        <h1 id="chronicle-detail-title" className="text-3xl font-bold tracking-tight break-words">
           {detail.chronicle.title}
         </h1>
 
@@ -57,10 +64,11 @@ export function ChronicleDetailPage(): JSX.Element {
           </div>
         </dl>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             disabled={actions.isGenerating || !detail.encounter}
             onClick={async () => {
               if (!detail.encounter) {
@@ -79,6 +87,7 @@ export function ChronicleDetailPage(): JSX.Element {
           <Button
             type="button"
             variant="secondary"
+            className="w-full sm:w-auto"
             disabled={actions.isDeleting}
             onClick={async () => {
               await actions.remove(detail.chronicle.id);
@@ -91,6 +100,8 @@ export function ChronicleDetailPage(): JSX.Element {
       </header>
 
       <ChronicleViewer body={detail.chronicle.body} />
+
+      {detail.encounter ? <ChronicleMediaPanel encounterId={detail.encounter.id} /> : null}
     </section>
   );
 }
