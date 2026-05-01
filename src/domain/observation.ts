@@ -19,6 +19,7 @@ export interface Observation {
   id: string;
   encounterId: string;
   participantId?: string;
+  title?: string;
   values: Record<string, ObservationValue>;
   createdAt: string;
 }
@@ -27,6 +28,7 @@ export const observationSchema = z.object({
   id: z.string().uuid(),
   encounterId: z.string().uuid(),
   participantId: z.string().uuid().optional(),
+  title: z.string().trim().min(1).optional(),
   values: z.record(z.string(), observationValueSchema),
   createdAt: z.string().datetime(),
 });
@@ -34,6 +36,7 @@ export const observationSchema = z.object({
 export const observationInputSchema = z.object({
   encounterId: z.string().uuid(),
   participantId: z.string().uuid().optional(),
+  title: z.string().trim().min(1).optional(),
   values: z.record(z.string(), z.unknown()),
 });
 
