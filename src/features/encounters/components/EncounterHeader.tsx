@@ -7,6 +7,8 @@ interface EncounterHeaderProps {
   onFinish: () => Promise<void>;
   onExport: () => Promise<void>;
   onGenerateChronicle: () => Promise<void>;
+  onArchive: () => Promise<void>;
+  onRestore: () => Promise<void>;
   isExporting: boolean;
   isGeneratingChronicle: boolean;
   exportLabel: string;
@@ -31,6 +33,8 @@ export function EncounterHeader({
   onFinish,
   onExport,
   onGenerateChronicle,
+  onArchive,
+  onRestore,
   isExporting,
   isGeneratingChronicle,
   exportLabel,
@@ -38,57 +42,19 @@ export function EncounterHeader({
   generatingChronicleLabel,
 }: EncounterHeaderProps): JSX.Element {
   const isFinished = Boolean(encounter.endedAt && encounter.endedAt !== "");
+  const isArchived = Boolean(encounter.archivedAt && encounter.archivedAt !== "");
 
   return (
-    <header className="border-border bg-card space-y-4 rounded-md border p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{encounter.activity}</h1>
-          <p className="text-muted-foreground text-sm">
-            Formulario snapshot v{encounter.formVersion} · {encounter.fieldIds.length} campos
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isGeneratingChronicle}
-            onClick={() => {
-              void onGenerateChronicle();
-            }}
-          >
-            {isGeneratingChronicle ? generatingChronicleLabel : generateChronicleLabel}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isExporting}
-            onClick={() => {
-              void onExport();
-            }}
-          >
-            {isExporting ? "Exportando..." : exportLabel}
-          </Button>
-
-          {!isFinished ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                void onFinish();
-              }}
-            >
-              Finalizar encuentro
-            </Button>
-          ) : (
-            <span className="text-sm font-medium">Encuentro finalizado</span>
-          )}
-        </div>
+    <header className="border-border bg-card flex flex-col gap-4 rounded-md border p-4">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight break-words">{encounter.activity}</h1>
+        <p className="text-muted-foreground text-sm">
+          Formulario snapshot v{encounter.formVersion} · {encounter.fieldIds.length} campos
+        </p>
+        {isArchived ? <p className="text-muted-foreground text-xs">Archivado</p> : null}
       </div>
 
-      <dl className="grid gap-2 text-sm md:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-muted-foreground">Iniciado</dt>
           <dd>{formatDate(encounter.startedAt)}</dd>
@@ -97,11 +63,78 @@ export function EncounterHeader({
           <dt className="text-muted-foreground">Finalizado</dt>
           <dd>{formatDate(encounter.endedAt ?? "")}</dd>
         </div>
-        <div>
+        <div className="col-span-2 sm:col-span-1">
           <dt className="text-muted-foreground">Participantes</dt>
           <dd>{participantCount}</dd>
         </div>
       </dl>
+
+      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+          disabled={isGeneratingChronicle}
+          onClick={() => {
+            void onGenerateChronicle();
+          }}
+        >
+          {isGeneratingChronicle ? generatingChronicleLabel : generateChronicleLabel}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+          disabled={isExporting}
+          onClick={() => {
+            void onExport();
+          }}
+        >
+          {isExporting ? "Exportando..." : exportLabel}
+        </Button>
+
+        {!isFinished ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              void onFinish();
+            }}
+          >
+            Finalizar encuentro
+          </Button>
+        ) : (
+          <span className="text-muted-foreground self-center text-sm font-medium">
+            Encuentro finalizado
+          </span>
+        )}
+
+        {isArchived ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              void onRestore();
+            }}
+          >
+            Restaurar encuentro
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              void onArchive();
+            }}
+          >
+            Archivar encuentro
+          </Button>
+        )}
+      </div>
     </header>
   );
 }

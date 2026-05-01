@@ -12,6 +12,7 @@ export async function createEncounter(
 
   const encounter = encounterSchema.parse({
     id: crypto.randomUUID(),
+    archivedAt: "",
     ...data,
     createdAt: now,
     updatedAt: now,
@@ -71,10 +72,59 @@ export async function listEncounterByStatus(
   const encounters = await db.encounters.toArray();
 
   return encounters
-    .filter((encounter) =>
-      status === "inProgress" ? encounter.endedAt === "" : encounter.endedAt !== "",
-    )
+    .filter((encounter) => {
+      if (encounter.archivedAt && encounter.archivedAt !== "") {
+        return false;
+      }
+
+      return status === "inProgress" ? encounter.endedAt === "" : encounter.endedAt !== "";
+    })
     .sort((left, right) => right.startedAt.localeCompare(left.startedAt));
+}
+
+export async function listArchivedEncounters(): Promise<Encounter[]> {
+  const encounters = await db.encounters.toArray();
+
+  return encounters
+    .filter((encounter) => Boolean(encounter.archivedAt) && encounter.archivedAt !== "")
+    .sort((left, right) => right.startedAt.localeCompare(left.startedAt));
+}
+
+export async function archiveEncounter(id: string): Promise<Encounter | null> {
+  const previous = await db.encounters.get(id);
+
+  if (!previous) {
+    return null;
+  }
+
+  const now = nowIsoString();
+  const next = encounterSchema.parse({
+    ...previous,
+    archivedAt: now,
+    updatedAt: now,
+  });
+
+  await db.encounters.put(next);
+
+  return next;
+}
+
+export async function restoreEncounter(id: string): Promise<Encounter | null> {
+  const previous = await db.encounters.get(id);
+
+  if (!previous) {
+    return null;
+  }
+
+  const next = encounterSchema.parse({
+    ...previous,
+    archivedAt: "",
+    updatedAt: nowIsoString(),
+  });
+
+  await db.encounters.put(next);
+
+  return next;
 }
 
 export async function listEncountersByGroup(groupId: string): Promise<Encounter[]> {

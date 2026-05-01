@@ -16,3 +16,8 @@ Canonical terminology of the Chronicle project. Every agent must use these terms
 | Observación | Observation | Instance of values captured for a Form within an Encounter, optionally attributed to a Participant. |
 | Participante | Participant | Individual member of a group being observed. |
 | Practicante | Practitioner | The person (or agent) capturing observations in real-time. |
+| Archivar / Archivado | Archive / Archived | Soft-hide state for an entity (groups, fields, forms, encounters) that keeps the record in storage but excludes it from active lists. Tracked via `archivedAt` (empty string when active, ISO datetime when archived). |
+| Restaurar | Restore | Reverse of Archive: clears `archivedAt` so the entity returns to active lists. |
+| Encuentro de prueba | Demo Encounter | Pre-populated example encounter seeded by the `defaults` feature on first run, exercising every field type with synthetic media; can be removed and restored from the UI. |
+| Bienvenida / Onboarding | Onboarding | First-run welcome dialog presented to new users, gated by the `chronicle.onboardingCompleted` flag in `localStorage`. |
+| Tema | Theme | Light/dark visual mode handled by `ThemeProvider`, persisted in `localStorage` (`chronicle-theme`) with `prefers-color-scheme` fallback. |

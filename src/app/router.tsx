@@ -12,6 +12,8 @@ import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
 import { GroupFormPage } from "@/features/groups/pages/GroupFormPage";
 import { GroupListPage } from "@/features/groups/pages/GroupListPage";
+import { HelpPage } from "@/features/help/HelpPage";
+import { HowItWorksPage } from "@/features/help/HowItWorksPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 import { ImportPage } from "@/features/import/pages/ImportPage";
@@ -87,6 +89,14 @@ export const router = createBrowserRouter([
       {
         path: "/chronicles/:id",
         element: <ChronicleDetailPage />,
+      },
+      {
+        path: "/help",
+        element: <HelpPage />,
+      },
+      {
+        path: "/how-it-works",
+        element: <HowItWorksPage />,
       },
       {
         path: "*",

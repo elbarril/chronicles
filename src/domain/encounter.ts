@@ -9,6 +9,7 @@ export interface Encounter {
   activity: string;
   startedAt: string;
   endedAt?: "" | string;
+  archivedAt?: "" | string;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +28,7 @@ export const encounterSchema = z.object({
   activity: z.string().trim().min(1),
   startedAt: z.string().datetime(),
   endedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
+  archivedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

@@ -1,12 +1,18 @@
 import { Button } from "@/components/ui/button";
+import { type Field } from "@/domain/field";
 import { type Observation } from "@/domain/observation";
+import { ObservationMediaList } from "@/features/observations/components/ObservationMediaList";
+import { formatObservationValueAsText } from "@/features/observations/lib/format-observation-value";
 
 interface EncounterTimelineProps {
   observations: Observation[];
+  fields: Field[];
   participantById: Map<string, string>;
   onEdit: (observation: Observation) => void;
   onDelete: (observationId: string) => Promise<void>;
 }
+
+const MEDIA_FIELD_TYPES: ReadonlySet<Field["type"]> = new Set(["audio", "video", "image", "file"]);
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString("es-AR", {
@@ -15,35 +21,9 @@ function formatDate(value: string): string {
   });
 }
 
-function valueToText(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.join(", ");
-  }
-
-  if (typeof value === "object" && value !== null) {
-    if ("mediaId" in value) {
-      return "Archivo adjunto";
-    }
-
-    if ("mediaIds" in value) {
-      const mediaIds = (value as { mediaIds?: unknown }).mediaIds;
-      return Array.isArray(mediaIds) ? `${mediaIds.length} archivos adjuntos` : "Archivos adjuntos";
-    }
-  }
-
-  return "—";
-}
-
 export function EncounterTimeline({
   observations,
+  fields,
   participantById,
   onEdit,
   onDelete,
@@ -56,24 +36,56 @@ export function EncounterTimeline({
     );
   }
 
+  const fieldsById = new Map(fields.map((field) => [field.id, field]));
+
   return (
     <ul className="space-y-3">
-      {observations.map((observation) => (
-        <li key={observation.id} className="border-border bg-card space-y-3 rounded-md border p-4">
-          <header className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="font-medium">
+      {observations.map((observation) => {
+        const scalarEntries = Object.entries(observation.values).filter(([fieldId]) => {
+          const field = fieldsById.get(fieldId);
+          return !field || !MEDIA_FIELD_TYPES.has(field.type);
+        });
+
+        return (
+          <li
+            key={observation.id}
+            className="border-border bg-card flex flex-col gap-3 rounded-md border p-4"
+          >
+            <header className="space-y-1">
+              <h3 className="text-base leading-tight font-semibold break-words">
+                {observation.title?.trim() ? observation.title : "Sin título"}
+              </h3>
+              <p className="text-muted-foreground text-sm">
                 {observation.participantId
                   ? (participantById.get(observation.participantId) ?? "Participante desconocido")
                   : "Sin participante"}
               </p>
               <p className="text-muted-foreground text-xs">{formatDate(observation.createdAt)}</p>
-            </div>
-            <div className="flex gap-2">
+            </header>
+
+            {scalarEntries.length > 0 ? (
+              <dl className="grid gap-2 text-sm">
+                {scalarEntries.map(([fieldId, value]) => {
+                  const field = fieldsById.get(fieldId);
+
+                  return (
+                    <div key={fieldId} className="grid gap-1">
+                      <dt className="text-muted-foreground text-xs">{field?.label ?? fieldId}</dt>
+                      <dd>{formatObservationValueAsText(field, value, { emptyLabel: "—" })}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            ) : null}
+
+            <ObservationMediaList fields={fields} values={observation.values} />
+
+            <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   onEdit(observation);
                 }}
@@ -84,6 +96,7 @@ export function EncounterTimeline({
                 type="button"
                 size="sm"
                 variant="secondary"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   void onDelete(observation.id);
                 }}
@@ -91,18 +104,9 @@ export function EncounterTimeline({
                 Eliminar
               </Button>
             </div>
-          </header>
-
-          <dl className="grid gap-2 text-sm">
-            {Object.entries(observation.values).map(([fieldId, value]) => (
-              <div key={fieldId} className="grid gap-1">
-                <dt className="text-muted-foreground text-xs">{fieldId}</dt>
-                <dd>{valueToText(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -62,7 +62,7 @@ test("generates chronicle from encounter and lists it", async ({ page }) => {
 
   await page.goto("/chronicles");
   await expect(page.getByRole("heading", { name: "Crónicas" })).toBeVisible();
-  await expect(page.getByText(`Crónica · ${activityName}`)).toBeVisible();
+  await expect(page.getByRole("link", { name: `Crónica · ${activityName}` })).toBeVisible();
 });
 
 test("shows empty observation summary when generating without observations", async ({ page }) => {

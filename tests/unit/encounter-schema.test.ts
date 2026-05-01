@@ -39,6 +39,26 @@ describe("encounter domain schemas", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts archivedAt as empty string or datetime", () => {
+    const now = new Date().toISOString();
+    const base = {
+      id: crypto.randomUUID(),
+      groupId: crypto.randomUUID(),
+      formId: crypto.randomUUID(),
+      formVersion: 1,
+      fieldIds: [crypto.randomUUID()],
+      activity: "Encuentro",
+      startedAt: now,
+      endedAt: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    expect(encounterSchema.safeParse({ ...base, archivedAt: "" }).success).toBe(true);
+    expect(encounterSchema.safeParse({ ...base, archivedAt: now }).success).toBe(true);
+    expect(encounterSchema.safeParse({ ...base, archivedAt: "no-date" }).success).toBe(false);
+  });
+
   it("requires activity in input schema", () => {
     const result = encounterInputSchema.safeParse({
       groupId: crypto.randomUUID(),

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -51,8 +51,25 @@ export function EncounterDetailPage(): JSX.Element {
     await encounterActions.finish(encounter.id);
   }
 
+  async function handleArchiveEncounter(): Promise<void> {
+    if (!encounter) {
+      return;
+    }
+
+    await encounterActions.archive(encounter.id);
+  }
+
+  async function handleRestoreEncounter(): Promise<void> {
+    if (!encounter) {
+      return;
+    }
+
+    await encounterActions.restore(encounter.id);
+  }
+
   async function handleSubmitObservation(values: {
     participantId?: string;
+    title?: string;
     values: Record<string, unknown>;
   }): Promise<void> {
     if (!encounter) {
@@ -65,6 +82,7 @@ export function EncounterDetailPage(): JSX.Element {
       await observationActions.create({
         encounterId: encounter.id,
         participantId: values.participantId,
+        title: values.title,
         values: values.values,
       });
     }
@@ -127,12 +145,20 @@ export function EncounterDetailPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-detail-title">
+      <nav aria-label="Migas de pan">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/encounters">← Volver a encuentros</Link>
+        </Button>
+      </nav>
+
       <EncounterHeader
         encounter={encounter}
         participantCount={participants.length}
         onFinish={handleFinishEncounter}
         onExport={handleExportEncounter}
         onGenerateChronicle={handleGenerateChronicle}
+        onArchive={handleArchiveEncounter}
+        onRestore={handleRestoreEncounter}
         isExporting={encounterExport.isExporting}
         isGeneratingChronicle={chronicleActions.isGenerating}
         exportLabel={encounterMessages.exportButton}
@@ -140,12 +166,13 @@ export function EncounterDetailPage(): JSX.Element {
         generatingChronicleLabel={encounterMessages.generatingChronicleButton}
       />
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 id="encounter-detail-title" className="text-xl font-semibold">
           Timeline de observaciones
         </h2>
         <Button
           type="button"
+          className="w-full sm:w-auto"
           onClick={() => {
             setEditingObservation(undefined);
             setIsDialogOpen(true);
@@ -157,6 +184,7 @@ export function EncounterDetailPage(): JSX.Element {
 
       <EncounterTimeline
         observations={observations}
+        fields={fields}
         participantById={participantById}
         onEdit={(observation) => {
           setEditingObservation(observation);

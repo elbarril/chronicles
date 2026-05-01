@@ -78,20 +78,32 @@ export class ChronicleDB extends Dexie {
       media: "id, mime, createdAt",
     });
 
-    this.version(DB_VERSION)
-      .stores(stores)
+    this.version(5)
+      .stores({
+        ...stores,
+        encounters: "id, groupId, formId, startedAt, endedAt, createdAt",
+      })
       .upgrade(async (tx) => {
         const institutions = tx.table<Institution, string>("institutions");
         const existing = await institutions.toArray();
 
-        if (existing.length > 0) {
-          return;
+        if (existing.length === 0) {
+          await institutions.add({
+            id: defaultInstitutionId,
+            name: "Default",
+            createdAt: now,
+          });
         }
+      });
 
-        await institutions.add({
-          id: defaultInstitutionId,
-          name: "Default",
-          createdAt: now,
+    this.version(DB_VERSION)
+      .stores(stores)
+      .upgrade(async (tx) => {
+        const encounters = tx.table<Encounter, string>("encounters");
+        await encounters.toCollection().modify((encounter) => {
+          if (encounter.archivedAt === undefined) {
+            encounter.archivedAt = "";
+          }
         });
       });
   }

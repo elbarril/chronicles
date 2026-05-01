@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
+import { Button } from "@/components/ui/button";
 import { type ObservationFormInput } from "@/domain/form";
 import { FormBuilder } from "@/features/forms/components/FormBuilder";
 import { useFormActions } from "@/features/forms/hooks/use-form-actions";
@@ -107,6 +108,12 @@ export function FormBuilderPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="form-builder-title">
+      <nav aria-label="Migas de pan">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/forms">← Volver a formularios</Link>
+        </Button>
+      </nav>
+
       <header>
         <h1 id="form-builder-title" className="text-3xl font-bold tracking-tight">
           {title}

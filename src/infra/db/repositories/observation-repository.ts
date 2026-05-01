@@ -8,12 +8,14 @@ function nowIsoString(): string {
 export async function createObservation(data: {
   encounterId: string;
   participantId?: string;
+  title?: string;
   values: Record<string, ObservationValue>;
 }): Promise<Observation> {
   const observation = observationSchema.parse({
     id: crypto.randomUUID(),
     encounterId: data.encounterId,
     participantId: data.participantId,
+    title: data.title,
     values: data.values,
     createdAt: nowIsoString(),
   });
@@ -27,6 +29,7 @@ export async function updateObservation(
   id: string,
   data: {
     participantId?: string;
+    title?: string;
     values: Record<string, ObservationValue>;
   },
 ): Promise<Observation | null> {
@@ -39,6 +42,7 @@ export async function updateObservation(
   const next = observationSchema.parse({
     ...previous,
     participantId: data.participantId,
+    title: data.title,
     values: data.values,
   });
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
+import { Button } from "@/components/ui/button";
 import { type GroupInput } from "@/domain/group";
 import { GroupForm } from "@/features/groups/components/GroupForm";
 import { useGroupActions } from "@/features/groups/hooks/use-group-actions";
@@ -80,6 +81,12 @@ export function GroupFormPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="group-form-title">
+      <nav aria-label="Migas de pan">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/groups">← Volver a grupos</Link>
+        </Button>
+      </nav>
+
       <header>
         <h1 id="group-form-title" className="text-3xl font-bold tracking-tight">
           {title}

@@ -22,6 +22,30 @@ describe("observation domain schema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts an optional title", () => {
+    const result = observationSchema.safeParse({
+      id: crypto.randomUUID(),
+      encounterId: crypto.randomUUID(),
+      title: "Llegada del grupo",
+      values: {},
+      createdAt: new Date().toISOString(),
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty title strings", () => {
+    const result = observationSchema.safeParse({
+      id: crypto.randomUUID(),
+      encounterId: crypto.randomUUID(),
+      title: "   ",
+      values: {},
+      createdAt: new Date().toISOString(),
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("rejects invalid media id", () => {
     const result = observationSchema.safeParse({
       id: crypto.randomUUID(),

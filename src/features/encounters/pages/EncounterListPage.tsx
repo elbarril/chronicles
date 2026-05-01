@@ -1,13 +1,50 @@
-import { Link, useSearchParams } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
+import { getChronicleForEncounter } from "@/features/chronicles/services/chronicle-service";
+import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
 import { EncounterListTable } from "@/features/encounters/components/EncounterListTable";
+import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
 import { useEncounters } from "@/features/encounters/hooks/use-encounters";
+import { type EncounterListFilter } from "@/features/encounters/services/encounter-service";
+
+function parseStatus(value: string | null): EncounterListFilter {
+  if (value === "finished" || value === "archived") {
+    return value;
+  }
+
+  return "inProgress";
+}
 
 export function EncounterListPage(): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
-  const status = searchParams.get("status") === "finished" ? "finished" : "inProgress";
+  const navigate = useNavigate();
+  const status = parseStatus(searchParams.get("status"));
   const { encounters, isLoading } = useEncounters(status);
+  const encounterActions = useEncounterActions();
+  const chronicleActions = useChronicleActions();
+
+  const [generatingId, setGeneratingId] = useState<string | undefined>();
+
+  async function handleGenerateChronicle(encounterId: string): Promise<void> {
+    setGeneratingId(encounterId);
+
+    try {
+      const existing = await getChronicleForEncounter(encounterId);
+
+      if (existing) {
+        navigate(`/chronicles/${existing.id}`);
+        return;
+      }
+
+      const chronicle = await chronicleActions.generate(encounterId);
+      navigate(`/chronicles/${chronicle.id}`);
+    } finally {
+      setGeneratingId(undefined);
+    }
+  }
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-list-title">
@@ -21,12 +58,19 @@ export function EncounterListPage(): JSX.Element {
           </p>
         </div>
 
-        <Button asChild>
-          <Link to="/encounters/new">Nuevo encuentro</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DemoEncounterButton removeOnly />
+          <Button asChild>
+            <Link to="/encounters/new">Nuevo encuentro</Link>
+          </Button>
+        </div>
       </header>
 
-      <div className="flex gap-2" role="tablist" aria-label="Filtros de estado de encuentros">
+      <div
+        className="flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Filtros de estado de encuentros"
+      >
         <Button
           type="button"
           variant={status === "inProgress" ? "default" : "outline"}
@@ -41,12 +85,30 @@ export function EncounterListPage(): JSX.Element {
         >
           Finalizados
         </Button>
+        <Button
+          type="button"
+          variant={status === "archived" ? "default" : "outline"}
+          onClick={() => setSearchParams({ status: "archived" })}
+        >
+          Archivados
+        </Button>
       </div>
 
       {isLoading ? (
         <p className="text-muted-foreground text-sm">Cargando encuentros...</p>
       ) : (
-        <EncounterListTable encounters={encounters} status={status} />
+        <EncounterListTable
+          encounters={encounters}
+          status={status}
+          onGenerateChronicle={handleGenerateChronicle}
+          onArchive={async (id) => {
+            await encounterActions.archive(id);
+          }}
+          onRestore={async (id) => {
+            await encounterActions.restore(id);
+          }}
+          isGeneratingChronicleId={generatingId}
+        />
       )}
     </section>
   );
