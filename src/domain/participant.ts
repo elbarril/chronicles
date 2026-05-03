@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export interface Participant {
   id: string;
-  groupId: string;
+  projectId: string;
   displayName: string;
   createdAt: string;
   updatedAt: string;
@@ -11,7 +11,7 @@ export interface Participant {
 
 export const participantSchema = z.object({
   id: z.string().uuid(),
-  groupId: z.string().uuid(),
+  projectId: z.string().uuid(),
   displayName: z.string().trim().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -19,7 +19,7 @@ export const participantSchema = z.object({
 });
 
 export const participantInputSchema = z.object({
-  groupId: z.string().uuid(),
+  projectId: z.string().uuid(),
   displayName: z.string().trim().min(1),
 });
 

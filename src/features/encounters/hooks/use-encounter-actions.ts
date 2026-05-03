@@ -6,7 +6,6 @@ import { encounterMessages } from "@/features/encounters/lib/messages";
 import {
   archiveEncounterDefinition,
   createEncounterDefinition,
-  finishEncounterDefinition,
   restoreEncounterDefinition,
   updateEncounterDefinition,
 } from "@/features/encounters/services/encounter-service";
@@ -14,6 +13,25 @@ import { AppError } from "@/lib/error";
 
 export function useEncounterActions() {
   const [isSaving, setIsSaving] = useState(false);
+
+  function mapErrorMessage(error: unknown, fallback: string): string {
+    if (!(error instanceof AppError)) {
+      return fallback;
+    }
+
+    switch (error.code) {
+      case "ENCOUNTER_PROJECT_NOT_FOUND":
+        return encounterMessages.projectNotFound;
+      case "ENCOUNTER_PARTICIPANTS_INVALID":
+        return encounterMessages.participantsInvalid;
+      case "ENCOUNTER_TIME_INVALID":
+        return encounterMessages.timeInvalid;
+      case "ENCOUNTER_NOT_FOUND":
+        return encounterMessages.notFound;
+      default:
+        return fallback;
+    }
+  }
 
   async function create(input: EncounterInput) {
     setIsSaving(true);
@@ -23,22 +41,14 @@ export function useEncounterActions() {
       toast.success(encounterMessages.createdSuccess);
       return encounter;
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "ENCOUNTER_FORM_NOT_FOUND"
-          ? encounterMessages.formNotFound
-          : error instanceof AppError && error.code === "ENCOUNTER_FORM_ARCHIVED"
-            ? encounterMessages.formArchived
-            : error instanceof AppError && error.code === "ENCOUNTER_GROUP_NOT_FOUND"
-              ? encounterMessages.groupNotFound
-              : encounterMessages.createError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, encounterMessages.createError));
       throw error;
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function update(id: string, input: Pick<EncounterInput, "activity">) {
+  async function update(id: string, input: EncounterInput) {
     setIsSaving(true);
 
     try {
@@ -46,29 +56,10 @@ export function useEncounterActions() {
       toast.success(encounterMessages.updatedSuccess);
       return encounter;
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
-          ? encounterMessages.notFound
-          : encounterMessages.updateError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, encounterMessages.updateError));
       throw error;
     } finally {
       setIsSaving(false);
-    }
-  }
-
-  async function finish(id: string) {
-    try {
-      const encounter = await finishEncounterDefinition(id);
-      toast.success(encounterMessages.finishedSuccess);
-      return encounter;
-    } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
-          ? encounterMessages.notFound
-          : encounterMessages.finishError;
-      toast.error(message);
-      throw error;
     }
   }
 
@@ -78,11 +69,7 @@ export function useEncounterActions() {
       toast.success(encounterMessages.archivedSuccess);
       return encounter;
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
-          ? encounterMessages.notFound
-          : encounterMessages.archiveError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, encounterMessages.archiveError));
       throw error;
     }
   }
@@ -93,11 +80,7 @@ export function useEncounterActions() {
       toast.success(encounterMessages.restoredSuccess);
       return encounter;
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "ENCOUNTER_NOT_FOUND"
-          ? encounterMessages.notFound
-          : encounterMessages.restoreError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, encounterMessages.restoreError));
       throw error;
     }
   }
@@ -106,7 +89,6 @@ export function useEncounterActions() {
     isSaving,
     create,
     update,
-    finish,
     archive,
     restore,
   };

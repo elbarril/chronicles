@@ -5,9 +5,9 @@ import { chronicleSchema, type Chronicle } from "@/domain/chronicle";
 import { encounterSchema, type Encounter } from "@/domain/encounter";
 import { fieldSchema, type Field } from "@/domain/field";
 import { observationFormSchema, type ObservationForm } from "@/domain/form";
-import { groupSchema, type Group } from "@/domain/group";
 import { observationSchema, type Observation } from "@/domain/observation";
 import { participantSchema, type Participant } from "@/domain/participant";
+import { projectSchema, type Project } from "@/domain/project";
 import { db } from "@/infra/db/client";
 import {
   FULL_MANIFEST_SCHEMA,
@@ -27,7 +27,7 @@ interface MediaImportEntry {
 export interface FullImportData {
   fields: Field[];
   forms: ObservationForm[];
-  groups: Group[];
+  projects: Project[];
   participants: Participant[];
   encounters: Encounter[];
   observations: Observation[];
@@ -77,8 +77,8 @@ export async function parseFullZip(zip: JSZip): Promise<FullImportPreview> {
     const forms = parseJson<unknown[]>(await getRequiredText(zip, "forms.json")).map((form) =>
       observationFormSchema.parse(form),
     );
-    const groups = parseJson<unknown[]>(await getRequiredText(zip, "groups.json")).map((group) =>
-      groupSchema.parse(group),
+    const projects = parseJson<unknown[]>(await getRequiredText(zip, "projects.json")).map(
+      (project) => projectSchema.parse(project),
     );
     const participants = parseJson<unknown[]>(await getRequiredText(zip, "participants.json")).map(
       (participant) => participantSchema.parse(participant),
@@ -117,7 +117,7 @@ export async function parseFullZip(zip: JSZip): Promise<FullImportPreview> {
       data: {
         fields,
         forms,
-        groups,
+        projects,
         participants,
         encounters,
         observations,
@@ -142,7 +142,7 @@ export async function importFullData(data: FullImportData): Promise<void> {
       [
         db.fields,
         db.forms,
-        db.groups,
+        db.projects,
         db.participants,
         db.encounters,
         db.observations,
@@ -152,7 +152,7 @@ export async function importFullData(data: FullImportData): Promise<void> {
       async () => {
         await db.fields.bulkPut(data.fields);
         await db.forms.bulkPut(data.forms);
-        await db.groups.bulkPut(data.groups);
+        await db.projects.bulkPut(data.projects);
         await db.participants.bulkPut(data.participants);
         await db.encounters.bulkPut(data.encounters);
         await db.observations.bulkPut(data.observations);

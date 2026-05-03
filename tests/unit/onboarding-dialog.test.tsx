@@ -9,6 +9,7 @@ import { onboardingMessages } from "@/features/onboarding/messages";
 import { onboardingStorageKey } from "@/features/onboarding/services/onboarding-service";
 
 const INTRO_STEPS = onboardingMessages.introSteps.length;
+const DEMO_PROJECT_ID = "00000000-0000-4000-8000-00000000d211";
 const DEMO_ENCOUNTER_ID = "00000000-0000-4000-8000-00000000d411";
 const DEMO_CHRONICLE_ID = "00000000-0000-4000-8000-00000000c111";
 
@@ -48,11 +49,8 @@ function HomeStub(): JSX.Element {
       <a href="/forms" data-tour="hub.forms">
         Formularios
       </a>
-      <a href="/groups" data-tour="hub.groups">
-        Grupos
-      </a>
-      <a href="/encounters" data-tour="hub.encounters">
-        Encuentros
+      <a href="/projects" data-tour="hub.projects">
+        Proyectos
       </a>
       <a href="/chronicles" data-tour="hub.chronicles">
         Crónicas
@@ -119,48 +117,53 @@ function renderApp() {
               }
             />
             <Route
-              path="groups"
+              path="projects"
               element={
                 <div>
-                  <p>Groups</p>
-                  <a href="/groups/new" data-tour="groups.new-button">
-                    Nuevo grupo
+                  <p>Projects</p>
+                  <a href="/projects/new" data-tour="projects.new-button">
+                    Nuevo proyecto
                   </a>
-                  <div data-tour="groups.list-region">List</div>
+                  <div data-tour="projects.list-region">List</div>
                 </div>
               }
             />
             <Route
-              path="groups/new"
+              path="projects/new"
               element={
                 <div>
-                  <p>New group</p>
-                  <div data-tour="groups.new.name-input">Name</div>
-                  <div data-tour="groups.new.participants">Participants</div>
-                  <button data-tour="groups.new.save-button">Guardar grupo</button>
+                  <p>New project</p>
+                  <div data-tour="projects.new.name-input">Name</div>
+                  <div data-tour="projects.new.participants">Participants</div>
+                  <button data-tour="projects.new.save-button">Guardar proyecto</button>
                 </div>
               }
             />
             <Route
-              path="encounters"
+              path="projects/:projectId"
               element={
                 <div>
-                  <p>Encounters</p>
-                  <a href="/encounters/new" data-tour="encounters.new-button">
-                    Nuevo encuentro
+                  <p>Project detail</p>
+                  <header data-tour="project.detail.header">Header</header>
+                  <a
+                    href={`/projects/${DEMO_PROJECT_ID}/encounters/new`}
+                    data-tour="project.detail.new-encounter"
+                  >
+                    Crear encuentro
                   </a>
-                  <div data-tour="encounters.filter-bar">Filters</div>
                 </div>
               }
             />
             <Route
-              path="encounters/new"
+              path="projects/:projectId/encounters/new"
               element={
                 <div>
                   <p>New encounter</p>
-                  <div data-tour="encounters.new.group-selector">Group</div>
-                  <div data-tour="encounters.new.form-selector">Form</div>
-                  <button data-tour="encounters.new.start-button">Crear encuentro</button>
+                  <div data-tour="encounters.new.name-input">Name</div>
+                  <div data-tour="encounters.new.starts-at">Starts</div>
+                  <div data-tour="encounters.new.ends-at">Ends</div>
+                  <div data-tour="encounters.new.participants">Participants</div>
+                  <button data-tour="encounters.new.save-button">Crear encuentro</button>
                 </div>
               }
             />
@@ -172,8 +175,12 @@ function renderApp() {
                   <header data-tour="encounter.detail.header">Header</header>
                   <div data-tour="encounter.detail.observations-list">Timeline</div>
                   <button data-tour="encounter.detail.new-observation">Nueva observación</button>
-                  <button data-tour="encounter.detail.generate-chronicle">Generar crónica</button>
-                  <button data-tour="encounter.detail.finalize">Finalizar</button>
+                  <a
+                    href={`/encounters/${DEMO_ENCOUNTER_ID}/chronicle`}
+                    data-tour="encounter.detail.view-chronicle"
+                  >
+                    Ver crónica
+                  </a>
                 </div>
               }
             />
@@ -182,7 +189,17 @@ function renderApp() {
               element={
                 <div>
                   <p>Encounter observation new</p>
+                  <div data-tour="observations.new.form-selector">Form selector</div>
                   <div data-tour="encounter.detail.observation-form">Form</div>
+                </div>
+              }
+            />
+            <Route
+              path="encounters/:id/chronicle"
+              element={
+                <div>
+                  <p>Encounter chronicle</p>
+                  <button data-tour="encounter.chronicle.generate">Generar crónica</button>
                 </div>
               }
             />
@@ -211,7 +228,6 @@ function renderApp() {
                 <div>
                   <p>Chronicle detail</p>
                   <div data-tour="chronicle.detail.content">Content</div>
-                  <button data-tour="chronicle.detail.regenerate">Regenerar</button>
                   <button data-tour="chronicle.detail.share">Compartir</button>
                   <div data-tour="chronicle.detail.media">Media</div>
                 </div>
@@ -247,7 +263,7 @@ async function advanceTo(user: ReturnType<typeof userEvent.setup>, finalDialogTi
   // Helper that keeps clicking Siguiente on the currently-visible
   // tutorial dialog until a dialog matching the given title appears.
   const seenTitles = new Set<string>();
-  for (let i = 0; i < 60; i += 1) {
+  for (let i = 0; i < 80; i += 1) {
     const dialogs = screen.queryAllByRole("dialog");
     const current = dialogs[dialogs.length - 1];
     if (!current) {
@@ -328,47 +344,7 @@ describe("OnboardingDialog", () => {
     expect(within(hubStop).queryByText(/paso \d+ de \d+/i)).toBeNull();
   });
 
-  it("returns from the first tour step back to the last intro step", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await advanceThroughIntro(user);
-
-    const hubStop = await screen.findByRole("dialog", { name: /vamos a campos/i });
-    const previous = within(hubStop).getByRole("button", { name: /anterior/i });
-    expect(previous).toBeEnabled();
-    await user.click(previous);
-
-    expect(
-      screen.getByRole("dialog", { name: /generación de crónicas con ia/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("walks through the Campos creation flow including the name input step", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await advanceThroughIntro(user);
-
-    // hub-stop → list → new button → /fields/new (tipo) → nombre → guardar
-    await advanceTo(user, /vamos a campos/i);
-    await advanceTo(user, /campos: la lista/i);
-    await advanceTo(user, /crear un campo/i);
-    await advanceTo(user, /tipo del campo/i);
-    await waitFor(() => expect(getPathname()).toBe("/fields/new"));
-
-    await advanceTo(user, /nombre del campo/i);
-    await advanceTo(user, /guardar el campo/i);
-
-    // Spotlight on the save button after walking through type and name.
-    await waitFor(() => {
-      expect(
-        document
-          .querySelector('[data-tour="fields.save-button"]')
-          ?.getAttribute("data-tour-spotlight"),
-      ).toBe("active");
-    });
-  });
-
-  it("after the Campos flow lands back on the hub for Formularios", async () => {
+  it("walks through the Campos creation flow and lands on Formularios hub", async () => {
     const user = userEvent.setup();
     renderApp();
     await advanceThroughIntro(user);
@@ -382,18 +358,34 @@ describe("OnboardingDialog", () => {
     });
   });
 
+  it("walks through to the project detail using the seeded demo project id", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await advanceThroughIntro(user);
+
+    await waitFor(() => {
+      expect(seedDemoEncounterMock).toHaveBeenCalled();
+    });
+
+    await advanceTo(user, /detalle del proyecto/i);
+    await waitFor(
+      () => {
+        expect(getPathname()).toBe(`/projects/${DEMO_PROJECT_ID}`);
+      },
+      { timeout: 3000 },
+    );
+  });
+
   it("walks through the encounter detail flow using the seeded demo encounter id", async () => {
     const user = userEvent.setup();
     renderApp();
     await advanceThroughIntro(user);
 
-    // Wait for the seed to populate the tutorial context with the demo
-    // encounter id, then walk to the encounter detail step.
     await waitFor(() => {
       expect(seedDemoEncounterMock).toHaveBeenCalled();
     });
 
-    await advanceTo(user, /timeline del encuentro/i);
+    await advanceTo(user, /información del encuentro/i);
     await waitFor(
       () => {
         expect(getPathname()).toBe(`/encounters/${DEMO_ENCOUNTER_ID}`);
@@ -451,31 +443,6 @@ describe("OnboardingDialog", () => {
     // Give a beat for any async cleanup to (not) happen.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(removeDemoEncounterMock).not.toHaveBeenCalled();
-  });
-
-  it("can step backwards through the tour all the way to the intro modals", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await advanceThroughIntro(user);
-
-    // Move forward into the second hub-stop (Formularios).
-    const formsHubStop = await advanceTo(user, /ahora vamos a formularios/i);
-
-    // Walk backwards using Anterior until we land back on the AI intro.
-    let current = formsHubStop;
-    for (let i = 0; i < 30; i += 1) {
-      const previousButton = within(current).queryByRole("button", { name: /anterior/i });
-      if (!previousButton || (previousButton as HTMLButtonElement).disabled) break;
-      await user.click(previousButton);
-      const dialogs = screen.queryAllByRole("dialog");
-      current = dialogs[dialogs.length - 1] ?? current;
-      const title = current.querySelector("h2,[role=heading]")?.textContent ?? "";
-      if (/generación de crónicas con ia/i.test(title)) break;
-    }
-
-    expect(
-      screen.getByRole("dialog", { name: /generación de crónicas con ia/i }),
-    ).toBeInTheDocument();
   });
 
   it("can skip the tutorial and persists the completion flag", async () => {

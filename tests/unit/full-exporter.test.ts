@@ -6,7 +6,7 @@ import { exportFullToZip } from "@/infra/export/full-exporter";
 const {
   fieldsToArrayMock,
   formsToArrayMock,
-  groupsToArrayMock,
+  projectsToArrayMock,
   participantsToArrayMock,
   encountersToArrayMock,
   observationsToArrayMock,
@@ -15,7 +15,7 @@ const {
 } = vi.hoisted(() => ({
   fieldsToArrayMock: vi.fn(),
   formsToArrayMock: vi.fn(),
-  groupsToArrayMock: vi.fn(),
+  projectsToArrayMock: vi.fn(),
   participantsToArrayMock: vi.fn(),
   encountersToArrayMock: vi.fn(),
   observationsToArrayMock: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("@/infra/db/client", () => ({
   db: {
     fields: { toArray: fieldsToArrayMock },
     forms: { toArray: formsToArrayMock },
-    groups: { toArray: groupsToArrayMock },
+    projects: { toArray: projectsToArrayMock },
     participants: { toArray: participantsToArrayMock },
     encounters: { toArray: encountersToArrayMock },
     observations: { toArray: observationsToArrayMock },
@@ -41,8 +41,8 @@ describe("full exporter", () => {
     vi.clearAllMocks();
   });
 
-  it("packages all entities + appearance settings into a chronicle-full-v1 ZIP", async () => {
-    const groupId = crypto.randomUUID();
+  it("packages all entities + appearance settings into a chronicle-full-v2 ZIP", async () => {
+    const projectId = crypto.randomUUID();
     const formId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
@@ -76,11 +76,11 @@ describe("full exporter", () => {
         archivedAt: "",
       },
     ]);
-    groupsToArrayMock.mockResolvedValue([
+    projectsToArrayMock.mockResolvedValue([
       {
-        id: groupId,
+        id: projectId,
         institutionId: "00000000-0000-4000-8000-000000000001",
-        name: "Grupo",
+        name: "Proyecto",
         createdAt: now,
         updatedAt: now,
         archivedAt: "",
@@ -89,7 +89,7 @@ describe("full exporter", () => {
     participantsToArrayMock.mockResolvedValue([
       {
         id: participantId,
-        groupId,
+        projectId,
         displayName: "Sofía",
         createdAt: now,
         updatedAt: now,
@@ -99,13 +99,11 @@ describe("full exporter", () => {
     encountersToArrayMock.mockResolvedValue([
       {
         id: encounterId,
-        groupId,
-        formId,
-        formVersion: 1,
-        fieldIds: [fieldId],
-        activity: "Encuentro de prueba",
-        startedAt: now,
-        endedAt: "",
+        projectId,
+        name: "Encuentro de prueba",
+        startsAt: now,
+        endsAt: now,
+        participantIds: [participantId],
         archivedAt: "",
         createdAt: now,
         updatedAt: now,
@@ -115,6 +113,9 @@ describe("full exporter", () => {
       {
         id: observationId,
         encounterId,
+        formId,
+        formVersion: 1,
+        fieldIds: [fieldId],
         participantId,
         title: "Observación",
         values: { [fieldId]: "Hola" },
@@ -170,7 +171,7 @@ describe("full exporter", () => {
         "manifest.json",
         "fields.json",
         "forms.json",
-        "groups.json",
+        "projects.json",
         "participants.json",
         "encounters.json",
         "observations.json",
@@ -180,7 +181,7 @@ describe("full exporter", () => {
     );
 
     const manifestText = await zip.file("manifest.json")?.async("string");
-    expect(manifestText).toContain("chronicle-full-v1");
+    expect(manifestText).toContain("chronicle-full-v2");
     expect(manifestText).toContain("Emiliano");
     expect(manifestText).toContain("indigo");
 
@@ -199,7 +200,7 @@ describe("full exporter", () => {
   it("works with an empty database (no encounters or chronicles)", async () => {
     fieldsToArrayMock.mockResolvedValue([]);
     formsToArrayMock.mockResolvedValue([]);
-    groupsToArrayMock.mockResolvedValue([]);
+    projectsToArrayMock.mockResolvedValue([]);
     participantsToArrayMock.mockResolvedValue([]);
     encountersToArrayMock.mockResolvedValue([]);
     observationsToArrayMock.mockResolvedValue([]);
@@ -230,7 +231,7 @@ describe("full exporter", () => {
     const zip = await JSZip.loadAsync(zipBlob);
 
     const manifestText = await zip.file("manifest.json")?.async("string");
-    expect(manifestText).toContain("chronicle-full-v1");
+    expect(manifestText).toContain("chronicle-full-v2");
 
     Object.defineProperty(URL, "createObjectURL", {
       writable: true,

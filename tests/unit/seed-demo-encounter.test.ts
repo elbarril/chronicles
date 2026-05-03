@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  DEFAULT_FORM_ID,
   DEMO_ENCOUNTER_ID,
   DEMO_FIELD_AUDIO_ID,
   DEMO_FIELD_BOOLEAN_ID,
@@ -20,9 +21,9 @@ import {
   DEMO_FIELD_TIME_ID,
   DEMO_FIELD_VIDEO_ID,
   DEMO_FORM_ID,
-  DEMO_GROUP_ID,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_TWO_ID,
+  DEMO_PROJECT_ID,
 } from "@/features/defaults/lib/seed-data";
 import { seedDemoEncounter } from "@/features/defaults/services/defaults-service";
 
@@ -34,8 +35,8 @@ const {
   formsGetMock,
   formsAddMock,
   formsUpdateMock,
-  groupsGetMock,
-  groupsPutMock,
+  projectsGetMock,
+  projectsPutMock,
   participantsGetMock,
   participantsPutMock,
   encountersGetMock,
@@ -50,8 +51,8 @@ const {
   formsGetMock: vi.fn(),
   formsAddMock: vi.fn(),
   formsUpdateMock: vi.fn(),
-  groupsGetMock: vi.fn(),
-  groupsPutMock: vi.fn(),
+  projectsGetMock: vi.fn(),
+  projectsPutMock: vi.fn(),
   participantsGetMock: vi.fn(),
   participantsPutMock: vi.fn(),
   encountersGetMock: vi.fn(),
@@ -80,9 +81,9 @@ vi.mock("@/infra/db/client", () => {
         add: formsAddMock,
         update: formsUpdateMock,
       },
-      groups: {
-        get: groupsGetMock,
-        put: groupsPutMock,
+      projects: {
+        get: projectsGetMock,
+        put: projectsPutMock,
       },
       participants: {
         get: participantsGetMock,
@@ -176,7 +177,7 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
       }
 
       return {
-        id: "00000000-0000-4000-8000-00000000d101",
+        id: DEFAULT_FORM_ID,
         name: "Observación de encuentro",
         fieldIds: ["00000000-0000-4000-8000-00000000d001", "00000000-0000-4000-8000-00000000d002"],
         version: 1,
@@ -197,17 +198,17 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     });
   });
 
-  it("seeds the comprehensive demo, observation and chronicle when nothing exists", async () => {
+  it("seeds the demo project, encounter, two observations and chronicle when nothing exists", async () => {
     encountersGetMock.mockResolvedValueOnce(undefined);
-    groupsGetMock.mockResolvedValue(undefined);
+    projectsGetMock.mockResolvedValue(undefined);
     participantsGetMock.mockResolvedValue(undefined);
 
     const outcome = await seedDemoEncounter();
 
     expect(outcome).toEqual({ encounterId: DEMO_ENCOUNTER_ID, created: true });
 
-    expect(groupsPutMock).toHaveBeenCalledOnce();
-    expect(groupsPutMock.mock.calls[0]?.[0].id).toBe(DEMO_GROUP_ID);
+    expect(projectsPutMock).toHaveBeenCalledOnce();
+    expect(projectsPutMock.mock.calls[0]?.[0].id).toBe(DEMO_PROJECT_ID);
 
     expect(participantsPutMock).toHaveBeenCalledTimes(2);
     const participantIds = participantsPutMock.mock.calls.map((call) => call[0].id);
@@ -216,19 +217,20 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     expect(encountersPutMock).toHaveBeenCalledOnce();
     const encounterArg = encountersPutMock.mock.calls[0]?.[0];
     expect(encounterArg.id).toBe(DEMO_ENCOUNTER_ID);
-    expect(encounterArg.formId).toBe(DEMO_FORM_ID);
-    expect(encounterArg.fieldIds).toEqual(DEMO_FIELD_IDS);
+    expect(encounterArg.projectId).toBe(DEMO_PROJECT_ID);
+    expect(encounterArg.participantIds).toEqual([DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID]);
+    expect(typeof encounterArg.startsAt).toBe("string");
+    expect(typeof encounterArg.endsAt).toBe("string");
 
-    // Observation creation should be invoked once with values for every
-    // demo field: scalars passed through as-is, media values as Blobs so
-    // the observation service can normalise them into mediaIds.
-    expect(createObservationDefinitionMock).toHaveBeenCalledOnce();
-    const [fieldsArg, observationInput] = createObservationDefinitionMock.mock.calls[0] ?? [];
-    expect(fieldsArg).toHaveLength(DEMO_FIELD_SEEDS.length);
-    expect(observationInput.encounterId).toBe(DEMO_ENCOUNTER_ID);
-    expect(observationInput.participantId).toBe(DEMO_PARTICIPANT_ONE_ID);
+    // Two observations are created: one with the demo form and one with the
+    // default form, to showcase that an encounter can mix forms.
+    expect(createObservationDefinitionMock).toHaveBeenCalledTimes(2);
+    const [firstObs, secondObs] = createObservationDefinitionMock.mock.calls.map((call) => call[0]);
+    expect(firstObs?.encounterId).toBe(DEMO_ENCOUNTER_ID);
+    expect(firstObs?.formId).toBe(DEMO_FORM_ID);
+    expect(firstObs?.participantId).toBe(DEMO_PARTICIPANT_ONE_ID);
 
-    const values = observationInput.values as Record<string, unknown>;
+    const values = firstObs?.values as Record<string, unknown>;
     expect(values[DEMO_FIELD_TEXT_ID]).toBe("Texto corto de ejemplo.");
     expect(typeof values[DEMO_FIELD_LONG_TEXT_ID]).toBe("string");
     expect(values[DEMO_FIELD_NUMBER_ID]).toBe(42);
@@ -245,20 +247,22 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     expect(values[DEMO_FIELD_RATING_ID]).toBe(4);
     expect(values[DEMO_FIELD_LOCATION_ID]).toBe("Ciudad Autónoma de Buenos Aires");
 
+    expect(secondObs?.formId).toBe(DEFAULT_FORM_ID);
+    expect(secondObs?.participantId).toBe(DEMO_PARTICIPANT_TWO_ID);
+
     expect(generateChronicleMock).toHaveBeenCalledOnce();
     expect(generateChronicleMock).toHaveBeenCalledWith(DEMO_ENCOUNTER_ID);
   });
 
-  it("is idempotent: existing encounter returns without writing observation or chronicle", async () => {
+  it("is idempotent: existing encounter returns without writing observations or chronicle", async () => {
     encountersGetMock.mockResolvedValueOnce({
       id: DEMO_ENCOUNTER_ID,
-      groupId: DEMO_GROUP_ID,
-      formId: DEMO_FORM_ID,
-      formVersion: 1,
-      fieldIds: [...DEMO_FIELD_IDS],
-      activity: "Actividad de prueba",
-      startedAt: isoDate,
-      endedAt: "",
+      projectId: DEMO_PROJECT_ID,
+      name: "Encuentro de prueba",
+      startsAt: isoDate,
+      endsAt: isoDate,
+      participantIds: [DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID],
+      archivedAt: "",
       createdAt: isoDate,
       updatedAt: isoDate,
     });
@@ -266,22 +270,22 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     const outcome = await seedDemoEncounter();
 
     expect(outcome).toEqual({ encounterId: DEMO_ENCOUNTER_ID, created: false });
-    expect(groupsPutMock).not.toHaveBeenCalled();
+    expect(projectsPutMock).not.toHaveBeenCalled();
     expect(participantsPutMock).not.toHaveBeenCalled();
     expect(encountersPutMock).not.toHaveBeenCalled();
     expect(createObservationDefinitionMock).not.toHaveBeenCalled();
     expect(generateChronicleMock).not.toHaveBeenCalled();
   });
 
-  it("preserves the original group createdAt when re-creating only the encounter", async () => {
+  it("preserves the original project createdAt when re-creating only the encounter", async () => {
     encountersGetMock.mockResolvedValueOnce(undefined);
 
     const originalCreatedAt = "2026-04-01T10:00:00.000Z";
 
-    groupsGetMock.mockResolvedValueOnce({
-      id: DEMO_GROUP_ID,
+    projectsGetMock.mockResolvedValueOnce({
+      id: DEMO_PROJECT_ID,
       institutionId: "00000000-0000-4000-8000-000000000001",
-      name: "Grupo de prueba",
+      name: "Proyecto de prueba",
       createdAt: originalCreatedAt,
       updatedAt: originalCreatedAt,
       archivedAt: "",
@@ -291,62 +295,6 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
 
     await seedDemoEncounter();
 
-    expect(groupsPutMock.mock.calls[0]?.[0].createdAt).toBe(originalCreatedAt);
-  });
-
-  it("creates the demo form when it does not yet exist", async () => {
-    encountersGetMock.mockResolvedValueOnce(undefined);
-    groupsGetMock.mockResolvedValue(undefined);
-    participantsGetMock.mockResolvedValue(undefined);
-
-    // Track upserts so that post-upsert reads see the rows the seed
-    // service just wrote, mimicking the real Dexie behaviour.
-    const addedFieldsById = new Map<string, unknown>();
-    fieldsAddMock.mockImplementation(async (row: { id: string }) => {
-      addedFieldsById.set(row.id, row);
-    });
-
-    fieldsGetMock.mockImplementation(async (id: string) => {
-      if (addedFieldsById.has(id)) {
-        return addedFieldsById.get(id);
-      }
-
-      return undefined;
-    });
-
-    let demoFormPersisted: unknown;
-    formsAddMock.mockImplementation(async (row: { id: string }) => {
-      if (row.id === DEMO_FORM_ID) {
-        demoFormPersisted = row;
-      }
-    });
-
-    formsGetMock.mockImplementation(async (id: string) => {
-      if (id === DEMO_FORM_ID) {
-        return demoFormPersisted;
-      }
-
-      return {
-        id: "00000000-0000-4000-8000-00000000d101",
-        name: "Observación de encuentro",
-        fieldIds: ["00000000-0000-4000-8000-00000000d001", "00000000-0000-4000-8000-00000000d002"],
-        version: 1,
-        archivedAt: "",
-        createdAt: isoDate,
-        updatedAt: isoDate,
-      };
-    });
-
-    await seedDemoEncounter();
-
-    const addedDemoFieldIds = fieldsAddMock.mock.calls
-      .map((call) => call[0].id)
-      .filter((id: string) => DEMO_FIELD_IDS.includes(id));
-
-    expect(addedDemoFieldIds).toEqual([...DEMO_FIELD_IDS]);
-
-    expect(formsAddMock).toHaveBeenCalled();
-    const demoFormAdd = formsAddMock.mock.calls.find((call) => call[0]?.id === DEMO_FORM_ID);
-    expect(demoFormAdd?.[0].fieldIds).toEqual(DEMO_FIELD_IDS);
+    expect(projectsPutMock.mock.calls[0]?.[0].createdAt).toBe(originalCreatedAt);
   });
 });

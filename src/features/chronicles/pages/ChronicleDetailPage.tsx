@@ -8,7 +8,6 @@ import { useChronicle } from "@/features/chronicles/hooks/use-chronicle";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
 import { useShareChronicle } from "@/features/chronicles/hooks/use-share-chronicle";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
-import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString("es-AR", {
@@ -64,34 +63,23 @@ export function ChronicleDetailPage(): JSX.Element {
           </div>
           <div>
             <dt className="font-medium">{chronicleMessages.encounterLabel}</dt>
-            <dd>{detail.encounter?.activity ?? "No disponible"}</dd>
+            <dd>{detail.encounter?.name ?? "No disponible"}</dd>
           </div>
         </dl>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="sm:mr-auto">
-            <AiKeyStatusBadge />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            disabled={actions.isGenerating || !detail.encounter}
-            onClick={async () => {
-              if (!detail.encounter) {
-                return;
-              }
-
-              const next = await actions.regenerate(detail.encounter.id);
-              navigate(`/chronicles/${next.id}`, { replace: true });
-            }}
-            data-tour="chronicle.detail.regenerate"
-          >
-            {actions.isGenerating
-              ? chronicleMessages.regenerateLoadingButton
-              : chronicleMessages.regenerateButton}
-          </Button>
+          {detail.encounter ? (
+            <Button
+              asChild
+              variant="outline"
+              className="w-full sm:mr-auto sm:w-auto"
+              data-tour="chronicle.detail.go-to-encounter"
+            >
+              <Link to={`/encounters/${detail.encounter.id}/chronicle`}>
+                {chronicleMessages.regenerateButton}
+              </Link>
+            </Button>
+          ) : null}
 
           <Button
             type="button"

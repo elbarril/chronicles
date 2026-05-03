@@ -5,12 +5,20 @@ import { resolveEncounterDependencies } from "@/features/encounters/services/enc
 import { listEncounterObservations } from "@/features/observations/services/observation-service";
 
 export function useEncounter(encounterId: string) {
-  const dependencies = useLiveQuery(
-    async () => resolveEncounterDependencies(encounterId),
-    [encounterId],
-  );
+  const dependencies = useLiveQuery(async () => {
+    if (!encounterId) {
+      return undefined;
+    }
+
+    try {
+      return await resolveEncounterDependencies(encounterId);
+    } catch {
+      return null;
+    }
+  }, [encounterId]);
+
   const observations = useLiveQuery(
-    async () => listEncounterObservations(encounterId),
+    async () => (encounterId ? listEncounterObservations(encounterId) : []),
     [encounterId],
   );
 
@@ -19,9 +27,9 @@ export function useEncounter(encounterId: string) {
   return useMemo(
     () => ({
       encounter: dependencies?.encounter,
-      fields: dependencies?.fields ?? [],
+      project: dependencies?.project,
       participants: dependencies?.participants ?? [],
-      form: dependencies?.form,
+      fields: dependencies?.fields ?? [],
       observations: observations ?? [],
       isLoading,
     }),

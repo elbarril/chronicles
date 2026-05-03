@@ -5,9 +5,9 @@ import { chronicleSchema, type Chronicle } from "@/domain/chronicle";
 import { encounterSchema, type Encounter } from "@/domain/encounter";
 import { fieldSchema, type Field } from "@/domain/field";
 import { observationFormSchema, type ObservationForm } from "@/domain/form";
-import { groupSchema, type Group } from "@/domain/group";
 import { observationSchema, type Observation } from "@/domain/observation";
 import { participantSchema, type Participant } from "@/domain/participant";
+import { projectSchema, type Project } from "@/domain/project";
 import { db } from "@/infra/db/client";
 import { FULL_MANIFEST_SCHEMA, type FullZipManifest } from "@/infra/export/manifest";
 import { AppError } from "@/lib/error";
@@ -52,7 +52,7 @@ function triggerDownload(blob: Blob, fileName: string): void {
 async function loadAll(): Promise<{
   fields: Field[];
   forms: ObservationForm[];
-  groups: Group[];
+  projects: Project[];
   participants: Participant[];
   encounters: Encounter[];
   observations: Observation[];
@@ -62,7 +62,7 @@ async function loadAll(): Promise<{
   const [
     rawFields,
     rawForms,
-    rawGroups,
+    rawProjects,
     rawParticipants,
     rawEncounters,
     rawObservations,
@@ -71,7 +71,7 @@ async function loadAll(): Promise<{
   ] = await Promise.all([
     db.fields.toArray(),
     db.forms.toArray(),
-    db.groups.toArray(),
+    db.projects.toArray(),
     db.participants.toArray(),
     db.encounters.toArray(),
     db.observations.toArray(),
@@ -82,7 +82,7 @@ async function loadAll(): Promise<{
   return {
     fields: rawFields.map((field) => fieldSchema.parse(field)),
     forms: rawForms.map((form) => observationFormSchema.parse(form)),
-    groups: rawGroups.map((group) => groupSchema.parse(group)),
+    projects: rawProjects.map((project) => projectSchema.parse(project)),
     participants: rawParticipants.map((participant) => participantSchema.parse(participant)),
     encounters: rawEncounters.map((encounter) => encounterSchema.parse(encounter)),
     observations: rawObservations.map((observation) => observationSchema.parse(observation)),
@@ -109,7 +109,7 @@ export async function exportFullToZip(options: FullExportOptions = {}): Promise<
       counts: {
         fields: data.fields.length,
         forms: data.forms.length,
-        groups: data.groups.length,
+        projects: data.projects.length,
         participants: data.participants.length,
         encounters: data.encounters.length,
         observations: data.observations.length,
@@ -128,7 +128,7 @@ export async function exportFullToZip(options: FullExportOptions = {}): Promise<
     zip.file("manifest.json", JSON.stringify(manifest, null, 2));
     zip.file("fields.json", JSON.stringify(data.fields, null, 2));
     zip.file("forms.json", JSON.stringify(data.forms, null, 2));
-    zip.file("groups.json", JSON.stringify(data.groups, null, 2));
+    zip.file("projects.json", JSON.stringify(data.projects, null, 2));
     zip.file("participants.json", JSON.stringify(data.participants, null, 2));
     zip.file("encounters.json", JSON.stringify(data.encounters, null, 2));
     zip.file("observations.json", JSON.stringify(data.observations, null, 2));

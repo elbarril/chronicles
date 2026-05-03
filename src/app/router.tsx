@@ -3,20 +3,21 @@ import { createBrowserRouter } from "react-router";
 import { RootLayout } from "@/app/layout";
 import { ChronicleDetailPage } from "@/features/chronicles/pages/ChronicleDetailPage";
 import { ChronicleListPage } from "@/features/chronicles/pages/ChronicleListPage";
+import { EncounterChroniclePage } from "@/features/chronicles/pages/EncounterChroniclePage";
 import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
-import { EncounterListPage } from "@/features/encounters/pages/EncounterListPage";
 import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
 import { FieldFormPage } from "@/features/field-definitions/pages/FieldFormPage";
 import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage";
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
-import { GroupFormPage } from "@/features/groups/pages/GroupFormPage";
-import { GroupListPage } from "@/features/groups/pages/GroupListPage";
 import { HelpPage } from "@/features/help/HelpPage";
 import { HowItWorksPage } from "@/features/help/HowItWorksPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 import { SupportPage } from "@/features/home/SupportPage";
+import { ProjectDetailPage } from "@/features/projects/pages/ProjectDetailPage";
+import { ProjectFormPage } from "@/features/projects/pages/ProjectFormPage";
+import { ProjectListPage } from "@/features/projects/pages/ProjectListPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -52,23 +53,23 @@ export const router = createBrowserRouter([
         element: <FormBuilderPage />,
       },
       {
-        path: "/groups",
-        element: <GroupListPage />,
+        path: "/projects",
+        element: <ProjectListPage />,
       },
       {
-        path: "/groups/new",
-        element: <GroupFormPage />,
+        path: "/projects/new",
+        element: <ProjectFormPage />,
       },
       {
-        path: "/groups/:id/edit",
-        element: <GroupFormPage />,
+        path: "/projects/:id",
+        element: <ProjectDetailPage />,
       },
       {
-        path: "/encounters",
-        element: <EncounterListPage />,
+        path: "/projects/:id/edit",
+        element: <ProjectFormPage />,
       },
       {
-        path: "/encounters/new",
+        path: "/projects/:projectId/encounters/new",
         element: <EncounterNewPage />,
       },
       {
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
       {
         path: "/encounters/:id/observations/new",
         element: <EncounterDetailPage />,
+      },
+      {
+        path: "/encounters/:id/chronicle",
+        element: <EncounterChroniclePage />,
       },
       {
         path: "/chronicles",

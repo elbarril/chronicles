@@ -50,7 +50,7 @@ export function ChronicleListTable({ chronicles }: ChronicleListTableProps): JSX
             <dl className="space-y-1 text-sm">
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">{chronicleMessages.encounterLabel}:</dt>
-                <dd>{item.encounter?.activity ?? "No disponible"}</dd>
+                <dd>{item.encounter?.name ?? "No disponible"}</dd>
               </div>
             </dl>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -88,7 +88,7 @@ export function ChronicleListTable({ chronicles }: ChronicleListTableProps): JSX
                   </Link>
                 </td>
                 <td className="px-3 py-3 align-middle">
-                  {item.encounter?.activity ?? "No disponible"}
+                  {item.encounter?.name ?? "No disponible"}
                 </td>
                 <td className="text-muted-foreground px-3 py-3 align-middle">
                   {formatDate(item.chronicle.generatedAt)}

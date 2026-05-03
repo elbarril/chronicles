@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { type Field } from "@/domain/field";
 import { observationMessages } from "@/features/observations/lib/messages";
 import {
   createObservationDefinition,
@@ -12,29 +11,48 @@ import { AppError } from "@/lib/error";
 
 interface ObservationCreateInput {
   encounterId: string;
+  formId: string;
   participantId?: string;
   title?: string;
   values: Record<string, unknown>;
 }
 
 interface ObservationUpdateInput {
+  formId: string;
   participantId?: string;
   title?: string;
   values: Record<string, unknown>;
 }
 
-export function useObservationActions(fields: Field[]) {
+export function useObservationActions() {
   const [isSaving, setIsSaving] = useState(false);
+
+  function mapErrorMessage(error: unknown, fallback: string): string {
+    if (!(error instanceof AppError)) {
+      return fallback;
+    }
+
+    switch (error.code) {
+      case "OBSERVATION_FORM_NOT_FOUND":
+        return observationMessages.formNotFound;
+      case "FORM_ARCHIVED":
+        return observationMessages.formArchived;
+      case "OBSERVATION_NOT_FOUND":
+        return observationMessages.notFound;
+      default:
+        return fallback;
+    }
+  }
 
   async function create(input: ObservationCreateInput) {
     setIsSaving(true);
 
     try {
-      const observation = await createObservationDefinition(fields, input);
+      const observation = await createObservationDefinition(input);
       toast.success(observationMessages.createdSuccess);
       return observation;
     } catch (error) {
-      toast.error(observationMessages.createError);
+      toast.error(mapErrorMessage(error, observationMessages.createError));
       throw error;
     } finally {
       setIsSaving(false);
@@ -45,15 +63,11 @@ export function useObservationActions(fields: Field[]) {
     setIsSaving(true);
 
     try {
-      const observation = await updateObservationDefinition(fields, observationId, input);
+      const observation = await updateObservationDefinition(observationId, input);
       toast.success(observationMessages.updatedSuccess);
       return observation;
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "OBSERVATION_NOT_FOUND"
-          ? observationMessages.notFound
-          : observationMessages.updateError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, observationMessages.updateError));
       throw error;
     } finally {
       setIsSaving(false);
@@ -65,11 +79,7 @@ export function useObservationActions(fields: Field[]) {
       await deleteObservationDefinition(observationId);
       toast.success(observationMessages.deletedSuccess);
     } catch (error) {
-      const message =
-        error instanceof AppError && error.code === "OBSERVATION_NOT_FOUND"
-          ? observationMessages.notFound
-          : observationMessages.deleteError;
-      toast.error(message);
+      toast.error(mapErrorMessage(error, observationMessages.deleteError));
       throw error;
     }
   }

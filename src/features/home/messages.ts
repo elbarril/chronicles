@@ -7,8 +7,8 @@ function pluralize(count: number, singular: string, plural: string): string {
 function buildSummary(counts: DataStatusCounts): string {
   const parts: string[] = [];
 
-  if (counts.groups > 0) {
-    parts.push(pluralize(counts.groups, "grupo", "grupos"));
+  if (counts.projects > 0) {
+    parts.push(pluralize(counts.projects, "proyecto", "proyectos"));
   }
   if (counts.encounters > 0) {
     parts.push(pluralize(counts.encounters, "encuentro", "encuentros"));
@@ -37,7 +37,7 @@ export const supportMessages = {
 export const homeMessages = {
   welcomeTitle: "Bienvenido a Chronicle",
   welcomeSubtitle:
-    "Ya vamos a arrancar con las observaciones en tiempo real para armar crónicas claras.",
+    "Documentá lo que pasó en cada encuentro y armá crónicas claras a partir de las observaciones que cargues.",
   quickCheck: {
     title: "Chequeo rápido del formulario",
     button: "Probar setup",
@@ -51,11 +51,11 @@ export const homeMessages = {
     summary: buildSummary,
   },
   demoEncounter: {
-    titleEmpty: "Probar el flujo con un encuentro de prueba",
+    titleEmpty: "Probar el flujo con un proyecto de prueba",
     descriptionEmpty:
-      "Te creamos un grupo, dos participantes, un encuentro con una observación que cubre todos los tipos de campo y la crónica ya generada. Sirve para recorrer el flujo completo sin completar nada a mano.",
+      "Te creamos un proyecto con dos participantes, un encuentro post-evento con observaciones que cubren todos los tipos de campo y la crónica ya generada. Sirve para recorrer el flujo completo sin completar nada a mano.",
     titleLoaded: "Contenido de prueba cargado",
     descriptionLoaded:
-      "Tenés el encuentro, observación y crónica de prueba listos para explorar. Cuando quieras volver al estado inicial, eliminá todo el contenido de prueba con un clic.",
+      "Tenés el proyecto, encuentro, observaciones y crónica de prueba listos para explorar. Cuando quieras volver al estado inicial, eliminá todo el contenido de prueba con un clic.",
   },
 } as const;

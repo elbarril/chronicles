@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
-import { type GroupWithParticipants } from "@/features/groups/services/group-service";
+import { type ProjectWithParticipants } from "@/features/projects/services/project-service";
 
-interface GroupListTableProps {
-  groups: GroupWithParticipants[];
+interface ProjectListTableProps {
+  projects: ProjectWithParticipants[];
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
@@ -21,13 +21,13 @@ function formatDate(value: string): string {
   });
 }
 
-function GroupActions({
-  group,
+function ProjectActions({
+  project,
   status,
   onArchive,
   onRestore,
 }: {
-  group: GroupWithParticipants;
+  project: ProjectWithParticipants;
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
@@ -36,14 +36,17 @@ function GroupActions({
     return (
       <>
         <Button asChild size="sm" variant="outline">
-          <Link to={`/groups/${group.id}/edit`}>Editar</Link>
+          <Link to={`/projects/${project.id}`}>Abrir</Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to={`/projects/${project.id}/edit`}>Editar</Link>
         </Button>
         <Button
           type="button"
           size="sm"
           variant="secondary"
           onClick={() => {
-            void onArchive(group.id);
+            void onArchive(project.id);
           }}
         >
           Archivar
@@ -53,36 +56,41 @@ function GroupActions({
   }
 
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      onClick={() => {
-        void onRestore(group.id);
-      }}
-    >
-      Restaurar
-    </Button>
+    <>
+      <Button asChild size="sm" variant="outline">
+        <Link to={`/projects/${project.id}`}>Abrir</Link>
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          void onRestore(project.id);
+        }}
+      >
+        Restaurar
+      </Button>
+    </>
   );
 }
 
-export function GroupListTable({
-  groups,
+export function ProjectListTable({
+  projects,
   status,
   onArchive,
   onRestore,
-}: GroupListTableProps): JSX.Element {
-  if (groups.length === 0) {
+}: ProjectListTableProps): JSX.Element {
+  if (projects.length === 0) {
     return (
       <div className="bg-muted/40 rounded-3xl p-6 text-center">
         <p className="text-muted-foreground mb-4">
           {status === "active"
-            ? "Todavía no hay grupos activos."
-            : "No hay grupos archivados para mostrar."}
+            ? "Todavía no hay proyectos activos."
+            : "No hay proyectos archivados para mostrar."}
         </p>
         {status === "active" ? (
           <Button asChild>
-            <Link to="/groups/new">Crear primer grupo</Link>
+            <Link to="/projects/new">Crear primer proyecto</Link>
           </Button>
         ) : null}
       </div>
@@ -92,31 +100,31 @@ export function GroupListTable({
   return (
     <>
       {/* Mobile / tablet: cards */}
-      <ul className="grid gap-3 lg:hidden" aria-label="Listado de grupos">
-        {groups.map((group) => (
-          <li key={group.id} className="bg-muted/40 space-y-3 rounded-2xl p-4">
+      <ul className="grid gap-3 lg:hidden" aria-label="Listado de proyectos">
+        {projects.map((project) => (
+          <li key={project.id} className="bg-muted/40 space-y-3 rounded-2xl p-4">
             <div className="space-y-1">
               <p className="text-base font-semibold">
                 <Link
-                  to={`/groups/${group.id}/edit`}
+                  to={`/projects/${project.id}`}
                   className="hover:underline focus-visible:underline focus-visible:outline-none"
                 >
-                  {group.name}
+                  {project.name}
                 </Link>
               </p>
               <p className="text-muted-foreground text-xs">
-                {group.archivedAt ? "Archivado" : "Activo"} · {formatDate(group.createdAt)}
+                {project.archivedAt ? "Archivado" : "Activo"} · {formatDate(project.createdAt)}
               </p>
             </div>
             <dl className="space-y-1 text-sm">
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Participantes:</dt>
-                <dd>{group.participants.length}</dd>
+                <dd>{project.participants.length}</dd>
               </div>
             </dl>
             <div className="flex flex-wrap gap-2 pt-1">
-              <GroupActions
-                group={group}
+              <ProjectActions
+                project={project}
                 status={status}
                 onArchive={onArchive}
                 onRestore={onRestore}
@@ -129,7 +137,7 @@ export function GroupListTable({
       {/* Desktop: table */}
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full border-collapse text-sm">
-          <caption className="sr-only">Listado de grupos</caption>
+          <caption className="sr-only">Listado de proyectos</caption>
           <thead>
             <tr className="text-muted-foreground text-xs tracking-wide uppercase">
               <th className="px-3 py-2 text-left font-medium">Nombre</th>
@@ -140,27 +148,27 @@ export function GroupListTable({
             </tr>
           </thead>
           <tbody>
-            {groups.map((group) => (
-              <tr key={group.id} className="border-border/60 border-t">
+            {projects.map((project) => (
+              <tr key={project.id} className="border-border/60 border-t">
                 <td className="px-3 py-3 align-middle font-medium">
                   <Link
-                    to={`/groups/${group.id}/edit`}
+                    to={`/projects/${project.id}`}
                     className="hover:underline focus-visible:underline focus-visible:outline-none"
                   >
-                    {group.name}
+                    {project.name}
                   </Link>
                 </td>
-                <td className="px-3 py-3 align-middle">{group.participants.length}</td>
+                <td className="px-3 py-3 align-middle">{project.participants.length}</td>
                 <td className="text-muted-foreground px-3 py-3 align-middle">
-                  {formatDate(group.createdAt)}
+                  {formatDate(project.createdAt)}
                 </td>
                 <td className="px-3 py-3 align-middle">
-                  {group.archivedAt ? "Archivado" : "Activo"}
+                  {project.archivedAt ? "Archivado" : "Activo"}
                 </td>
                 <td className="px-3 py-3 align-middle">
                   <div className="flex justify-end gap-2">
-                    <GroupActions
-                      group={group}
+                    <ProjectActions
+                      project={project}
                       status={status}
                       onArchive={onArchive}
                       onRestore={onRestore}

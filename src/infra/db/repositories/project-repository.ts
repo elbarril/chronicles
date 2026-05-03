@@ -1,5 +1,5 @@
-import { groupSchema, type Group } from "@/domain/group";
 import { participantSchema, type Participant } from "@/domain/participant";
+import { projectSchema, type Project } from "@/domain/project";
 import { db } from "@/infra/db/client";
 
 const DEFAULT_INSTITUTION_ID = "00000000-0000-4000-8000-000000000001";
@@ -12,14 +12,14 @@ function normalizeName(value: string): string {
   return value.trim();
 }
 
-export async function createGroupWithParticipants(input: {
+export async function createProjectWithParticipants(input: {
   name: string;
   participantNames: string[];
-}): Promise<{ group: Group; participants: Participant[] }> {
+}): Promise<{ project: Project; participants: Participant[] }> {
   const now = nowIsoString();
 
-  return db.transaction("rw", db.groups, db.participants, async () => {
-    const group = groupSchema.parse({
+  return db.transaction("rw", db.projects, db.participants, async () => {
+    const project = projectSchema.parse({
       id: crypto.randomUUID(),
       institutionId: DEFAULT_INSTITUTION_ID,
       name: normalizeName(input.name),
@@ -28,12 +28,12 @@ export async function createGroupWithParticipants(input: {
       archivedAt: "",
     });
 
-    await db.groups.add(group);
+    await db.projects.add(project);
 
     const participants = input.participantNames.map((displayName) =>
       participantSchema.parse({
         id: crypto.randomUUID(),
-        groupId: group.id,
+        projectId: project.id,
         displayName: displayName.trim(),
         createdAt: now,
         updatedAt: now,
@@ -45,18 +45,18 @@ export async function createGroupWithParticipants(input: {
       await db.participants.bulkAdd(participants);
     }
 
-    return { group, participants };
+    return { project, participants };
   });
 }
 
-export async function updateGroupWithParticipants(
-  groupId: string,
+export async function updateProjectWithParticipants(
+  projectId: string,
   input: {
     name: string;
     participantNames: string[];
   },
-): Promise<{ group: Group; participants: Participant[] } | null> {
-  const previous = await db.groups.get(groupId);
+): Promise<{ project: Project; participants: Participant[] } | null> {
+  const previous = await db.projects.get(projectId);
 
   if (!previous) {
     return null;
@@ -64,16 +64,19 @@ export async function updateGroupWithParticipants(
 
   const now = nowIsoString();
 
-  return db.transaction("rw", db.groups, db.participants, async () => {
-    const group = groupSchema.parse({
+  return db.transaction("rw", db.projects, db.participants, async () => {
+    const project = projectSchema.parse({
       ...previous,
       name: normalizeName(input.name),
       updatedAt: now,
     });
 
-    await db.groups.put(group);
+    await db.projects.put(project);
 
-    const existingParticipants = await db.participants.where("groupId").equals(groupId).toArray();
+    const existingParticipants = await db.participants
+      .where("projectId")
+      .equals(projectId)
+      .toArray();
 
     if (existingParticipants.length > 0) {
       await db.participants.bulkDelete(existingParticipants.map((participant) => participant.id));
@@ -82,7 +85,7 @@ export async function updateGroupWithParticipants(
     const participants = input.participantNames.map((displayName) =>
       participantSchema.parse({
         id: crypto.randomUUID(),
-        groupId,
+        projectId,
         displayName: displayName.trim(),
         createdAt: now,
         updatedAt: now,
@@ -94,24 +97,24 @@ export async function updateGroupWithParticipants(
       await db.participants.bulkAdd(participants);
     }
 
-    return { group, participants };
+    return { project, participants };
   });
 }
 
-export async function archiveGroup(groupId: string): Promise<boolean> {
+export async function archiveProject(projectId: string): Promise<boolean> {
   const now = nowIsoString();
 
-  return db.transaction("rw", db.groups, db.participants, async () => {
-    const groupChanges = await db.groups.update(groupId, {
+  return db.transaction("rw", db.projects, db.participants, async () => {
+    const projectChanges = await db.projects.update(projectId, {
       archivedAt: now,
       updatedAt: now,
     });
 
-    if (groupChanges === 0) {
+    if (projectChanges === 0) {
       return false;
     }
 
-    const participants = await db.participants.where("groupId").equals(groupId).toArray();
+    const participants = await db.participants.where("projectId").equals(projectId).toArray();
 
     await Promise.all(
       participants.map((participant) =>
@@ -126,20 +129,20 @@ export async function archiveGroup(groupId: string): Promise<boolean> {
   });
 }
 
-export async function restoreGroup(groupId: string): Promise<boolean> {
+export async function restoreProject(projectId: string): Promise<boolean> {
   const now = nowIsoString();
 
-  return db.transaction("rw", db.groups, db.participants, async () => {
-    const groupChanges = await db.groups.update(groupId, {
+  return db.transaction("rw", db.projects, db.participants, async () => {
+    const projectChanges = await db.projects.update(projectId, {
       archivedAt: "",
       updatedAt: now,
     });
 
-    if (groupChanges === 0) {
+    if (projectChanges === 0) {
       return false;
     }
 
-    const participants = await db.participants.where("groupId").equals(groupId).toArray();
+    const participants = await db.participants.where("projectId").equals(projectId).toArray();
 
     await Promise.all(
       participants.map((participant) =>
@@ -154,14 +157,14 @@ export async function restoreGroup(groupId: string): Promise<boolean> {
   });
 }
 
-export async function getGroupById(groupId: string): Promise<Group | undefined> {
-  return db.groups.get(groupId);
+export async function getProjectById(projectId: string): Promise<Project | undefined> {
+  return db.projects.get(projectId);
 }
 
-export async function listParticipantsByGroup(groupId: string): Promise<Participant[]> {
+export async function listParticipantsByProject(projectId: string): Promise<Participant[]> {
   return db.participants
-    .where("groupId")
-    .equals(groupId)
+    .where("projectId")
+    .equals(projectId)
     .filter((participant) => participant.archivedAt === "")
     .toArray()
     .then((rows) =>
@@ -169,16 +172,16 @@ export async function listParticipantsByGroup(groupId: string): Promise<Particip
     );
 }
 
-export async function listActiveGroups(): Promise<Group[]> {
-  return db.groups
+export async function listActiveProjects(): Promise<Project[]> {
+  return db.projects
     .where("archivedAt")
     .equals("")
     .toArray()
     .then((rows) => [...rows].sort((left, right) => right.createdAt.localeCompare(left.createdAt)));
 }
 
-export async function listArchivedGroups(): Promise<Group[]> {
-  return db.groups
+export async function listArchivedProjects(): Promise<Project[]> {
+  return db.projects
     .where("archivedAt")
     .notEqual("")
     .toArray()
@@ -190,15 +193,18 @@ export async function listArchivedGroups(): Promise<Group[]> {
     );
 }
 
-export async function isGroupNameUnique(name: string, excludeId?: string): Promise<boolean> {
+export async function isProjectNameUnique(name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = normalizeName(name).toLowerCase();
 
-  const groups = await db.groups.where("institutionId").equals(DEFAULT_INSTITUTION_ID).toArray();
+  const projects = await db.projects
+    .where("institutionId")
+    .equals(DEFAULT_INSTITUTION_ID)
+    .toArray();
 
-  return groups.every(
-    (group) =>
-      group.id === excludeId ||
-      group.archivedAt !== "" ||
-      group.name.trim().toLowerCase() !== normalizedName,
+  return projects.every(
+    (project) =>
+      project.id === excludeId ||
+      project.archivedAt !== "" ||
+      project.name.trim().toLowerCase() !== normalizedName,
   );
 }

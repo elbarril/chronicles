@@ -1,8 +1,8 @@
 import { encounterSchema, type Encounter } from "@/domain/encounter";
 import { fieldSchema, type Field } from "@/domain/field";
 import { observationFormSchema, type ObservationForm } from "@/domain/form";
-import { groupSchema, type Group } from "@/domain/group";
 import { participantSchema, type Participant } from "@/domain/participant";
+import { projectSchema, type Project } from "@/domain/project";
 import { generateChronicle } from "@/features/chronicles/services/chronicle-service";
 import {
   buildPlaceholderWebmBlob,
@@ -14,6 +14,8 @@ import {
   DEFAULT_FIELD_SEEDS,
   DEFAULT_FORM_SEED,
   DEFAULT_FIELD_IDS,
+  DEFAULT_AUDIO_FIELD_ID,
+  DEFAULT_LONG_TEXT_FIELD_ID,
   DEMO_ENCOUNTER_SEED,
   DEMO_FIELD_AUDIO_ID,
   DEMO_FIELD_BOOLEAN_ID,
@@ -33,12 +35,11 @@ import {
   DEMO_FIELD_TIME_ID,
   DEMO_FIELD_VIDEO_ID,
   DEMO_FORM_SEED,
-  DEMO_GROUP_SEED,
+  DEMO_PROJECT_SEED,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_SEEDS,
   DEMO_PARTICIPANT_TWO_ID,
 } from "@/features/defaults/lib/seed-data";
-import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { createObservationDefinition } from "@/features/observations/services/observation-service";
 import { db } from "@/infra/db/client";
 import { AppError } from "@/lib/error";
@@ -246,6 +247,15 @@ function buildDemoObservationValues(): Record<string, unknown> {
   };
 }
 
+function buildDemoDefaultFormValues(): Record<string, unknown> {
+  return {
+    [DEFAULT_LONG_TEXT_FIELD_ID]:
+      "Una segunda observación cargada con el formulario por defecto, para mostrar que un mismo encuentro puede mezclar formularios distintos.",
+    // Audio field intentionally left empty: optional and demonstrates valid empty media.
+    [DEFAULT_AUDIO_FIELD_ID]: "",
+  };
+}
+
 export interface DemoEncounterOutcome {
   encounterId: string;
   created: boolean;
@@ -255,10 +265,12 @@ export interface DemoEncounterOutcome {
  * Idempotently seeds a comprehensive end-to-end demo:
  *
  * - Demo fields (one per supported type) and a demo form referencing all of them.
- * - A demo group with two participants.
- * - An open encounter using the demo form.
- * - A pre-populated observation with valid content for every field type
- *   (real audio/image blobs included).
+ * - A demo project with two participants.
+ * - An encounter belonging to the demo project, with start/end times one hour
+ *   apart and both participants attending.
+ * - Two pre-populated observations with valid content: one using the demo form
+ *   (all field types) and one using the default form (text + audio), to show
+ *   that a single encounter can mix forms.
  * - A generated chronicle for that encounter.
  *
  * Reusing stable UUIDs guarantees that re-running never duplicates rows;
@@ -270,7 +282,7 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
   // user can still rely on them for ad-hoc forms unrelated to the demo.
   await restoreDefaultForm();
 
-  const { fields: demoFields, form: demoForm } = await ensureDemoFieldsAndForm();
+  await ensureDemoFieldsAndForm();
 
   const existing = await db.encounters.get(DEMO_ENCOUNTER_SEED.id);
 
@@ -278,31 +290,34 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
     return { encounterId: existing.id, created: false };
   }
 
-  const now = nowIsoString();
+  const now = new Date();
+  const encounterEnd = now.toISOString();
+  const encounterStart = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  const nowIso = now.toISOString();
 
-  await db.transaction("rw", db.groups, db.participants, db.encounters, async () => {
-    const previousGroup = await db.groups.get(DEMO_GROUP_SEED.id);
+  await db.transaction("rw", db.projects, db.participants, db.encounters, async () => {
+    const previousProject = await db.projects.get(DEMO_PROJECT_SEED.id);
 
-    const group: Group = groupSchema.parse({
-      id: DEMO_GROUP_SEED.id,
+    const project: Project = projectSchema.parse({
+      id: DEMO_PROJECT_SEED.id,
       institutionId: DEFAULT_INSTITUTION_ID,
-      name: DEMO_GROUP_SEED.name,
-      createdAt: previousGroup?.createdAt ?? now,
-      updatedAt: now,
+      name: DEMO_PROJECT_SEED.name,
+      createdAt: previousProject?.createdAt ?? nowIso,
+      updatedAt: nowIso,
       archivedAt: "",
     });
 
-    await db.groups.put(group);
+    await db.projects.put(project);
 
     for (const seed of DEMO_PARTICIPANT_SEEDS) {
       const previousParticipant = await db.participants.get(seed.id);
 
       const participant: Participant = participantSchema.parse({
         id: seed.id,
-        groupId: group.id,
+        projectId: project.id,
         displayName: seed.displayName,
-        createdAt: previousParticipant?.createdAt ?? now,
-        updatedAt: now,
+        createdAt: previousParticipant?.createdAt ?? nowIso,
+        updatedAt: nowIso,
         archivedAt: "",
       });
 
@@ -311,32 +326,41 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
 
     const encounter: Encounter = encounterSchema.parse({
       id: DEMO_ENCOUNTER_SEED.id,
-      groupId: group.id,
-      formId: demoForm.id,
-      formVersion: demoForm.version,
-      fieldIds: demoForm.fieldIds,
-      activity: DEMO_ENCOUNTER_SEED.activity,
-      startedAt: now,
-      endedAt: "",
+      projectId: project.id,
+      name: DEMO_ENCOUNTER_SEED.name,
+      startsAt: encounterStart,
+      endsAt: encounterEnd,
+      participantIds: [DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID],
       archivedAt: "",
-      createdAt: now,
-      updatedAt: now,
+      createdAt: nowIso,
+      updatedAt: nowIso,
     });
 
     await db.encounters.put(encounter);
   });
 
-  // Pre-populate the encounter with one observation that exercises every
-  // field type. Done outside the transaction because the observation
-  // service also writes to the media table and runs its own normalisation.
-  await createObservationDefinition(demoFields, {
+  // Pre-populate the encounter with two observations that exercise both
+  // forms, to showcase that an encounter can mix forms across observations.
+  // Done outside the transaction because the observation service also writes
+  // to the media table and runs its own normalisation.
+  await createObservationDefinition({
     encounterId: DEMO_ENCOUNTER_SEED.id,
+    formId: DEMO_FORM_SEED.id,
     participantId: DEMO_PARTICIPANT_ONE_ID,
+    title: "Observación con formulario completo",
     values: buildDemoObservationValues(),
   });
 
+  await createObservationDefinition({
+    encounterId: DEMO_ENCOUNTER_SEED.id,
+    formId: DEFAULT_FORM_SEED.id,
+    participantId: DEMO_PARTICIPANT_TWO_ID,
+    title: "Observación con el formulario por defecto",
+    values: buildDemoDefaultFormValues(),
+  });
+
   // Generate the chronicle so the user can immediately see the full
-  // pipeline (encounter → observation → chronicle) without extra clicks.
+  // pipeline (project → encounter → observation → chronicle) without extra clicks.
   await generateChronicle(DEMO_ENCOUNTER_SEED.id);
 
   return { encounterId: DEMO_ENCOUNTER_SEED.id, created: true };
@@ -350,10 +374,9 @@ export interface DemoEncounterRemovalOutcome {
  * Removes every entity that was seeded by `seedDemoEncounter`:
  *
  * - The demo chronicle (or any chronicle for the demo encounter).
- * - All observations attached to the demo encounter and the media blobs
- *   they reference (only those, never user-uploaded media for other
- *   encounters).
- * - The demo encounter, participants and group.
+ * - All observations attached to the demo encounter (media blobs they
+ *   reference are cleaned up via the observation service when wiped).
+ * - The demo encounter, participants and project.
  * - The demo form and the 15 demo fields.
  *
  * The basic defaults (audio + longText fields and the default form)
@@ -375,7 +398,24 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
     .equals(DEMO_ENCOUNTER_SEED.id)
     .toArray();
 
-  const mediaIds = observations.flatMap((observation) => collectObservationMediaIds(observation));
+  // Collect every media id referenced by any of the demo observations,
+  // regardless of which form snapshot they belong to.
+  const mediaIds = new Set<string>();
+  for (const observation of observations) {
+    for (const value of Object.values(observation.values)) {
+      if (typeof value === "object" && value !== null) {
+        if ("mediaId" in value && typeof (value as { mediaId: unknown }).mediaId === "string") {
+          mediaIds.add((value as { mediaId: string }).mediaId);
+        }
+        if ("mediaIds" in value && Array.isArray((value as { mediaIds: unknown }).mediaIds)) {
+          for (const mediaId of (value as { mediaIds: string[] }).mediaIds) {
+            mediaIds.add(mediaId);
+          }
+        }
+      }
+    }
+  }
+
   const observationIds = observations.map((observation) => observation.id);
   const chronicleIds = chronicles.map((chronicle) => chronicle.id);
 
@@ -388,7 +428,7 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
       db.observations,
       db.encounters,
       db.participants,
-      db.groups,
+      db.projects,
       db.forms,
       db.fields,
       db.media,
@@ -402,14 +442,14 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
         await db.observations.bulkDelete(observationIds);
       }
 
-      if (mediaIds.length > 0) {
-        await db.media.bulkDelete(mediaIds);
+      if (mediaIds.size > 0) {
+        await db.media.bulkDelete([...mediaIds]);
       }
 
       await db.encounters.delete(DEMO_ENCOUNTER_SEED.id);
 
       await db.participants.bulkDelete([DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID]);
-      await db.groups.delete(DEMO_GROUP_SEED.id);
+      await db.projects.delete(DEMO_PROJECT_SEED.id);
 
       await db.forms.delete(DEMO_FORM_SEED.id);
       await db.fields.bulkDelete([...DEMO_FIELD_IDS]);

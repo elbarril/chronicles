@@ -1,19 +1,16 @@
-import { type ReactNode } from "react";
+import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { type Encounter } from "@/domain/encounter";
+import { encounterMessages } from "@/features/encounters/lib/messages";
 
 interface EncounterHeaderProps {
   encounter: Encounter;
+  projectName: string;
   participantCount: number;
-  onFinish: () => Promise<void>;
-  onGenerateChronicle: () => Promise<void>;
+  observationCount: number;
   onArchive: () => Promise<void>;
   onRestore: () => Promise<void>;
-  isGeneratingChronicle: boolean;
-  generateChronicleLabel: string;
-  generatingChronicleLabel: string;
-  aiStatusSlot?: ReactNode;
 }
 
 function formatDate(value: string): string {
@@ -29,17 +26,12 @@ function formatDate(value: string): string {
 
 export function EncounterHeader({
   encounter,
+  projectName,
   participantCount,
-  onFinish,
-  onGenerateChronicle,
+  observationCount,
   onArchive,
   onRestore,
-  isGeneratingChronicle,
-  generateChronicleLabel,
-  generatingChronicleLabel,
-  aiStatusSlot,
 }: EncounterHeaderProps): JSX.Element {
-  const isFinished = Boolean(encounter.endedAt && encounter.endedAt !== "");
   const isArchived = Boolean(encounter.archivedAt && encounter.archivedAt !== "");
 
   return (
@@ -48,60 +40,40 @@ export function EncounterHeader({
       data-tour="encounter.detail.header"
     >
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight break-words">{encounter.activity}</h1>
-        <p className="text-muted-foreground text-sm">
-          Formulario snapshot v{encounter.formVersion} · {encounter.fieldIds.length} campos
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight break-words">{encounter.name}</h1>
+        <p className="text-muted-foreground text-sm">Proyecto: {projectName}</p>
         {isArchived ? <p className="text-muted-foreground text-xs">Archivado</p> : null}
       </div>
 
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-muted-foreground">Iniciado</dt>
-          <dd>{formatDate(encounter.startedAt)}</dd>
+          <dt className="text-muted-foreground">Inicio</dt>
+          <dd>{formatDate(encounter.startsAt)}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Finalizado</dt>
-          <dd>{formatDate(encounter.endedAt ?? "")}</dd>
+          <dt className="text-muted-foreground">Cierre</dt>
+          <dd>{formatDate(encounter.endsAt)}</dd>
         </div>
         <div className="col-span-2 sm:col-span-1">
           <dt className="text-muted-foreground">Participantes</dt>
-          <dd>{participantCount}</dd>
+          <dd>
+            {participantCount} de los del proyecto · {observationCount} observación
+            {observationCount === 1 ? "" : "es"}
+          </dd>
         </div>
       </dl>
 
       <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
-        {aiStatusSlot ? <div className="sm:mr-auto">{aiStatusSlot}</div> : null}
         <Button
-          type="button"
+          asChild
           variant="outline"
           className="w-full sm:w-auto"
-          disabled={isGeneratingChronicle}
-          onClick={() => {
-            void onGenerateChronicle();
-          }}
-          data-tour="encounter.detail.generate-chronicle"
+          data-tour="encounter.detail.view-chronicle"
         >
-          {isGeneratingChronicle ? generatingChronicleLabel : generateChronicleLabel}
+          <Link to={`/encounters/${encounter.id}/chronicle`}>
+            {encounterMessages.viewChronicleButton}
+          </Link>
         </Button>
-
-        {!isFinished ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              void onFinish();
-            }}
-            data-tour="encounter.detail.finalize"
-          >
-            Finalizar encuentro
-          </Button>
-        ) : (
-          <span className="text-muted-foreground self-center text-sm font-medium">
-            Encuentro finalizado
-          </span>
-        )}
 
         {isArchived ? (
           <Button

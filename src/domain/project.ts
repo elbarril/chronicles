@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export interface Group {
+export interface Project {
   id: string;
   institutionId: string;
   name: string;
@@ -9,7 +9,7 @@ export interface Group {
   archivedAt?: "" | string;
 }
 
-export const groupSchema = z.object({
+export const projectSchema = z.object({
   id: z.string().uuid(),
   institutionId: z.string().uuid(),
   name: z.string().trim().min(1),
@@ -18,9 +18,9 @@ export const groupSchema = z.object({
   archivedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
 });
 
-export const groupInputSchema = z.object({
+export const projectInputSchema = z.object({
   name: z.string().trim().min(1),
   participantNames: z.array(z.string().trim().min(1)).default([]),
 });
 
-export type GroupInput = z.infer<typeof groupInputSchema>;
+export type ProjectInput = z.infer<typeof projectInputSchema>;

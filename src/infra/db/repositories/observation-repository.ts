@@ -7,6 +7,9 @@ function nowIsoString(): string {
 
 export async function createObservation(data: {
   encounterId: string;
+  formId: string;
+  formVersion: number;
+  fieldIds: string[];
   participantId?: string;
   title?: string;
   values: Record<string, ObservationValue>;
@@ -14,6 +17,9 @@ export async function createObservation(data: {
   const observation = observationSchema.parse({
     id: crypto.randomUUID(),
     encounterId: data.encounterId,
+    formId: data.formId,
+    formVersion: data.formVersion,
+    fieldIds: data.fieldIds,
     participantId: data.participantId,
     title: data.title,
     values: data.values,

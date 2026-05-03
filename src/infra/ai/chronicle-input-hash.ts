@@ -6,12 +6,12 @@ import { type Observation } from "@/domain/observation";
 // data surface without creating a circular import.
 export interface ChronicleHashInput {
   encounter: {
-    activity: string;
-    startedAt: string;
-    endedAt?: string;
-    fieldIds: string[];
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    participantIds: string[];
   };
-  groupName: string;
+  projectName: string;
   participantsById: Map<string, string>;
   fieldsById: Map<string, Field>;
   observations: Observation[];
@@ -27,12 +27,15 @@ function toHashableObject(input: ChronicleHashInput): object {
       // Only include scalar field values — media fields are excluded from the
       // Gemini prompt and therefore must not affect the hash either.
       const scalarValues: Record<string, unknown> = {};
-      for (const fieldId of input.encounter.fieldIds) {
+      for (const fieldId of obs.fieldIds) {
         const field = input.fieldsById.get(fieldId);
         if (!field || MEDIA_TYPES.has(field.type)) continue;
         scalarValues[fieldId] = obs.values[fieldId] ?? null;
       }
       return {
+        formId: obs.formId,
+        formVersion: obs.formVersion,
+        fieldIds: [...obs.fieldIds],
         participantId: obs.participantId ?? null,
         title: obs.title?.trim() ?? null,
         createdAt: obs.createdAt,
@@ -41,11 +44,11 @@ function toHashableObject(input: ChronicleHashInput): object {
     });
 
   return {
-    activity: input.encounter.activity,
-    startedAt: input.encounter.startedAt,
-    endedAt: input.encounter.endedAt ?? "",
-    fieldIds: [...input.encounter.fieldIds],
-    groupName: input.groupName,
+    name: input.encounter.name,
+    startsAt: input.encounter.startsAt,
+    endsAt: input.encounter.endsAt,
+    participantIds: [...input.encounter.participantIds],
+    projectName: input.projectName,
     observations: sortedObs,
   };
 }
@@ -56,7 +59,7 @@ function toHashableObject(input: ChronicleHashInput): object {
  *
  * Two calls with the same encounter data and observations will produce the same
  * hash.  Any mutation — new observation, edited value, changed encounter
- * activity, added participant, etc. — will produce a different hash.
+ * name, added participant, etc. — will produce a different hash.
  */
 export async function computeChronicleInputHash(input: ChronicleHashInput): Promise<string> {
   const obj = toHashableObject(input);

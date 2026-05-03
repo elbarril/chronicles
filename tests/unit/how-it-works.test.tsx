@@ -46,7 +46,7 @@ describe("How it works route", () => {
     expect(screen.getByText(/antes de arrancar/i)).toBeInTheDocument();
   });
 
-  it("links to fields, forms, groups, encounters, chronicles, settings and help", () => {
+  it("links to fields, forms, projects, chronicles, settings and help", () => {
     renderHowItWorks();
 
     expect(screen.getByRole("link", { name: /^ir a campos$/i })).toHaveAttribute("href", "/fields");
@@ -54,16 +54,15 @@ describe("How it works route", () => {
       "href",
       "/forms",
     );
-    expect(screen.getByRole("link", { name: /^ir a grupos$/i })).toHaveAttribute("href", "/groups");
-    expect(screen.getByRole("link", { name: /^ir a encuentros$/i })).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: /^ir a proyectos$/i })[0]).toHaveAttribute(
       "href",
-      "/encounters",
+      "/projects",
     );
     expect(screen.getByRole("link", { name: /^ir a crónicas$/i })).toHaveAttribute(
       "href",
       "/chronicles",
     );
-    // Post-F8: import lives at /settings; the share section now links there.
+    // Post-F9: import lives at /settings; the share section now links there.
     expect(screen.getByRole("link", { name: /^ir a configuración$/i })).toHaveAttribute(
       "href",
       "/settings",

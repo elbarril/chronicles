@@ -2,42 +2,54 @@ import { z } from "zod";
 
 export interface Encounter {
   id: string;
-  groupId: string;
-  formId: string;
-  formVersion: number;
-  fieldIds: string[];
-  activity: string;
-  startedAt: string;
-  endedAt?: "" | string;
+  projectId: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  participantIds: string[];
   archivedAt?: "" | string;
   createdAt: string;
   updatedAt: string;
 }
 
-export const encounterSchema = z.object({
-  id: z.string().uuid(),
-  groupId: z.string().uuid(),
-  formId: z.string().uuid(),
-  formVersion: z.number().int().positive(),
-  fieldIds: z
-    .array(z.string().uuid())
-    .min(1)
-    .refine((fieldIds) => new Set(fieldIds).size === fieldIds.length, {
-      message: "fieldIds must be unique",
-    }),
-  activity: z.string().trim().min(1),
-  startedAt: z.string().datetime(),
-  endedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
-  archivedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
+export const encounterSchema = z
+  .object({
+    id: z.string().uuid(),
+    projectId: z.string().uuid(),
+    name: z.string().trim().min(1),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    participantIds: z
+      .array(z.string().uuid())
+      .min(1)
+      .refine((ids) => new Set(ids).size === ids.length, {
+        message: "participantIds must be unique",
+      }),
+    archivedAt: z.union([z.literal(""), z.string().datetime()]).optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .refine((value) => value.endsAt >= value.startsAt, {
+    message: "endsAt must be greater than or equal to startsAt",
+    path: ["endsAt"],
+  });
 
-export const encounterInputSchema = z.object({
-  groupId: z.string().uuid(),
-  formId: z.string().uuid(),
-  activity: z.string().trim().min(1),
-  startedAt: z.string().datetime().optional(),
-});
+export const encounterInputSchema = z
+  .object({
+    projectId: z.string().uuid(),
+    name: z.string().trim().min(1),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    participantIds: z
+      .array(z.string().uuid())
+      .min(1)
+      .refine((ids) => new Set(ids).size === ids.length, {
+        message: "participantIds must be unique",
+      }),
+  })
+  .refine((value) => value.endsAt >= value.startsAt, {
+    message: "endsAt must be greater than or equal to startsAt",
+    path: ["endsAt"],
+  });
 
 export type EncounterInput = z.infer<typeof encounterInputSchema>;

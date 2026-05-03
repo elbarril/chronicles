@@ -8,7 +8,7 @@ export const dataStorageGuide = {
   storageSection: {
     title: "Tus datos viven en este navegador",
     intro:
-      "Chronicle no usa una nube ni una cuenta. Todo lo que cargás (campos, formularios, grupos, encuentros, observaciones, fotos, audios, videos y crónicas) se guarda únicamente acá, en el navegador de este dispositivo.",
+      "Chronicle no usa una nube ni una cuenta. Todo lo que cargás (campos, formularios, proyectos, encuentros, observaciones, fotos, audios, videos y crónicas) se guarda únicamente acá, en el navegador de este dispositivo.",
     points: [
       "No se sincroniza solo entre dispositivos: lo que cargás en la compu no aparece en el celular, y viceversa.",
       "Cada navegador tiene su propio espacio: si abrís Chronicle en Chrome y después en Firefox, son dos bases distintas.",
@@ -33,10 +33,10 @@ export const dataStorageGuide = {
     intro:
       "La forma más segura de no perder lo que cargaste es exportar todo y guardar ese archivo en un lugar confiable.",
     points: [
-      'Desde Configuración, con el botón "Exportar todo", generás un archivo .zip con todos tus campos, formularios, grupos, encuentros, observaciones, crónicas y archivos multimedia.',
+      'Desde Configuración, con el botón "Exportar todo", generás un archivo .zip con todos tus campos, formularios, proyectos, encuentros, observaciones, crónicas y archivos multimedia.',
       "Guardá esos .zip en un lugar seguro: una carpeta en la nube, un pendrive, o tu disco.",
       'Para mover tus datos a otro dispositivo o navegador, importá ese mismo .zip desde Configuración, en la sección "Importar".',
-      "Si volvés a importar un .zip que ya estaba cargado, se actualizan los datos existentes en lugar de duplicarse. También se siguen aceptando los .zip viejos que tenían un solo encuentro.",
+      "Si volvés a importar un .zip que ya estaba cargado, se actualizan los datos existentes en lugar de duplicarse.",
       "Hacé exportaciones periódicas, sobre todo antes de limpiar el navegador, cambiar de equipo o trabajar con muchas fotos y videos.",
     ],
     settingsLink: "Ir a Configuración",
@@ -47,7 +47,7 @@ export const dataStorageGuide = {
       "Usá siempre el mismo navegador en el mismo dispositivo para seguir un mismo ciclo de trabajo.",
       "Evitá modo incógnito o privado para tareas reales: dejalo solo para probar.",
       "Si tenés muchas fotos o videos, controlá el espacio libre del dispositivo: si se llena, el navegador puede empezar a fallar al guardar.",
-      "Si vas a prestar la compu o el celular, exportá tus encuentros antes para tener una copia.",
+      "Si vas a prestar la compu o el celular, exportá tus datos antes para tener una copia.",
       "Si instalás Chronicle como aplicación (PWA), los datos siguen viviendo en el navegador desde el cual la instalaste.",
     ],
   },
@@ -75,9 +75,9 @@ export const aiSetupGuide = {
     description:
       "Cuando generás una crónica con IA, se envían los datos de texto del encuentro a los servidores de Google a través de la API de Gemini. Es importante que sepas exactamente qué se envía y qué no:",
     sentPoints: [
-      "Nombre de la actividad y del grupo.",
-      "Fechas y horarios del encuentro.",
-      "Nombres de los participantes.",
+      "Nombre del encuentro y del proyecto.",
+      "Fechas y horarios de inicio y cierre del encuentro.",
+      "Nombres de los participantes que estuvieron.",
       "Los valores de texto de las observaciones (campos de texto, números, fechas, elecciones, etc.).",
     ],
     notSentPoints: [
@@ -121,32 +121,32 @@ const workflowSteps: readonly WorkflowStep[] = [
     cta: { label: "Ir a campos", to: "/fields" },
   },
   {
-    title: "2. Armá un formulario de observación",
+    title: "2. Armá uno o más formularios de observación",
     description:
-      "Un formulario es un conjunto ordenado de campos. Es la plantilla que vas a completar mientras observás. Si más adelante editás el formulario, se guarda una nueva versión: los encuentros viejos siguen mostrando la versión que usaron.",
+      "Un formulario es un conjunto ordenado de campos. Es la plantilla que vas a completar al cargar cada observación. Si más adelante editás un formulario se guarda una versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
     cta: { label: "Ir a formularios", to: "/forms" },
   },
   {
-    title: "3. Cargá grupos y participantes",
+    title: "3. Creá un proyecto con sus participantes",
     description:
-      "Un grupo agrupa a las personas que vas a observar juntas. Sumá a los participantes que correspondan. Después vas a poder asignar observaciones a un participante en particular o al grupo entero.",
-    cta: { label: "Ir a grupos", to: "/groups" },
+      "Un proyecto agrupa a las personas que vas a observar y a los encuentros que tengan entre sí. Sumás los participantes una vez y los reutilizás en cada encuentro del proyecto.",
+    cta: { label: "Ir a proyectos", to: "/projects" },
   },
   {
-    title: "4. Iniciá un encuentro",
+    title: "4. Registrá cada encuentro post-evento",
     description:
-      "El encuentro es la sesión concreta de observación: elegís un grupo, una actividad y un formulario. Mientras está abierto vas cargando observaciones; cuando terminás lo finalizás y queda como registro cerrado.",
-    cta: { label: "Ir a encuentros", to: "/encounters" },
+      "Después de que un encuentro ocurrió, lo cargás dentro del proyecto: nombre, fecha y hora de inicio y cierre, y qué participantes del proyecto estuvieron presentes. Podés crear tantos encuentros como quieras.",
+    cta: { label: "Ir a proyectos", to: "/projects" },
   },
   {
-    title: "5. Capturá observaciones",
+    title: "5. Cargá las observaciones del encuentro",
     description:
-      "Dentro del encuentro completás el formulario las veces que quieras. Cada observación puede llevar texto, números, elecciones, fechas y archivos multimedia: fotos, videos y audios grabados desde el mismo navegador.",
+      "Dentro del encuentro vas sumando observaciones. Para cada una elegís el formulario que mejor describa lo que viste — podés mezclar formularios distintos en un mismo encuentro. Cada observación puede llevar texto, números, elecciones, fechas y archivos multimedia: fotos, videos y audios.",
   },
   {
     title: "6. Generá la crónica",
     description:
-      "Cuando tenés observaciones cargadas, podés generar una crónica desde el detalle del encuentro. Es un texto narrativo que ordena todo lo que registraste para que puedas leerlo o compartirlo. Si configuraste una clave de API de Gemini en Configuración, la crónica se genera con IA y resulta en prosa más rica y fluida.",
+      'Desde el detalle del encuentro entrás a "Ver crónica" y desde ahí la generás. Si configuraste una clave de API de Gemini en Configuración, sale en prosa narrativa rica; si no, sale como un resumen estructurado.',
     cta: { label: "Ir a crónicas", to: "/chronicles" },
   },
 ];
@@ -155,11 +155,11 @@ export const howItWorksGuide = {
   intro: {
     title: "Para qué sirve Chronicle",
     description:
-      "Chronicle te ayuda a observar a un grupo realizando una actividad en una institución y a transformar esas observaciones en una crónica clara.",
+      "Chronicle te ayuda a documentar lo que pasó en encuentros de un proyecto y a transformar esas observaciones en una crónica clara.",
     points: [
-      "Está pensado para usar en el momento, mientras observás, sin trabarte con la herramienta.",
+      "Está pensado para usar después del encuentro: registrás cuándo ocurrió, quiénes estuvieron y qué viste, sin trabarte con la herramienta durante la sesión real.",
       "Funciona desde el navegador, también sin conexión: ideal para situaciones reales en aulas, talleres, prácticas o salidas.",
-      "Cada concepto (campo, formulario, grupo, encuentro, observación, crónica) tiene una función concreta dentro del flujo.",
+      "Cada concepto (campo, formulario, proyecto, encuentro, observación, crónica) tiene una función concreta dentro del flujo.",
     ],
   },
   workflow: {
@@ -172,9 +172,9 @@ export const howItWorksGuide = {
     description:
       "Como Chronicle no usa una nube, para mover lo que cargaste entre dispositivos o personas usás archivos .zip.",
     points: [
-      'Desde Configuración usás "Exportar todo" para bajar un .zip con todos tus campos, formularios, grupos, encuentros, observaciones y crónicas.',
+      'Desde Configuración usás "Exportar todo" para bajar un .zip con todos tus campos, formularios, proyectos, encuentros, observaciones y crónicas.',
       'En el otro navegador o dispositivo, entrás a Configuración y arrastrás ese .zip al área "Importar" para recuperar todo tal cual.',
-      "Si importás algo que ya existía, se actualiza en lugar de duplicarse. También se siguen aceptando los .zip viejos que tenían un solo encuentro.",
+      "Si importás algo que ya existía, se actualiza en lugar de duplicarse.",
       'Para compartir una crónica con alguien sin pasar la base entera, usá el botón "Compartir" desde el detalle de la crónica: usa la función nativa de tu sistema o copia el texto al portapapeles.',
     ],
     importLink: { label: "Ir a Configuración", to: "/settings" },
