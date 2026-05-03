@@ -110,3 +110,11 @@ export async function listEncountersByProject(projectId: string): Promise<Encoun
     .toArray()
     .then((rows) => [...rows].sort((left, right) => right.startsAt.localeCompare(left.startsAt)));
 }
+
+export async function listAllActiveEncounters(): Promise<Encounter[]> {
+  const all = await db.encounters.toArray();
+
+  return all
+    .filter((encounter) => !encounter.archivedAt || encounter.archivedAt === "")
+    .sort((left, right) => right.startsAt.localeCompare(left.startsAt));
+}

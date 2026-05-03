@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 
+import { EncountersSection } from "@/features/home/components/EncountersSection";
 import { homeMessages } from "@/features/home/messages";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,8 @@ export function HomePage(): JSX.Element {
         </h1>
         <p className="text-muted-foreground text-base">{homeMessages.welcomeSubtitle}</p>
       </header>
+
+      <EncountersSection />
 
       <nav aria-label="Accesos directos a secciones">
         <ul className="grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

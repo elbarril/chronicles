@@ -43,6 +43,12 @@ function HomeStub(): JSX.Element {
   return (
     <div>
       <p>Home</p>
+      <section data-tour="home.encounters.section">
+        <p>Encuentros recientes</p>
+        <button type="button" data-tour="home.encounters.new-button">
+          Nuevo encuentro
+        </button>
+      </section>
       <a href="/fields" data-tour="hub.fields">
         Campos
       </a>
@@ -326,7 +332,7 @@ describe("OnboardingDialog", () => {
     ).toBeInTheDocument();
   });
 
-  it("seeds the demo data when the tour starts and starts on the Campos hub-stop", async () => {
+  it("seeds the demo data when the tour starts and starts on the home encounters hub-stop", async () => {
     const user = userEvent.setup();
     renderApp();
     await advanceThroughIntro(user);
@@ -336,9 +342,9 @@ describe("OnboardingDialog", () => {
       expect(seedDemoEncounterMock).toHaveBeenCalled();
     });
 
-    // First tour step is a hub-stop, so we should still be at "/"
+    // First tour step is a hub-stop on the home page (encounters section)
     expect(getPathname()).toBe("/");
-    const hubStop = await screen.findByRole("dialog", { name: /vamos a campos/i });
+    const hubStop = await screen.findByRole("dialog", { name: /encuentros en el inicio/i });
     expect(hubStop).toBeInTheDocument();
     expect(hubStop.getAttribute("aria-modal")).toBe("false");
     expect(within(hubStop).queryByText(/paso \d+ de \d+/i)).toBeNull();
@@ -419,8 +425,8 @@ describe("OnboardingDialog", () => {
 
     await waitFor(() => expect(seedDemoEncounterMock).toHaveBeenCalled());
 
-    // Skip the tutorial — cleanup should run.
-    const tourCard = await screen.findByRole("dialog", { name: /vamos a campos/i });
+    // Skip the tutorial from the first tour card — cleanup should run.
+    const tourCard = await screen.findByRole("dialog", { name: /encuentros en el inicio/i });
     await user.click(within(tourCard).getByRole("button", { name: /saltar tutorial/i }));
 
     await waitFor(() => {
@@ -437,7 +443,7 @@ describe("OnboardingDialog", () => {
 
     await waitFor(() => expect(seedDemoEncounterMock).toHaveBeenCalled());
 
-    const tourCard = await screen.findByRole("dialog", { name: /vamos a campos/i });
+    const tourCard = await screen.findByRole("dialog", { name: /encuentros en el inicio/i });
     await user.click(within(tourCard).getByRole("button", { name: /saltar tutorial/i }));
 
     // Give a beat for any async cleanup to (not) happen.
