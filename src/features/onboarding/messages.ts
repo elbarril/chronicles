@@ -9,9 +9,9 @@ export type OnboardingTourStep = {
   title: string;
   description: string;
   /**
-   * Target route. Supports `:demoEncounterId` and `:demoChronicleId`
-   * placeholders that get resolved at navigation time using the demo
-   * data the tutorial seeds at start.
+   * Target route. Supports `:demoProjectId`, `:demoEncounterId` and
+   * `:demoChronicleId` placeholders that get resolved at navigation time
+   * using the demo data the tutorial seeds at start.
    */
   route: string;
   /** `data-tour` attribute value of the element to highlight. */
@@ -25,7 +25,7 @@ const introSteps: OnboardingIntroStep[] = [
     kind: "intro",
     title: "Cómo funciona Chronicle",
     description:
-      "Antes de cargar nada, mirá cómo encajan las distintas piezas: campos, formularios, grupos, encuentros, observaciones y crónicas.",
+      "Antes de cargar nada, mirá cómo encajan las distintas piezas: campos, formularios, proyectos, encuentros, observaciones y crónicas.",
   },
   {
     kind: "intro",
@@ -71,7 +71,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Tipo del campo",
     description:
-      "Lo primero que elegís es el tipo. Eso define cómo se va a comportar el campo en el encuentro y qué configuración te pide debajo (opciones, mínimo/máximo, formato de fecha, etc.).",
+      "Lo primero que elegís es el tipo. Eso define cómo se va a comportar el campo en el formulario y qué configuración te pide debajo (opciones, mínimo/máximo, formato de fecha, etc.).",
     route: "/fields/new",
     target: "fields.type-selector",
   },
@@ -105,7 +105,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Formularios",
     description:
-      "Cada formulario es una plantilla de observación que combina campos en un orden fijo. Cuando editás un formulario se guarda como versión nueva, así los encuentros viejos siguen mostrando exactamente la versión que usaron.",
+      "Cada formulario es una plantilla de observación que combina campos en un orden fijo. Cuando editás un formulario se guarda como versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
     route: "/forms",
     target: "forms.list-region",
   },
@@ -120,7 +120,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Nombre del formulario",
     description:
-      "Lo primero es ponerle un nombre que lo identifique fácil cuando empieces un encuentro: por ejemplo “Sesión grupal” o “Observación diaria”.",
+      "Lo primero es ponerle un nombre que lo identifique fácil cuando cargues una observación: por ejemplo “Sesión grupal” o “Observación diaria”.",
     route: "/forms/new",
     target: "forms.new.name-input",
   },
@@ -136,120 +136,116 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Guardar formulario",
     description:
-      "Cuando tenés el set de campos como querés, guardás con este botón. Si más adelante editás el formulario se va a guardar una versión nueva, sin pisar la que usan los encuentros viejos.",
+      "Cuando tenés el set de campos como querés, guardás con este botón. Si más adelante editás el formulario se va a guardar una versión nueva, sin pisar la que usan las observaciones viejas.",
     route: "/forms/new",
     target: "forms.new.save-button",
   },
 
-  // ─── GRUPOS ───────────────────────────────────────────────────────────
+  // ─── PROYECTOS ────────────────────────────────────────────────────────
   {
     kind: "hub-stop",
-    title: "Seguimos con Grupos",
-    description: "Desde el hub, este es el ícono de Grupos.",
+    title: "Seguimos con Proyectos",
+    description:
+      "Desde el hub, este es el ícono de Proyectos. Un proyecto agrupa a sus participantes y a los encuentros que tengan entre sí.",
     route: "/",
-    target: "hub.groups",
+    target: "hub.projects",
   },
   {
     kind: "tour",
-    title: "Grupos",
+    title: "Proyectos",
     description:
-      "Los grupos juntan a las personas que vas a observar. Cada grupo tiene sus participantes y después podés asignar observaciones al grupo entero o a alguien en particular.",
-    route: "/groups",
-    target: "groups.list-region",
+      "Acá ves la lista de proyectos. Podés filtrar entre activos y archivados, y desde un proyecto vas a poder crear sus encuentros.",
+    route: "/projects",
+    target: "projects.list-region",
   },
   {
     kind: "tour",
-    title: "Crear un grupo",
-    description: "Acá creás un grupo nuevo. Entremos a ver el formulario.",
-    route: "/groups",
-    target: "groups.new-button",
+    title: "Crear un proyecto",
+    description: "Acá creás un proyecto nuevo. Entremos a ver el formulario.",
+    route: "/projects",
+    target: "projects.new-button",
   },
   {
     kind: "tour",
-    title: "Nombre del grupo",
+    title: "Nombre del proyecto",
     description:
-      "Le ponés un nombre que identifique al grupo: por ejemplo “Sala Azul”, “Equipo de la mañana” o el nombre del aula.",
-    route: "/groups/new",
-    target: "groups.new.name-input",
+      "Le ponés un nombre que identifique al proyecto: por ejemplo “Taller de música”, “Sala Azul” o el nombre del aula.",
+    route: "/projects/new",
+    target: "projects.new.name-input",
   },
   {
     kind: "tour",
-    title: "Participantes",
+    title: "Participantes del proyecto",
     description:
-      "Acá sumás los participantes del grupo, uno por uno. Cada uno se va a poder elegir después en cada observación, o podés dejarla asociada al grupo entero.",
-    route: "/groups/new",
-    target: "groups.new.participants",
+      "Acá sumás los participantes que forman parte del proyecto, uno por uno. Cuando cargues un encuentro vas a poder elegir cuáles de estos estuvieron presentes.",
+    route: "/projects/new",
+    target: "projects.new.participants",
   },
   {
     kind: "tour",
-    title: "Guardar grupo",
+    title: "Guardar proyecto",
     description:
-      "Cuando tenés el grupo armado, lo guardás con este botón y queda listo para usar en un encuentro.",
-    route: "/groups/new",
-    target: "groups.new.save-button",
+      "Cuando tenés el proyecto armado, lo guardás con este botón y queda listo para registrar encuentros.",
+    route: "/projects/new",
+    target: "projects.new.save-button",
   },
 
-  // ─── ENCUENTROS ───────────────────────────────────────────────────────
+  // ─── DETALLE DE PROYECTO + CREACIÓN DE ENCUENTRO ──────────────────────
   {
-    kind: "hub-stop",
-    title: "Pasamos a Encuentros",
+    kind: "tour",
+    title: "Detalle del proyecto",
     description:
-      "Este es el ícono de Encuentros. Es el flujo más usado del día a día, donde vas cargando observaciones en tiempo real.",
-    route: "/",
-    target: "hub.encounters",
+      "Dentro del detalle de un proyecto ves su info, sus participantes y la lista de encuentros. Podés filtrar entre encuentros activos y archivados, y crear uno nuevo.",
+    route: "/projects/:demoProjectId",
+    target: "project.detail.header",
   },
   {
     kind: "tour",
-    title: "Encuentros: filtros",
+    title: "Encuentros del proyecto",
     description:
-      "Los encuentros son las sesiones de observación en tiempo real. Filtrás según estén en curso, finalizados o archivados para no mezclar el trabajo del día con lo viejo.",
-    route: "/encounters",
-    target: "encounters.filter-bar",
+      "Cada encuentro registra algo que ya pasó: una sesión, un taller, una clase. Para crear un encuentro nuevo dentro de este proyecto tocás este botón.",
+    route: "/projects/:demoProjectId",
+    target: "project.detail.new-encounter",
   },
   {
     kind: "tour",
-    title: "Iniciar un encuentro",
-    description: "Para arrancar un encuentro nuevo tocás acá. Veamos qué te pide el formulario.",
-    route: "/encounters",
-    target: "encounters.new-button",
+    title: "Nombre del encuentro",
+    description:
+      "Cuando registrás un encuentro le ponés un nombre claro (por ejemplo “Sesión del lunes”), porque vas a tener varios dentro del mismo proyecto.",
+    route: "/projects/:demoProjectId/encounters/new",
+    target: "encounters.new.name-input",
   },
   {
     kind: "tour",
-    title: "Elegí el grupo",
+    title: "Fecha y hora",
     description:
-      "Lo primero es elegir el grupo que vas a observar, de los que ya creaste en la sección Grupos.",
-    route: "/encounters/new",
-    target: "encounters.new.group-selector",
+      "Después indicás cuándo arrancó y cuándo terminó. Como Chronicle es para registrar lo que ya pasó, te conviene poner las horas reales del encuentro.",
+    route: "/projects/:demoProjectId/encounters/new",
+    target: "encounters.new.starts-at",
   },
   {
     kind: "tour",
-    title: "Elegí el formulario",
+    title: "Participantes del encuentro",
     description:
-      "Después elegís el formulario con el que vas a cargar las observaciones. Acá Chronicle toma una foto (snapshot) de la versión actual del formulario, así si la editás más adelante, este encuentro sigue usando lo que vio originalmente.",
-    route: "/encounters/new",
-    target: "encounters.new.form-selector",
+      "Marcás cuáles de los participantes del proyecto estuvieron presentes en este encuentro. Después podrás asignar observaciones a cualquiera de ellos.",
+    route: "/projects/:demoProjectId/encounters/new",
+    target: "encounters.new.participants",
   },
-  {
-    kind: "tour",
-    title: "Iniciar el encuentro",
-    description:
-      "Tocás “Crear encuentro” y arranca la sesión. A partir de ahí ya podés cargar observaciones en tiempo real.",
-    route: "/encounters/new",
-    target: "encounters.new.start-button",
-  },
+
+  // ─── DETALLE DE ENCUENTRO + OBSERVACIONES ─────────────────────────────
   {
     kind: "tour",
     title: "Información del encuentro",
     description:
-      "Arriba de todo tenés el resumen del encuentro: la actividad, el formulario y la versión que está usando, cuándo arrancó, si ya finalizó, cuántos participantes están asociados, y los botones de acción (generar crónica, exportar, finalizar y archivar).",
+      "Una vez creado el encuentro, arriba ves el resumen: nombre, proyecto al que pertenece, inicio y cierre, y los botones para archivar o ir a la crónica.",
     route: "/encounters/:demoEncounterId",
     target: "encounter.detail.header",
   },
   {
     kind: "tour",
-    title: "Timeline del encuentro",
+    title: "Observaciones cargadas",
     description:
-      "Más abajo está el timeline con todas las observaciones que cargaste, ordenadas por hora. En el de prueba ya hay una observación para que veas cómo se ve.",
+      "Más abajo está el listado de observaciones del encuentro, ordenadas por hora. En el de prueba ya cargamos dos para que veas cómo se ven.",
     route: "/encounters/:demoEncounterId",
     target: "encounter.detail.observations-list",
   },
@@ -263,27 +259,35 @@ const tourSteps: OnboardingTourStep[] = [
   },
   {
     kind: "tour",
-    title: "Formulario de observación",
+    title: "Elegí el formulario",
     description:
-      "Este es el formulario que armaste antes. Vas completando cada campo (texto, número, foto, audio, etc.) y opcionalmente elegís a qué participante corresponde. Al guardar, la observación aparece en el timeline.",
+      "Lo primero al cargar una observación es elegir qué formulario querés usar. Podés mezclar formularios distintos dentro del mismo encuentro: usás el que mejor describa lo que viste cada vez.",
+    route: "/encounters/:demoEncounterId/observations/new",
+    target: "observations.new.form-selector",
+  },
+  {
+    kind: "tour",
+    title: "Completar la observación",
+    description:
+      "Una vez elegido el formulario aparecen sus campos: vas completando texto, número, opciones, fechas y archivos multimedia, y opcionalmente elegís a qué participante corresponde. Al guardar, la observación aparece en el listado.",
     route: "/encounters/:demoEncounterId/observations/new",
     target: "encounter.detail.observation-form",
   },
   {
     kind: "tour",
-    title: "Generar la crónica",
+    title: "Ver la crónica del encuentro",
     description:
-      "En cualquier momento podés generar una crónica a partir de las observaciones cargadas. Si tenés la clave de Gemini configurada, sale en prosa narrativa; si no, sale como un resumen estructurado.",
+      "Desde el detalle del encuentro entrás a la crónica con este botón. Es la única puerta para generar y ver la crónica de un encuentro.",
     route: "/encounters/:demoEncounterId",
-    target: "encounter.detail.generate-chronicle",
+    target: "encounter.detail.view-chronicle",
   },
   {
     kind: "tour",
-    title: "Finalizar el encuentro",
+    title: "Generar la crónica",
     description:
-      "Cuando terminás la observación tocás este botón. Una vez finalizado, el encuentro queda archivado en su versión final y la crónica generada conserva ese contexto.",
-    route: "/encounters/:demoEncounterId",
-    target: "encounter.detail.finalize",
+      "En la página de la crónica del encuentro está el botón “Generar crónica”. Si tenés la clave de Gemini configurada sale en prosa narrativa; si no, sale como un resumen estructurado. Acá también podés regenerarla.",
+    route: "/encounters/:demoEncounterId/chronicle",
+    target: "encounter.chronicle.generate",
   },
 
   // ─── EXPORTAR/IMPORTAR (en Configuración) ────────────────────────────
@@ -299,7 +303,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Exportar todos tus datos",
     description:
-      "Con este botón generás un .zip con TODO lo que tenés cargado en este navegador: campos, formularios, grupos, encuentros, observaciones, crónicas y archivos multimedia. Sirve como respaldo o para mover la información a otro navegador o dispositivo. Funciona siempre, aunque todavía no tengas encuentros o crónicas.",
+      "Con este botón generás un .zip con TODO lo que tenés cargado en este navegador: campos, formularios, proyectos, encuentros, observaciones, crónicas y archivos multimedia. Sirve como respaldo o para mover la información a otro navegador o dispositivo.",
     route: "/settings",
     target: "settings.export",
   },
@@ -307,7 +311,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Importar tus datos",
     description:
-      "Si en otro dispositivo exportaste un .zip de Chronicle, lo soltás acá y reconstruimos todos los datos. Reconoce tanto las exportaciones globales nuevas como las de encuentros individuales generadas con versiones anteriores de Chronicle.",
+      "Si en otro dispositivo exportaste un .zip de Chronicle, lo soltás acá y reconstruimos todos los datos.",
     route: "/settings",
     target: "import.dropzone",
   },
@@ -317,13 +321,13 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "hub-stop",
     title: "Y por último, Crónicas",
     description:
-      "Este es el ícono de Crónicas. Acá termina el flujo: lo que generás a partir de tus encuentros.",
+      "Este es el ícono de Crónicas. Acá están reunidas todas las crónicas que generaste a partir de los encuentros de cualquiera de tus proyectos.",
     route: "/",
     target: "hub.chronicles",
   },
   {
     kind: "tour",
-    title: "Crónicas",
+    title: "Listado global de crónicas",
     description:
       "Acá ves la lista de todas las crónicas generadas. La crónica de prueba ya está en la lista — vamos a entrar a verla.",
     route: "/chronicles",
@@ -336,14 +340,6 @@ const tourSteps: OnboardingTourStep[] = [
       "Esta es la crónica generada. Si tenías la clave de Gemini configurada, sale en prosa narrativa fluida. Si no, sale como un resumen estructurado de las observaciones.",
     route: "/chronicles/:demoChronicleId",
     target: "chronicle.detail.content",
-  },
-  {
-    kind: "tour",
-    title: "Regenerar la crónica",
-    description:
-      "Si querés volver a generar la crónica con otro tono o porque agregaste observaciones, usás este botón. Cada generación queda como versión nueva.",
-    route: "/chronicles/:demoChronicleId",
-    target: "chronicle.detail.regenerate",
   },
   {
     kind: "tour",
@@ -366,7 +362,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "outro",
     title: "Listo, ya conocés Chronicle",
     description:
-      "Hiciste el recorrido completo: campos → formularios → grupos → encuentros → observaciones → crónica. Cuando termines este tutorial, los datos de prueba que usamos se borran solos para que arranques con el navegador limpio. Antes de soltarte, te vamos a pedir un nombre para identificarte en los archivos que exportes.",
+      "Hiciste el recorrido completo: campos → formularios → proyectos → encuentros → observaciones → crónica. Cuando termines este tutorial, los datos de prueba que usamos se borran solos para que arranques con el navegador limpio. Antes de soltarte, te vamos a pedir un nombre para identificarte en los archivos que exportes.",
     route: "/",
   },
 ];

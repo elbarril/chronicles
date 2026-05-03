@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import { type Field } from "@/domain/field";
 import { type Observation } from "@/domain/observation";
 import { fieldTypeLabel } from "@/features/field-definitions/lib/field-type-meta";
+import { useObservationForms } from "@/features/forms/hooks/use-forms";
 import { observationMessages } from "@/features/observations/lib/messages";
+import { listObservationFormFields } from "@/features/observations/services/observation-service";
 import { useAudioRecorder } from "@/infra/media/recorder";
 import { buildResolver } from "@/lib/zod";
 
@@ -28,17 +30,24 @@ interface ParticipantOption {
 }
 
 interface ObservationFormValues {
+  formId: string;
+  participantId?: string;
+  title?: string;
+  values: Record<string, unknown>;
+}
+
+interface ObservationSubmitValues {
+  formId: string;
   participantId?: string;
   title?: string;
   values: Record<string, unknown>;
 }
 
 interface ObservationFormProps {
-  fields: Field[];
   participants: ParticipantOption[];
   initialObservation?: Observation;
   isSaving: boolean;
-  onSubmit: (values: ObservationFormValues) => Promise<void>;
+  onSubmit: (values: ObservationSubmitValues) => Promise<void>;
   onCancel?: () => void;
 }
 
@@ -53,13 +62,12 @@ function getDefaultValue(field: Field): unknown {
   }
 }
 
-function buildInitialValues(fields: Field[], observation?: Observation): ObservationFormValues {
+function buildInitialValues(observation: Observation | undefined): ObservationFormValues {
   return {
+    formId: observation?.formId ?? "",
     participantId: observation?.participantId,
     title: observation?.title ?? "",
-    values: Object.fromEntries(
-      fields.map((field) => [field.id, observation?.values[field.id] ?? getDefaultValue(field)]),
-    ),
+    values: observation ? { ...observation.values } : {},
   };
 }
 
@@ -168,14 +176,16 @@ function MediaFieldPreview({
 }
 
 export function ObservationForm({
-  fields,
   participants,
   initialObservation,
   isSaving,
   onSubmit,
   onCancel,
 }: ObservationFormProps): JSX.Element {
+  const isEditing = Boolean(initialObservation);
+  const { forms: activeForms } = useObservationForms("active");
   const formSchema = z.object({
+    formId: z.string().uuid(),
     participantId: z.string().uuid().optional(),
     title: z.string().optional(),
     values: z.record(z.string(), z.unknown()),
@@ -183,8 +193,70 @@ export function ObservationForm({
 
   const form = useForm<ObservationFormValues>({
     resolver: buildResolver(formSchema),
-    defaultValues: buildInitialValues(fields, initialObservation),
+    defaultValues: buildInitialValues(initialObservation),
   });
+
+  const selectedFormId = form.watch("formId");
+  const [fields, setFields] = useState<Field[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+
+  const formOptions = useMemo(() => {
+    if (!isEditing) {
+      return activeForms;
+    }
+
+    // When editing we don't allow switching forms; just expose the current one.
+    return activeForms.filter((option) => option.id === initialObservation?.formId);
+  }, [activeForms, isEditing, initialObservation]);
+
+  useEffect(() => {
+    form.reset(buildInitialValues(initialObservation));
+  }, [form, initialObservation]);
+
+  useEffect(() => {
+    if (!selectedFormId) {
+      setFields([]);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingFields(true);
+
+    void listObservationFormFields(selectedFormId)
+      .then((resolvedFields) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setFields(resolvedFields);
+
+        // Initialise missing entries with their per-type defaults so the
+        // controlled inputs always have a value.
+        const currentValues = form.getValues("values") ?? {};
+        const nextValues: Record<string, unknown> = { ...currentValues };
+        for (const field of resolvedFields) {
+          if (nextValues[field.id] === undefined) {
+            nextValues[field.id] = getDefaultValue(field);
+          }
+        }
+        form.setValue("values", nextValues, { shouldValidate: false });
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+        toast.error(observationMessages.formNotFound);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingFields(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [form, selectedFormId]);
 
   const audioRecorder = useAudioRecorder({
     onStop: (blob) => {
@@ -201,10 +273,6 @@ export function ObservationForm({
   });
 
   useEffect(() => {
-    form.reset(buildInitialValues(fields, initialObservation));
-  }, [fields, form, initialObservation]);
-
-  useEffect(() => {
     if (audioRecorder.state === "denied") {
       toast.error(observationMessages.recorderDenied);
     }
@@ -215,6 +283,11 @@ export function ObservationForm({
   }, [audioRecorder.state]);
 
   async function handleSubmit(values: ObservationFormValues): Promise<void> {
+    if (!values.formId) {
+      toast.error(observationMessages.formRequired);
+      return;
+    }
+
     const parsed = formSchema.safeParse(values);
 
     if (!parsed.success) {
@@ -227,13 +300,40 @@ export function ObservationForm({
     audioRecorder.clear();
 
     if (!initialObservation) {
-      form.reset(buildInitialValues(fields));
+      form.reset(buildInitialValues(undefined));
+      setFields([]);
     }
   }
 
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+        <FormField
+          control={form.control}
+          name="formId"
+          render={({ field }) => (
+            <FormItem data-tour="observations.new.form-selector">
+              <FormLabel>Formulario</FormLabel>
+              <FormControl>
+                <select
+                  value={field.value ?? ""}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  disabled={isEditing}
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                >
+                  <option value="">Seleccioná un formulario</option>
+                  {formOptions.map((formOption) => (
+                    <option key={formOption.id} value={formOption.id}>
+                      {formOption.name} (v{formOption.version})
+                    </option>
+                  ))}
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="title"
@@ -277,6 +377,10 @@ export function ObservationForm({
             </FormItem>
           )}
         />
+
+        {selectedFormId && isLoadingFields ? (
+          <p className="text-muted-foreground text-sm">Cargando campos...</p>
+        ) : null}
 
         {fields.map((field) => (
           <FormField
@@ -420,7 +524,7 @@ export function ObservationForm({
         ))}
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
+          <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || !selectedFormId}>
             {isSaving
               ? "Guardando..."
               : initialObservation

@@ -18,6 +18,9 @@ export type ObservationValue = z.infer<typeof observationValueSchema>;
 export interface Observation {
   id: string;
   encounterId: string;
+  formId: string;
+  formVersion: number;
+  fieldIds: string[];
   participantId?: string;
   title?: string;
   values: Record<string, ObservationValue>;
@@ -27,6 +30,14 @@ export interface Observation {
 export const observationSchema = z.object({
   id: z.string().uuid(),
   encounterId: z.string().uuid(),
+  formId: z.string().uuid(),
+  formVersion: z.number().int().positive(),
+  fieldIds: z
+    .array(z.string().uuid())
+    .min(1)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "fieldIds must be unique",
+    }),
   participantId: z.string().uuid().optional(),
   title: z.string().trim().min(1).optional(),
   values: z.record(z.string(), observationValueSchema),
@@ -35,6 +46,7 @@ export const observationSchema = z.object({
 
 export const observationInputSchema = z.object({
   encounterId: z.string().uuid(),
+  formId: z.string().uuid(),
   participantId: z.string().uuid().optional(),
   title: z.string().trim().min(1).optional(),
   values: z.record(z.string(), z.unknown()),

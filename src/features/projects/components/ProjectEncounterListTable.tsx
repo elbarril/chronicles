@@ -3,16 +3,15 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { type Encounter } from "@/domain/encounter";
 
-interface EncounterListTableProps {
+interface ProjectEncounterListTableProps {
   encounters: Encounter[];
-  status: "inProgress" | "finished" | "archived";
-  onGenerateChronicle: (encounterId: string) => void | Promise<void>;
-  onArchive: (encounterId: string) => void | Promise<void>;
-  onRestore: (encounterId: string) => void | Promise<void>;
-  isGeneratingChronicleId?: string;
+  status: "active" | "archived";
+  projectId: string;
+  onArchive: (encounterId: string) => Promise<void>;
+  onRestore: (encounterId: string) => Promise<void>;
 }
 
-function formatDate(value: string): string {
+function formatDateTime(value: string): string {
   if (!value) {
     return "-";
   }
@@ -23,45 +22,27 @@ function formatDate(value: string): string {
   });
 }
 
-function EncounterActions({
+function EncounterRowActions({
   encounter,
   status,
-  onGenerateChronicle,
   onArchive,
   onRestore,
-  isGeneratingChronicleId,
 }: {
   encounter: Encounter;
-  status: "inProgress" | "finished" | "archived";
-  onGenerateChronicle: (encounterId: string) => void | Promise<void>;
-  onArchive: (encounterId: string) => void | Promise<void>;
-  onRestore: (encounterId: string) => void | Promise<void>;
-  isGeneratingChronicleId?: string;
+  status: "active" | "archived";
+  onArchive: (encounterId: string) => Promise<void>;
+  onRestore: (encounterId: string) => Promise<void>;
 }): JSX.Element {
-  const isArchived = status === "archived";
-  const isGeneratingThis = isGeneratingChronicleId === encounter.id;
-
   return (
     <>
       <Button asChild size="sm" variant="outline">
         <Link to={`/encounters/${encounter.id}`}>Abrir</Link>
       </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        disabled={isGeneratingThis}
-        onClick={() => {
-          void onGenerateChronicle(encounter.id);
-        }}
-      >
-        {isGeneratingThis ? "Generando..." : "Generar crónica"}
-      </Button>
-      {isArchived ? (
+      {status === "archived" ? (
         <Button
           type="button"
           size="sm"
-          variant="secondary"
+          variant="outline"
           onClick={() => {
             void onRestore(encounter.id);
           }}
@@ -84,28 +65,24 @@ function EncounterActions({
   );
 }
 
-export function EncounterListTable({
+export function ProjectEncounterListTable({
   encounters,
   status,
-  onGenerateChronicle,
+  projectId,
   onArchive,
   onRestore,
-  isGeneratingChronicleId,
-}: EncounterListTableProps): JSX.Element {
+}: ProjectEncounterListTableProps): JSX.Element {
   if (encounters.length === 0) {
-    const emptyMessage =
-      status === "inProgress"
-        ? "No hay encuentros en curso."
-        : status === "finished"
-          ? "No hay encuentros finalizados para mostrar."
-          : "No hay encuentros archivados.";
-
     return (
       <div className="bg-muted/40 rounded-3xl p-6 text-center">
-        <p className="text-muted-foreground mb-4">{emptyMessage}</p>
-        {status === "inProgress" ? (
+        <p className="text-muted-foreground mb-4">
+          {status === "active"
+            ? "Este proyecto todavía no tiene encuentros activos."
+            : "No hay encuentros archivados en este proyecto."}
+        </p>
+        {status === "active" ? (
           <Button asChild>
-            <Link to="/encounters/new">Crear primer encuentro</Link>
+            <Link to={`/projects/${projectId}/encounters/new`}>Crear primer encuentro</Link>
           </Button>
         ) : null}
       </div>
@@ -115,7 +92,7 @@ export function EncounterListTable({
   return (
     <>
       {/* Mobile / tablet: cards */}
-      <ul className="grid gap-3 lg:hidden" aria-label="Listado de encuentros">
+      <ul className="grid gap-3 lg:hidden" aria-label="Listado de encuentros del proyecto">
         {encounters.map((encounter) => (
           <li key={encounter.id} className="bg-muted/40 space-y-3 rounded-2xl p-4">
             <div className="space-y-1">
@@ -124,31 +101,25 @@ export function EncounterListTable({
                   to={`/encounters/${encounter.id}`}
                   className="hover:underline focus-visible:underline focus-visible:outline-none"
                 >
-                  {encounter.activity}
+                  {encounter.name}
                 </Link>
               </p>
               <p className="text-muted-foreground text-xs">
-                Iniciado: {formatDate(encounter.startedAt)}
+                {formatDateTime(encounter.startsAt)} → {formatDateTime(encounter.endsAt)}
               </p>
             </div>
             <dl className="space-y-1 text-sm">
               <div className="flex gap-2">
-                <dt className="text-muted-foreground">Finalizado:</dt>
-                <dd>{formatDate(encounter.endedAt ?? "")}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="text-muted-foreground">Versión form:</dt>
-                <dd>v{encounter.formVersion}</dd>
+                <dt className="text-muted-foreground">Participantes:</dt>
+                <dd>{encounter.participantIds.length}</dd>
               </div>
             </dl>
             <div className="flex flex-wrap gap-2 pt-1">
-              <EncounterActions
+              <EncounterRowActions
                 encounter={encounter}
                 status={status}
-                onGenerateChronicle={onGenerateChronicle}
                 onArchive={onArchive}
                 onRestore={onRestore}
-                isGeneratingChronicleId={isGeneratingChronicleId}
               />
             </div>
           </li>
@@ -158,13 +129,13 @@ export function EncounterListTable({
       {/* Desktop: table */}
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full border-collapse text-sm">
-          <caption className="sr-only">Listado de encuentros</caption>
+          <caption className="sr-only">Listado de encuentros del proyecto</caption>
           <thead>
             <tr className="text-muted-foreground text-xs tracking-wide uppercase">
-              <th className="px-3 py-2 text-left font-medium">Actividad</th>
-              <th className="px-3 py-2 text-left font-medium">Iniciado</th>
-              <th className="px-3 py-2 text-left font-medium">Finalizado</th>
-              <th className="px-3 py-2 text-left font-medium">Versión form</th>
+              <th className="px-3 py-2 text-left font-medium">Nombre</th>
+              <th className="px-3 py-2 text-left font-medium">Inicio</th>
+              <th className="px-3 py-2 text-left font-medium">Cierre</th>
+              <th className="px-3 py-2 text-left font-medium">Participantes</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
@@ -176,25 +147,23 @@ export function EncounterListTable({
                     to={`/encounters/${encounter.id}`}
                     className="hover:underline focus-visible:underline focus-visible:outline-none"
                   >
-                    {encounter.activity}
+                    {encounter.name}
                   </Link>
                 </td>
                 <td className="text-muted-foreground px-3 py-3 align-middle">
-                  {formatDate(encounter.startedAt)}
+                  {formatDateTime(encounter.startsAt)}
                 </td>
                 <td className="text-muted-foreground px-3 py-3 align-middle">
-                  {formatDate(encounter.endedAt ?? "")}
+                  {formatDateTime(encounter.endsAt)}
                 </td>
-                <td className="px-3 py-3 align-middle">v{encounter.formVersion}</td>
+                <td className="px-3 py-3 align-middle">{encounter.participantIds.length}</td>
                 <td className="px-3 py-3 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
-                    <EncounterActions
+                    <EncounterRowActions
                       encounter={encounter}
                       status={status}
-                      onGenerateChronicle={onGenerateChronicle}
                       onArchive={onArchive}
                       onRestore={onRestore}
-                      isGeneratingChronicleId={isGeneratingChronicleId}
                     />
                   </div>
                 </td>

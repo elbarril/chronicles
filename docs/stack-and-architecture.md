@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-05-01 (F8: always-available global ZIP export from Settings, post-tour user-name prompt, native chronicle share)
+Last updated: 2026-05-02 (F9: Projects refactor + post-event chronicles + per-observation form snapshot + Dexie v7 hard reset)
 
 ---
 
@@ -11,11 +11,12 @@ Last updated: 2026-05-01 (F8: always-available global ZIP export from Settings, 
 
 - **Delivery format:** **Local-first** web app, 100% client-side. No custom backend, no accounts, no mandatory network.
 - **Persistence:** All data is saved in the user's browser.
-- **Core flow:**
+- **Core flow (post-event since F9):**
   1. The Practitioner **defines fields** to observe (text, number, choice, boolean, date, image, video, audio, file).
-  2. With these fields, a reusable **Observation Form** is composed.
-  3. That form is used to record **Encounters** (concrete observation sessions).
-  4. From the collected data, chronicles can be generated (out of scope for v1 tech, but supported by the data model).
+  2. With these fields, one or more reusable **Observation Forms** are composed.
+  3. The Practitioner creates a **Project** with its participants.
+  4. After an encounter happens, the Practitioner registers it inside the project (name, start/end time, who attended) and loads observations for it. Each observation picks the form that best fits what was seen (forms can be mixed within an encounter).
+  5. From `/encounters/:id/chronicle` the Practitioner generates a chronicle — deterministic by default, with Gemini AI prose if the user provides a BYOK key.
 
 ---
 
@@ -55,7 +56,7 @@ Translated to technology:
 | PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
-| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v1`) plus backward-compatible reader for legacy per-encounter ZIPs (`chronicle-encounter-v1`). |
+| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v2`). Legacy `chronicle-full-v1` and `chronicle-encounter-v1` are no longer importable since F9 (the underlying record shapes changed). |
 | Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
 | Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
@@ -115,14 +116,13 @@ Any new dependency must be recorded as a decision in `.agents/memory/decisions.m
 Core entities (canonical names, see `.agents/memory/glossary.md`):
 
 - **Institution**: organizational context.
-- **Group**: set of Participants.
-- **Participant**: observed individual.
-- **Activity**: task/exercise performed by the Group.
+- **Project**: set of Participants that take part in a sequence of Encounters. Replaces the F0–F8 `Group` concept since F9.
+- **Participant**: observed individual (`projectId`).
 - **Field**: definition of data to capture. Type + metadata + validations.
-- **Form (Observation Form)**: ordered set of Fields instantiated in each Encounter.
-- **Encounter**: concrete time window where a Form is applied to a Group.
-- **Observation**: instance of captured values for a Form within an Encounter.
-- **Chronicle**: narrative derived from a set of Observations.
+- **Form (Observation Form)**: ordered set of Fields. Each Observation snapshots the form (`formId`/`formVersion`/`fieldIds[]`) it was created with, so a single Encounter can mix observations from different forms.
+- **Encounter**: post-event record of a session that already happened, scoped to a Project (`name`, `startsAt`, `endsAt`, `participantIds[]`, `archivedAt?`). No "in progress / finished" lifecycle: archive/restore only.
+- **Observation**: instance of captured values for a specific Form within an Encounter.
+- **Chronicle**: narrative derived from the Observations of an Encounter, generated only at `/encounters/:id/chronicle`.
 
 ### Field Types Supported in v1
 
@@ -185,24 +185,24 @@ chronicle/
 │  │  └─ nav-items.ts                   # canonical navigation list
 │  ├─ features/
 │  │  ├─ field-definitions/             # Field CRUD
-│  │  ├─ home/                          # data-aware home dashboard + 404
+│  │  ├─ home/                          # icon-grid hub + /support helper page + 404
 │  │  ├─ forms/                         # Observation Form assembly
-│  │  ├─ groups/                        # Group + Participant management
-│  │  ├─ encounters/                    # concrete sessions (with archive/restore)
-│  │  ├─ observations/                  # data capture (with title)
+│  │  ├─ projects/                      # Project + Participant management (since F9)
+│  │  ├─ encounters/                    # post-event encounter form + detail
+│  │  ├─ observations/                  # data capture with per-observation form selector
 │  │  ├─ import/                        # ZIP import flow with preview/confirm
-│  │  ├─ chronicles/                    # chronicle generation/list/detail (+ AI badge)
+│  │  ├─ chronicles/                    # /chronicles list/detail + /encounters/:id/chronicle (single generate entry)
 │  │  ├─ defaults/                      # first-run seed + demo encounter management
 │  │  ├─ onboarding/                    # first-run welcome dialog (3 steps: what/storage/AI)
-│  │  ├─ settings/                      # /settings: Gemini API key management (BYOK)
+│  │  ├─ settings/                      # /settings: brand color, user name, export/import, Gemini API key (BYOK)
 │  │  └─ help/                          # /help, /how-it-works, AiSetupGuide component
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
-│  │  ├─ group.ts
-│  │  ├─ participant.ts
-│  │  ├─ encounter.ts
-│  │  ├─ observation.ts
+│  │  ├─ project.ts                     # set of participants (since F9, replaces group.ts)
+│  │  ├─ participant.ts                 # participant tied to a project
+│  │  ├─ encounter.ts                   # post-event record inside a project
+│  │  ├─ observation.ts                 # carries its own formId + formVersion + fieldIds[] snapshot
 │  │  └─ chronicle.ts
 │  ├─ infra/
 │  │  ├─ ai/
@@ -218,10 +218,9 @@ chronicle/
 │  │  │  ├─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
 │  │  │  └─ use-media-object-url.ts     # mediaId → managed object URL hook
 │  │  ├─ export/
-│  │  │  ├─ manifest.ts                 # Both `chronicle-full-v1` and `chronicle-encounter-v1` schemas + discriminator
+│  │  │  ├─ manifest.ts                 # `chronicle-full-v2` schema + discriminator (legacy v1 / encounter-v1 are no longer importable)
 │  │  │  ├─ full-exporter.ts            # Global ZIP generation + download (every table + media + brand/name)
-│  │  │  ├─ full-importer.ts            # Global ZIP parse + transactional upsert
-│  │  │  └─ encounter-importer.ts       # Legacy per-encounter ZIP parse + upsert (read-only backward compat)
+│  │  │  └─ full-importer.ts            # Global ZIP parse + transactional upsert
 │  │  └─ pwa/
 │  ├─ components/
 │  │  ├─ ui/                            # shadcn primitives
@@ -251,16 +250,16 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | Table | Main Fields | Notes |
 | ------- | ------------------- | ------- |
 | `institutions` | `id`, `name`, `createdAt` | |
-| `groups` | `id`, `institutionId`, `name` | index by `institutionId` |
-| `participants` | `id`, `groupId`, `displayName` | index by `groupId` |
+| `projects` | `id`, `institutionId`, `name`, `archivedAt`, `createdAt` | replaces the legacy `groups` store since F9; the `groups` store is dropped via `groups: null` in the v7 upgrade |
+| `participants` | `id`, `projectId`, `displayName`, `archivedAt`, `createdAt` | indexed by `projectId` |
 | `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
 | `forms` | `id`, `name`, `fieldIds[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fieldIds` preserves order and uniqueness; version auto-increments on update |
-| `encounters` | `id`, `groupId`, `formId`, `formVersion`, `fieldIds[]`, `activity`, `startedAt`, `endedAt?`, `archivedAt?` | form snapshot frozen at creation; `fieldIds` preserves field order at that moment; `archivedAt` is independent from `endedAt` and uses empty string for active |
-| `observations` | `id`, `encounterId`, `participantId?`, `title?`, `values`, `createdAt` | `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
+| `encounters` | `id`, `projectId`, `name`, `startsAt`, `endsAt`, `participantIds[]`, `archivedAt?`, `createdAt`, `updatedAt` | post-event record. `participantIds` is the subset of project participants that attended; `archivedAt` uses empty string for active |
+| `observations` | `id`, `encounterId`, `formId`, `formVersion`, `fieldIds[]`, `participantId?`, `title?`, `values`, `createdAt` | each observation snapshots its own form; `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
-| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?`, `inputHash?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` and `inputHash?` (SHA-256 fingerprint, only set when `generatedWith === "gemini"`) — both optional, no Dexie migration required |
+| `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?`, `inputHash?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` and `inputHash?` (SHA-256 fingerprint, only set when `generatedWith === "gemini"`) |
 
-**Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`.
+**Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`. Current version is **v7** (F9), with a hard-reset upgrade that wipes `participants`, `encounters`, `observations` and `chronicles` and drops the legacy `groups` store. Field, form, media and Settings preferences (theme, brand color, user name, Gemini key) are preserved.
 
 **Live queries:** use `dexie-react-hooks` (`useLiveQuery`) for reactivity without a global state manager.
 
@@ -318,6 +317,7 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **F7** | **Optional Gemini AI chronicle generation (BYOK)** | **Completed 2026-05-01: opt-in `gemini-2.5-flash` generation with BYOK (`localStorage`); `generatedWith` field on `Chronicle`; `/settings` route with masked API key form; `AiSetupGuide` shared component; onboarding 3rd step; "Generada con IA" badge; `infra/ai/` layer; input-hash cache (`Chronicle.inputHash`) added post-F8; no deterministic fallback on Gemini error (category-specific toast instead); `AiKeyStatusBadge` next to every "Generar crónica" entry point; unit + E2E tests green** |
 | **F8** | **Always-available global export + user identity + chronicle share** | **Completed 2026-05-01: `chronicle-full-v1` ZIP export from `/settings` (covers every table, media, brand color and author name); per-encounter "Exportar" button removed; importer dispatches between full and legacy `chronicle-encounter-v1` ZIPs; `chronicle.userName` + post-tour `WelcomeNamePrompt` (default detected from `navigator.userAgent`); `useShareChronicle` with `navigator.share` + clipboard fallback wired to a "Compartir" button on chronicle detail; new tour stops `settings.export` and `chronicle.detail.share`; new unit and E2E tests** |
 | **Post-F8 polish** | **Home as nav hub, support page consolidation, AI cache and AI key status** | **Completed 2026-05-01: `HomePage` rewritten as a pure icon-grid nav hub; new `/support` route hosts the demo encounter toggle, the data-aware status panel, and the quick-check helper; `/import` route removed (Settings is the canonical importer); `Chronicle.inputHash` SHA-256 cache short-circuits redundant Gemini calls; `AiKeyStatusBadge` always visible next to "Generar crónica"; tests updated to match the new layout** |
+| **F9** | **Projects refactor + post-event chronicles + per-observation form snapshot + Dexie v7 hard reset** | **Completed 2026-05-02: `Project` replaces `Group`; encounters are post-event records inside a project (`name`, `startsAt`, `endsAt`, `participantIds[]`); each observation snapshots its own `formId`/`formVersion`/`fieldIds[]`; chronicle generation gated to `/encounters/:id/chronicle`; hub swap (Proyectos in/Grupos+Encuentros out); Dexie v7 hard-reset migration; `chronicle-full-v2` export schema (legacy v1 / encounter-v1 no longer importable); demo encounter rebuilt with two observations using two different forms; onboarding tour rewritten end-to-end. All unit tests green; E2E suite adapted.** |
 
 Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
 

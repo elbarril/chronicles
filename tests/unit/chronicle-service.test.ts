@@ -14,8 +14,8 @@ const {
   deleteChronicleMock,
   getEncounterByIdMock,
   listFieldsByIdsMock,
-  getGroupByIdMock,
-  listParticipantsByGroupMock,
+  getProjectByIdMock,
+  listParticipantsByProjectMock,
   listObservationsByEncounterMock,
   hasGeminiApiKeyMock,
   getGeminiApiKeyMock,
@@ -28,8 +28,8 @@ const {
   deleteChronicleMock: vi.fn(),
   getEncounterByIdMock: vi.fn(),
   listFieldsByIdsMock: vi.fn(),
-  getGroupByIdMock: vi.fn(),
-  listParticipantsByGroupMock: vi.fn(),
+  getProjectByIdMock: vi.fn(),
+  listParticipantsByProjectMock: vi.fn(),
   listObservationsByEncounterMock: vi.fn(),
   hasGeminiApiKeyMock: vi.fn(),
   getGeminiApiKeyMock: vi.fn(),
@@ -57,9 +57,9 @@ vi.mock("@/infra/db/repositories/field-repository", () => ({
   listFieldsByIds: listFieldsByIdsMock,
 }));
 
-vi.mock("@/infra/db/repositories/group-repository", () => ({
-  getGroupById: getGroupByIdMock,
-  listParticipantsByGroup: listParticipantsByGroupMock,
+vi.mock("@/infra/db/repositories/project-repository", () => ({
+  getProjectById: getProjectByIdMock,
+  listParticipantsByProject: listParticipantsByProjectMock,
 }));
 
 vi.mock("@/infra/db/repositories/observation-repository", () => ({
@@ -77,32 +77,31 @@ vi.mock("@/infra/ai/gemini-chronicle-generator", () => ({
 
 function stubEncounterData(encounterId: string, fieldId: string, participantId: string) {
   const now = new Date().toISOString();
+  const projectId = crypto.randomUUID();
 
   getEncounterByIdMock.mockResolvedValue({
     id: encounterId,
-    groupId: crypto.randomUUID(),
-    formId: crypto.randomUUID(),
-    formVersion: 1,
-    fieldIds: [fieldId],
-    activity: "Actividad de prueba",
-    startedAt: now,
-    endedAt: "",
+    projectId,
+    name: "Sesión del lunes",
+    startsAt: now,
+    endsAt: now,
+    participantIds: [participantId],
+    archivedAt: "",
     createdAt: now,
     updatedAt: now,
-    archivedAt: "",
   });
-  getGroupByIdMock.mockResolvedValue({
-    id: crypto.randomUUID(),
+  getProjectByIdMock.mockResolvedValue({
+    id: projectId,
     institutionId: "00000000-0000-4000-8000-000000000001",
-    name: "Grupo Alfa",
+    name: "Proyecto Alfa",
     createdAt: now,
     updatedAt: now,
     archivedAt: "",
   });
-  listParticipantsByGroupMock.mockResolvedValue([
+  listParticipantsByProjectMock.mockResolvedValue([
     {
       id: participantId,
-      groupId: crypto.randomUUID(),
+      projectId,
       displayName: "Sofía",
       createdAt: now,
       updatedAt: now,
@@ -126,6 +125,9 @@ function stubEncounterData(encounterId: string, fieldId: string, participantId: 
     {
       id: crypto.randomUUID(),
       encounterId,
+      formId: crypto.randomUUID(),
+      formVersion: 1,
+      fieldIds: [fieldId],
       participantId,
       values: { [fieldId]: "Observación clave" },
       createdAt: now,
@@ -134,7 +136,7 @@ function stubEncounterData(encounterId: string, fieldId: string, participantId: 
   upsertChronicleByEncounterMock.mockResolvedValue({
     id: crypto.randomUUID(),
     encounterId,
-    title: "Crónica · Actividad de prueba",
+    title: "Crónica · Proyecto Alfa · Sesión del lunes",
     body: "body",
     generatedAt: now,
     createdAt: now,
@@ -175,8 +177,8 @@ describe("chronicle service", () => {
     expect(upsertChronicleByEncounterMock).toHaveBeenCalledWith(
       expect.objectContaining({
         encounterId,
-        title: "Crónica · Actividad de prueba",
-        body: expect.stringContaining("Grupo: Grupo Alfa"),
+        title: "Crónica · Proyecto Alfa · Sesión del lunes",
+        body: expect.stringContaining("Proyecto: Proyecto Alfa"),
         generatedWith: "deterministic",
       }),
     );
@@ -239,7 +241,7 @@ describe("chronicle service", () => {
     const existingChronicle = {
       id: crypto.randomUUID(),
       encounterId,
-      title: "Crónica · Actividad de prueba",
+      title: "Crónica · Proyecto Alfa · Sesión del lunes",
       body: "Crónica previa con IA.",
       generatedAt: now,
       createdAt: now,
@@ -315,7 +317,7 @@ describe("chronicle service", () => {
       const cachedChronicle = {
         id: crypto.randomUUID(),
         encounterId,
-        title: "Crónica · Actividad de prueba",
+        title: "Crónica · Proyecto Alfa · Sesión del lunes",
         body: "Crónica previa con IA.",
         generatedAt: now,
         createdAt: now,
@@ -343,7 +345,7 @@ describe("chronicle service", () => {
       getChronicleByEncounterIdMock.mockResolvedValue({
         id: crypto.randomUUID(),
         encounterId,
-        title: "Crónica · Actividad de prueba",
+        title: "Crónica · Proyecto Alfa · Sesión del lunes",
         body: "Crónica previa.",
         generatedAt: now,
         createdAt: now,
@@ -372,7 +374,7 @@ describe("chronicle service", () => {
       getChronicleByEncounterIdMock.mockResolvedValue({
         id: crypto.randomUUID(),
         encounterId,
-        title: "Crónica · Actividad de prueba",
+        title: "Crónica · Proyecto Alfa · Sesión del lunes",
         body: "Crónica determinista.",
         generatedAt: now,
         createdAt: now,

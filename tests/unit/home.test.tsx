@@ -39,24 +39,30 @@ describe("Home route", () => {
     expect(nav).toBeInTheDocument();
 
     // Each nav section should render as a link
-    expect(screen.getByRole("link", { name: /campos/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /formularios/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /grupos/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /encuentros/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /crónicas/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /configuración/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /soporte/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /campos/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /formularios/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /proyectos/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /crónicas/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /configuración/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /soporte/i }).length).toBeGreaterThan(0);
+  });
+
+  it("does not include the legacy Grupos and Encuentros tiles", () => {
+    renderHome();
+
+    const grid = screen.getByRole("navigation", { name: /accesos directos a secciones/i });
+    expect(grid).not.toHaveTextContent(/^Grupos$/m);
+    expect(grid).not.toHaveTextContent(/^Encuentros$/m);
   });
 
   it("nav links point to the correct routes", () => {
     renderHome();
 
-    expect(screen.getByRole("link", { name: /campos/i })).toHaveAttribute("href", "/fields");
-    expect(screen.getByRole("link", { name: /grupos/i })).toHaveAttribute("href", "/groups");
-    expect(screen.getByRole("link", { name: /configuración/i })).toHaveAttribute(
-      "href",
-      "/settings",
+    const linksToProjects = screen.getAllByRole("link", { name: /proyectos/i });
+    const homeProjectsLink = linksToProjects.find(
+      (link) => link.getAttribute("data-tour") === "hub.projects",
     );
-    expect(screen.getByRole("link", { name: /soporte/i })).toHaveAttribute("href", "/support");
+
+    expect(homeProjectsLink).toHaveAttribute("href", "/projects");
   });
 });

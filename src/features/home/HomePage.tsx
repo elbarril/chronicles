@@ -1,12 +1,11 @@
 import {
   BookOpen,
-  CalendarDays,
   CircleHelp,
   ClipboardList,
+  FolderKanban,
   Lightbulb,
   Settings,
   Tag,
-  Users,
   Wrench,
 } from "lucide-react";
 import { Link } from "react-router";
@@ -17,8 +16,7 @@ import { cn } from "@/lib/utils";
 const navSections = [
   { to: "/fields", label: "Campos", Icon: Tag, tourId: "hub.fields" },
   { to: "/forms", label: "Formularios", Icon: ClipboardList, tourId: "hub.forms" },
-  { to: "/groups", label: "Grupos", Icon: Users, tourId: "hub.groups" },
-  { to: "/encounters", label: "Encuentros", Icon: CalendarDays, tourId: "hub.encounters" },
+  { to: "/projects", label: "Proyectos", Icon: FolderKanban, tourId: "hub.projects" },
   { to: "/chronicles", label: "Crónicas", Icon: BookOpen, tourId: "hub.chronicles" },
   { to: "/settings", label: "Configuración", Icon: Settings, tourId: "hub.settings" },
   { to: "/how-it-works", label: "Cómo funciona", Icon: Lightbulb, tourId: undefined },

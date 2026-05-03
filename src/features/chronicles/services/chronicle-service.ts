@@ -1,6 +1,7 @@
 import { type Chronicle } from "@/domain/chronicle";
 import { type Encounter } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
+import { type Observation } from "@/domain/observation";
 import { formatObservationValueAsText } from "@/features/observations/lib/format-observation-value";
 import { hasGeminiApiKey, getGeminiApiKey } from "@/features/settings/services/settings-service";
 import { computeChronicleInputHash } from "@/infra/ai/chronicle-input-hash";
@@ -14,8 +15,11 @@ import {
 } from "@/infra/db/repositories/chronicle-repository";
 import { getEncounterById } from "@/infra/db/repositories/encounter-repository";
 import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
-import { getGroupById, listParticipantsByGroup } from "@/infra/db/repositories/group-repository";
 import { listObservationsByEncounter } from "@/infra/db/repositories/observation-repository";
+import {
+  getProjectById,
+  listParticipantsByProject,
+} from "@/infra/db/repositories/project-repository";
 import { AppError, type ErrorCode } from "@/lib/error";
 
 export interface ChronicleListItem {
@@ -43,10 +47,10 @@ function formatDateTime(value: string): string {
 
 function buildChronicleBody(input: {
   encounter: Encounter;
-  groupName: string;
+  projectName: string;
   participantsById: Map<string, string>;
   fieldsById: Map<string, Field>;
-  observations: Awaited<ReturnType<typeof listObservationsByEncounter>>;
+  observations: Observation[];
 }): string {
   const sortedObservations = [...input.observations].sort((left, right) =>
     left.createdAt.localeCompare(right.createdAt),
@@ -54,14 +58,10 @@ function buildChronicleBody(input: {
 
   const lines: string[] = [
     "Resumen del encuentro",
-    `- Grupo: ${input.groupName}`,
-    `- Actividad: ${input.encounter.activity}`,
-    `- Inicio: ${formatDateTime(input.encounter.startedAt)}`,
-    `- Fin: ${
-      input.encounter.endedAt && input.encounter.endedAt !== ""
-        ? formatDateTime(input.encounter.endedAt)
-        : "En curso"
-    }`,
+    `- Proyecto: ${input.projectName}`,
+    `- Encuentro: ${input.encounter.name}`,
+    `- Inicio: ${formatDateTime(input.encounter.startsAt)}`,
+    `- Cierre: ${formatDateTime(input.encounter.endsAt)}`,
     `- Observaciones registradas: ${sortedObservations.length}`,
     "",
     "Detalle de observaciones",
@@ -86,7 +86,7 @@ function buildChronicleBody(input: {
       `- Participante: ${participantName ?? "Sin participante asignado"}`,
     );
 
-    input.encounter.fieldIds.forEach((fieldId) => {
+    observation.fieldIds.forEach((fieldId) => {
       const field = input.fieldsById.get(fieldId);
 
       if (!field) {
@@ -103,8 +103,8 @@ function buildChronicleBody(input: {
   return lines.join("\n");
 }
 
-function buildChronicleTitle(encounter: Encounter): string {
-  return `Crónica · ${encounter.activity}`;
+function buildChronicleTitle(encounter: Encounter, projectName: string): string {
+  return `Crónica · ${projectName} · ${encounter.name}`;
 }
 
 export interface GenerateChronicleResult {
@@ -124,22 +124,37 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
     );
   }
 
-  const [group, participants, fields, observations] = await Promise.all([
-    getGroupById(encounter.groupId),
-    listParticipantsByGroup(encounter.groupId),
-    listFieldsByIds(encounter.fieldIds),
+  const [project, projectParticipants, observations] = await Promise.all([
+    getProjectById(encounter.projectId),
+    listParticipantsByProject(encounter.projectId),
     listObservationsByEncounter(encounter.id),
   ]);
 
-  if (!group) {
-    throw new AppError("CHRONICLE_GENERATION_FAILED", "Group not found for chronicle generation.");
+  if (!project) {
+    throw new AppError(
+      "CHRONICLE_GENERATION_FAILED",
+      "Project not found for chronicle generation.",
+    );
   }
+
+  // Resolve all the fields snapshotted by every observation in this encounter
+  // (deduped) so the chronicle body / AI prompt can render them by label.
+  const allFieldIds = new Set<string>();
+  observations.forEach((observation) => {
+    observation.fieldIds.forEach((fieldId) => allFieldIds.add(fieldId));
+  });
+  const fields = allFieldIds.size > 0 ? await listFieldsByIds([...allFieldIds]) : [];
+
+  // Restrict participants to those who attended this encounter — same set the
+  // encounter surfaces to the user.
+  const attendedIds = new Set(encounter.participantIds);
+  const participants = projectParticipants.filter((participant) => attendedIds.has(participant.id));
 
   const participantsById = new Map(
     participants.map((participant) => [participant.id, participant.displayName]),
   );
-  const fieldsById = new Map(fields.map((field) => [field.id, field]));
-  const title = buildChronicleTitle(encounter);
+  const fieldsById = new Map<string, Field>(fields.map((field) => [field.id, field]));
+  const title = buildChronicleTitle(encounter, project.name);
 
   const apiKey = hasGeminiApiKey() ? getGeminiApiKey() : null;
 
@@ -147,7 +162,7 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
     // No API key configured: generate a deterministic chronicle
     const body = buildChronicleBody({
       encounter,
-      groupName: group.name,
+      projectName: project.name,
       participantsById,
       fieldsById,
       observations,
@@ -166,7 +181,7 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   // API key configured: check cache, then attempt Gemini
   const hashInput = {
     encounter,
-    groupName: group.name,
+    projectName: project.name,
     participantsById,
     fieldsById,
     observations,
@@ -185,7 +200,7 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
     const aiBody = await generateChronicleWithGemini({
       apiKey,
       encounter,
-      groupName: group.name,
+      projectName: project.name,
       participantsById,
       fieldsById,
       observations,

@@ -15,29 +15,13 @@ export function ImportSection(): JSX.Element {
       {importFlow.success ? (
         <Card>
           <CardHeader>
-            <CardTitle>
-              {importFlow.success.kind === "full"
-                ? importMessages.fullSuccessTitle
-                : importMessages.successTitle}
-            </CardTitle>
-            <CardDescription>
-              {importFlow.success.kind === "full"
-                ? importMessages.fullSuccessDescription
-                : importMessages.successDescription}
-            </CardDescription>
+            <CardTitle>{importMessages.fullSuccessTitle}</CardTitle>
+            <CardDescription>{importMessages.fullSuccessDescription}</CardDescription>
           </CardHeader>
           <CardContent>
-            {importFlow.success.kind === "encounter" && importFlow.success.encounterId ? (
-              <Button asChild>
-                <Link to={`/encounters/${importFlow.success.encounterId}`}>
-                  {importMessages.goToEncounter}
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild variant="secondary">
-                <Link to="/">{importMessages.goToHome}</Link>
-              </Button>
-            )}
+            <Button asChild variant="secondary">
+              <Link to="/">{importMessages.goToHome}</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : null}

@@ -2,68 +2,91 @@ import { describe, expect, it } from "vitest";
 
 import { encounterInputSchema, encounterSchema } from "@/domain/encounter";
 
+function makeBaseEncounter(overrides: Partial<Record<string, unknown>> = {}) {
+  const start = new Date("2026-05-02T10:00:00.000Z").toISOString();
+  const end = new Date("2026-05-02T11:00:00.000Z").toISOString();
+  const now = new Date().toISOString();
+
+  return {
+    id: crypto.randomUUID(),
+    projectId: crypto.randomUUID(),
+    name: "Sesión del lunes",
+    startsAt: start,
+    endsAt: end,
+    participantIds: [crypto.randomUUID(), crypto.randomUUID()],
+    archivedAt: "",
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
 describe("encounter domain schemas", () => {
-  it("accepts a valid encounter with form snapshot", () => {
-    const now = new Date().toISOString();
-    const result = encounterSchema.safeParse({
-      id: crypto.randomUUID(),
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      formVersion: 2,
-      fieldIds: [crypto.randomUUID(), crypto.randomUUID()],
-      activity: "Juego de roles",
-      startedAt: now,
-      endedAt: "",
-      createdAt: now,
-      updatedAt: now,
-    });
+  it("accepts a valid post-event encounter", () => {
+    const result = encounterSchema.safeParse(makeBaseEncounter());
 
     expect(result.success).toBe(true);
   });
 
-  it("rejects duplicated field ids", () => {
-    const repeatedId = crypto.randomUUID();
-    const result = encounterSchema.safeParse({
-      id: crypto.randomUUID(),
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      formVersion: 1,
-      fieldIds: [repeatedId, repeatedId],
-      activity: "Encuentro",
-      startedAt: new Date().toISOString(),
-      endedAt: "",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+  it("rejects duplicated participant ids", () => {
+    const repeated = crypto.randomUUID();
+    const result = encounterSchema.safeParse(
+      makeBaseEncounter({ participantIds: [repeated, repeated] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty participant list", () => {
+    const result = encounterSchema.safeParse(makeBaseEncounter({ participantIds: [] }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects encounter where endsAt is before startsAt", () => {
+    const start = new Date("2026-05-02T11:00:00.000Z").toISOString();
+    const end = new Date("2026-05-02T10:00:00.000Z").toISOString();
+
+    const result = encounterSchema.safeParse(makeBaseEncounter({ startsAt: start, endsAt: end }));
 
     expect(result.success).toBe(false);
   });
 
   it("accepts archivedAt as empty string or datetime", () => {
     const now = new Date().toISOString();
-    const base = {
-      id: crypto.randomUUID(),
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      formVersion: 1,
-      fieldIds: [crypto.randomUUID()],
-      activity: "Encuentro",
-      startedAt: now,
-      endedAt: "",
-      createdAt: now,
-      updatedAt: now,
-    };
 
-    expect(encounterSchema.safeParse({ ...base, archivedAt: "" }).success).toBe(true);
-    expect(encounterSchema.safeParse({ ...base, archivedAt: now }).success).toBe(true);
-    expect(encounterSchema.safeParse({ ...base, archivedAt: "no-date" }).success).toBe(false);
+    expect(encounterSchema.safeParse(makeBaseEncounter({ archivedAt: "" })).success).toBe(true);
+    expect(encounterSchema.safeParse(makeBaseEncounter({ archivedAt: now })).success).toBe(true);
+    expect(encounterSchema.safeParse(makeBaseEncounter({ archivedAt: "no-date" })).success).toBe(
+      false,
+    );
   });
 
-  it("requires activity in input schema", () => {
+  it("rejects empty name in input schema", () => {
+    const start = new Date().toISOString();
+    const end = new Date().toISOString();
+
     const result = encounterInputSchema.safeParse({
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      activity: " ",
+      projectId: crypto.randomUUID(),
+      name: " ",
+      startsAt: start,
+      endsAt: end,
+      participantIds: [crypto.randomUUID()],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("requires non-empty participant list in input schema", () => {
+    const start = new Date().toISOString();
+    const end = new Date().toISOString();
+
+    const result = encounterInputSchema.safeParse({
+      projectId: crypto.randomUUID(),
+      name: "Sesión",
+      startsAt: start,
+      endsAt: end,
+      participantIds: [],
     });
 
     expect(result.success).toBe(false);

@@ -7,7 +7,7 @@ import { generateText } from "@/infra/ai/gemini-client";
 export interface GeminiChronicleInput {
   apiKey: string;
   encounter: Encounter;
-  groupName: string;
+  projectName: string;
   participantsById: Map<string, string>;
   fieldsById: Map<string, Field>;
   observations: Observation[];
@@ -21,14 +21,11 @@ function formatDateTime(value: string): string {
 }
 
 function buildPrompt(input: Omit<GeminiChronicleInput, "apiKey">): string {
-  const { encounter, groupName, participantsById, fieldsById, observations } = input;
+  const { encounter, projectName, participantsById, fieldsById, observations } = input;
 
   const sortedObservations = [...observations].sort((a, b) =>
     a.createdAt.localeCompare(b.createdAt),
   );
-
-  const endedAt =
-    encounter.endedAt && encounter.endedAt !== "" ? formatDateTime(encounter.endedAt) : "En curso";
 
   const observationsText =
     sortedObservations.length === 0
@@ -41,7 +38,7 @@ function buildPrompt(input: Omit<GeminiChronicleInput, "apiKey">): string {
 
             const titleLine = obs.title?.trim() ? `\n   Título: ${obs.title.trim()}` : "";
 
-            const fields = encounter.fieldIds
+            const fields = obs.fieldIds
               .map((fieldId) => {
                 const field = fieldsById.get(fieldId);
                 if (!field) return null;
@@ -66,13 +63,13 @@ function buildPrompt(input: Omit<GeminiChronicleInput, "apiKey">): string {
           .join("\n\n");
 
   return `Sos un asistente especializado en documentación institucional de observaciones de grupos.
-Tu tarea es generar una crónica narrativa en español rioplatense a partir de los datos de un encuentro de observación.
+Tu tarea es generar una crónica narrativa en español rioplatense a partir de los datos de un encuentro de observación que ya ocurrió.
 
 DATOS DEL ENCUENTRO:
-- Actividad: ${encounter.activity}
-- Grupo: ${groupName}
-- Inicio: ${formatDateTime(encounter.startedAt)}
-- Fin: ${endedAt}
+- Encuentro: ${encounter.name}
+- Proyecto: ${projectName}
+- Inicio: ${formatDateTime(encounter.startsAt)}
+- Cierre: ${formatDateTime(encounter.endsAt)}
 - Total de observaciones: ${sortedObservations.length}
 
 OBSERVACIONES REGISTRADAS:

@@ -1,6 +1,8 @@
 import { type Field } from "@/domain/field";
-import { observationSchema, type ObservationValue } from "@/domain/observation";
+import { observationSchema, type Observation, type ObservationValue } from "@/domain/observation";
 import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
+import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
+import { getFormById } from "@/infra/db/repositories/form-repository";
 import {
   createObservation,
   deleteObservation,
@@ -11,8 +13,16 @@ import {
 import { deleteMediaBlob, saveMediaBlob } from "@/infra/media/store";
 import { AppError } from "@/lib/error";
 
-interface ObservationInput {
+interface ObservationCreateInput {
   encounterId: string;
+  formId: string;
+  participantId?: string;
+  title?: string;
+  values: Record<string, unknown>;
+}
+
+interface ObservationUpdateInput {
+  formId: string;
   participantId?: string;
   title?: string;
   values: Record<string, unknown>;
@@ -99,11 +109,40 @@ async function normalizeValues(
   return Object.fromEntries(normalizedEntries) as Record<string, ObservationValue>;
 }
 
-export async function createObservationDefinition(fields: Field[], input: ObservationInput) {
+async function resolveFormSnapshot(
+  formId: string,
+): Promise<{ form: Awaited<ReturnType<typeof getFormById>>; fields: Field[] }> {
+  const form = await getFormById(formId);
+
+  if (!form) {
+    throw new AppError("OBSERVATION_FORM_NOT_FOUND", "Form not found for observation.");
+  }
+
+  if (form.archivedAt && form.archivedAt !== "") {
+    throw new AppError("FORM_ARCHIVED", "Cannot use an archived form for an observation.");
+  }
+
+  const fields = await listFieldsByIds(form.fieldIds);
+
+  return { form, fields };
+}
+
+export async function createObservationDefinition(
+  input: ObservationCreateInput,
+): Promise<Observation> {
+  const { form, fields } = await resolveFormSnapshot(input.formId);
+
+  if (!form) {
+    throw new AppError("OBSERVATION_FORM_NOT_FOUND", "Form not found for observation.");
+  }
+
   const normalizedValues = await normalizeValues(fields, input.values);
 
   return createObservation({
     encounterId: input.encounterId,
+    formId: form.id,
+    formVersion: form.version,
+    fieldIds: form.fieldIds,
     participantId: input.participantId,
     title: normalizeTitle(input.title),
     values: normalizedValues,
@@ -111,15 +150,19 @@ export async function createObservationDefinition(fields: Field[], input: Observ
 }
 
 export async function updateObservationDefinition(
-  fields: Field[],
   observationId: string,
-  input: Omit<ObservationInput, "encounterId">,
-) {
+  input: ObservationUpdateInput,
+): Promise<Observation> {
   const previous = await getObservationById(observationId);
 
   if (!previous) {
     throw new AppError("OBSERVATION_NOT_FOUND", "Observation not found for update.");
   }
+
+  // Re-resolve fields using the snapshot the observation was created with so
+  // updates keep referencing the same form version, even if the live form has
+  // since been edited.
+  const fields = await listFieldsByIds(previous.fieldIds);
 
   const normalizedValues = await normalizeValues(fields, input.values);
   const next = await updateObservation(observationId, {
@@ -162,4 +205,9 @@ export async function deleteObservationDefinition(observationId: string): Promis
 
 export async function listEncounterObservations(encounterId: string) {
   return listObservationsByEncounter(encounterId);
+}
+
+export async function listObservationFormFields(formId: string): Promise<Field[]> {
+  const { fields } = await resolveFormSnapshot(formId);
+  return fields;
 }

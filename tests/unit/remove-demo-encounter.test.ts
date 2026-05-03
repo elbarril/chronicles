@@ -4,9 +4,9 @@ import {
   DEMO_ENCOUNTER_ID,
   DEMO_FIELD_IDS,
   DEMO_FORM_ID,
-  DEMO_GROUP_ID,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_TWO_ID,
+  DEMO_PROJECT_ID,
 } from "@/features/defaults/lib/seed-data";
 import { removeDemoEncounter } from "@/features/defaults/services/defaults-service";
 
@@ -18,7 +18,7 @@ const {
   encountersGetMock,
   encountersDeleteMock,
   participantsBulkDeleteMock,
-  groupsDeleteMock,
+  projectsDeleteMock,
   formsDeleteMock,
   fieldsBulkDeleteMock,
   mediaBulkDeleteMock,
@@ -30,7 +30,7 @@ const {
   encountersGetMock: vi.fn(),
   encountersDeleteMock: vi.fn(),
   participantsBulkDeleteMock: vi.fn(),
-  groupsDeleteMock: vi.fn(),
+  projectsDeleteMock: vi.fn(),
   formsDeleteMock: vi.fn(),
   fieldsBulkDeleteMock: vi.fn(),
   mediaBulkDeleteMock: vi.fn(),
@@ -66,8 +66,8 @@ vi.mock("@/infra/db/client", () => {
       participants: {
         bulkDelete: participantsBulkDeleteMock,
       },
-      groups: {
-        delete: groupsDeleteMock,
+      projects: {
+        delete: projectsDeleteMock,
       },
       forms: {
         delete: formsDeleteMock,
@@ -109,13 +109,15 @@ describe("removeDemoEncounter", () => {
 
     expect(chroniclesBulkDeleteMock).toHaveBeenCalledWith(["chr-1"]);
     expect(observationsBulkDeleteMock).toHaveBeenCalledWith(["obs-1"]);
-    expect(mediaBulkDeleteMock).toHaveBeenCalledWith(["media-audio", "media-img-1", "media-img-2"]);
+    // Order isn't guaranteed by Set iteration in some browsers; assert by content.
+    const deletedMedia = mediaBulkDeleteMock.mock.calls[0]?.[0] ?? [];
+    expect(new Set(deletedMedia)).toEqual(new Set(["media-audio", "media-img-1", "media-img-2"]));
     expect(encountersDeleteMock).toHaveBeenCalledWith(DEMO_ENCOUNTER_ID);
     expect(participantsBulkDeleteMock).toHaveBeenCalledWith([
       DEMO_PARTICIPANT_ONE_ID,
       DEMO_PARTICIPANT_TWO_ID,
     ]);
-    expect(groupsDeleteMock).toHaveBeenCalledWith(DEMO_GROUP_ID);
+    expect(projectsDeleteMock).toHaveBeenCalledWith(DEMO_PROJECT_ID);
     expect(formsDeleteMock).toHaveBeenCalledWith(DEMO_FORM_ID);
     expect(fieldsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_FIELD_IDS]);
   });
@@ -140,7 +142,7 @@ describe("removeDemoEncounter", () => {
       DEMO_PARTICIPANT_ONE_ID,
       DEMO_PARTICIPANT_TWO_ID,
     ]);
-    expect(groupsDeleteMock).toHaveBeenCalledWith(DEMO_GROUP_ID);
+    expect(projectsDeleteMock).toHaveBeenCalledWith(DEMO_PROJECT_ID);
     expect(formsDeleteMock).toHaveBeenCalledWith(DEMO_FORM_ID);
     expect(fieldsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_FIELD_IDS]);
   });

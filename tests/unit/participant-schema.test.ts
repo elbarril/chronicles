@@ -7,7 +7,7 @@ describe("participant domain schemas", () => {
     const now = new Date().toISOString();
     const result = participantSchema.safeParse({
       id: crypto.randomUUID(),
-      groupId: crypto.randomUUID(),
+      projectId: crypto.randomUUID(),
       displayName: "Juan",
       createdAt: now,
       updatedAt: now,
@@ -17,9 +17,9 @@ describe("participant domain schemas", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing group id", () => {
+  it("rejects missing project id", () => {
     const result = participantInputSchema.safeParse({
-      groupId: "",
+      projectId: "",
       displayName: "Juan",
     });
 

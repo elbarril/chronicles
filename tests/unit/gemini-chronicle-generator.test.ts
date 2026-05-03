@@ -11,27 +11,27 @@ vi.mock("@/infra/ai/gemini-client", () => ({
 }));
 
 function makeInput() {
-  const now = new Date().toISOString();
+  const start = new Date("2026-05-02T10:00:00.000Z").toISOString();
+  const end = new Date("2026-05-02T11:00:00.000Z").toISOString();
   const fieldId = crypto.randomUUID();
   const participantId = crypto.randomUUID();
   const encounterId = crypto.randomUUID();
+  const projectId = crypto.randomUUID();
 
   return {
     apiKey: "AIzaTest1234",
     encounter: {
       id: encounterId,
-      groupId: crypto.randomUUID(),
-      formId: crypto.randomUUID(),
-      formVersion: 1,
-      fieldIds: [fieldId],
-      activity: "Taller de pintura",
-      startedAt: now,
-      endedAt: "",
-      createdAt: now,
-      updatedAt: now,
+      projectId,
+      name: "Taller de pintura",
+      startsAt: start,
+      endsAt: end,
+      participantIds: [participantId],
       archivedAt: "",
+      createdAt: start,
+      updatedAt: start,
     },
-    groupName: "Grupo Alfa",
+    projectName: "Proyecto Alfa",
     participantsById: new Map([[participantId, "Ana"]]),
     fieldsById: new Map([
       [
@@ -43,8 +43,8 @@ function makeInput() {
           type: "text" as const,
           required: true,
           config: {},
-          createdAt: now,
-          updatedAt: now,
+          createdAt: start,
+          updatedAt: start,
           archivedAt: "",
         },
       ],
@@ -53,9 +53,12 @@ function makeInput() {
       {
         id: crypto.randomUUID(),
         encounterId,
+        formId: crypto.randomUUID(),
+        formVersion: 1,
+        fieldIds: [fieldId],
         participantId,
         values: { [fieldId]: "Participó activamente" },
-        createdAt: now,
+        createdAt: start,
       },
     ],
   };
@@ -79,7 +82,7 @@ describe("gemini-chronicle-generator", () => {
     expect(callArgs).toBeDefined();
     expect(callArgs.apiKey).toBe("AIzaTest1234");
     expect(callArgs.prompt).toContain("Taller de pintura");
-    expect(callArgs.prompt).toContain("Grupo Alfa");
+    expect(callArgs.prompt).toContain("Proyecto Alfa");
     expect(callArgs.prompt).toContain("Ana");
     expect(callArgs.prompt).toContain("Participó activamente");
   });
@@ -90,7 +93,12 @@ describe("gemini-chronicle-generator", () => {
     const input = makeInput();
     const imageFieldId = crypto.randomUUID();
 
-    input.encounter.fieldIds.push(imageFieldId);
+    const firstObs = input.observations[0];
+    if (firstObs) {
+      firstObs.fieldIds = [...firstObs.fieldIds, imageFieldId];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (firstObs.values as any)[imageFieldId] = { mediaId: crypto.randomUUID() };
+    }
 
     input.fieldsById.set(imageFieldId, {
       id: imageFieldId,
@@ -103,11 +111,6 @@ describe("gemini-chronicle-generator", () => {
       updatedAt: new Date().toISOString(),
       archivedAt: "",
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    const firstObs = input.observations[0];
-    if (firstObs) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (firstObs.values as any)[imageFieldId] = { mediaId: crypto.randomUUID() };
-    }
 
     await generateChronicleWithGemini(input);
 

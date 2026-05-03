@@ -6,7 +6,7 @@ import { formatObservationValueAsText } from "@/features/observations/lib/format
 
 interface EncounterTimelineProps {
   observations: Observation[];
-  fields: Field[];
+  fieldsById: Map<string, Field>;
   participantById: Map<string, string>;
   onEdit: (observation: Observation) => void;
   onDelete: (observationId: string) => Promise<void>;
@@ -23,7 +23,7 @@ function formatDate(value: string): string {
 
 export function EncounterTimeline({
   observations,
-  fields,
+  fieldsById,
   participantById,
   onEdit,
   onDelete,
@@ -36,11 +36,13 @@ export function EncounterTimeline({
     );
   }
 
-  const fieldsById = new Map(fields.map((field) => [field.id, field]));
-
   return (
     <ul className="space-y-3">
       {observations.map((observation) => {
+        const observationFields = observation.fieldIds
+          .map((fieldId) => fieldsById.get(fieldId))
+          .filter((field): field is Field => Boolean(field));
+
         const scalarEntries = Object.entries(observation.values).filter(([fieldId]) => {
           const field = fieldsById.get(fieldId);
           return !field || !MEDIA_FIELD_TYPES.has(field.type);
@@ -78,7 +80,7 @@ export function EncounterTimeline({
               </dl>
             ) : null}
 
-            <ObservationMediaList fields={fields} values={observation.values} />
+            <ObservationMediaList fields={observationFields} values={observation.values} />
 
             <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
               <Button

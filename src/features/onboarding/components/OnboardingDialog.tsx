@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getChronicleForEncounter } from "@/features/chronicles/services/chronicle-service";
+import { DEMO_PROJECT_SEED } from "@/features/defaults/lib/seed-data";
 import {
   removeDemoEncounter,
   seedDemoEncounter,
@@ -30,6 +31,8 @@ const INTRO_COUNT = INTRO_STEPS.length;
 type CardPosition = "top" | "bottom";
 
 type TutorialContext = {
+  /** Demo project id (fixed UUID), set after seeding succeeds. */
+  demoProjectId?: string;
   /** Demo encounter id (fixed UUID), set after seeding succeeds. */
   demoEncounterId?: string;
   /** Demo chronicle id, looked up after the demo seed runs. */
@@ -223,11 +226,14 @@ function pickCardPosition(element: HTMLElement): CardPosition {
   return rect.bottom > bottomBandStart ? "top" : "bottom";
 }
 
-/** Replaces `:demoEncounterId` and `:demoChronicleId` placeholders in
- *  the route template with the actual ids the tutorial obtained when
- *  it seeded the demo data. */
+/** Replaces `:demoProjectId`, `:demoEncounterId` and `:demoChronicleId`
+ *  placeholders in the route template with the actual ids the tutorial
+ *  obtained when it seeded the demo data. */
 function resolveRoute(template: string, ctx: TutorialContext): string {
   let resolved = template;
+  if (ctx.demoProjectId) {
+    resolved = resolved.replace(/:demoProjectId/g, ctx.demoProjectId);
+  }
   if (ctx.demoEncounterId) {
     resolved = resolved.replace(/:demoEncounterId/g, ctx.demoEncounterId);
   }
@@ -312,6 +318,7 @@ function useTutorialDemoData(stepIndex: number): TutorialContext {
 
         const chronicle = await getChronicleForEncounter(outcome.encounterId);
         setCtx({
+          demoProjectId: DEMO_PROJECT_SEED.id,
           demoEncounterId: outcome.encounterId,
           demoChronicleId: chronicle?.id,
           ownsDemoData: outcome.created,

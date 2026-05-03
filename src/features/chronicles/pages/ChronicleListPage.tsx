@@ -32,7 +32,7 @@ export function ChronicleListPage(): JSX.Element {
               {chronicleMessages.emptyDescription}
             </p>
             <Button asChild variant="outline" className="mt-4">
-              <Link to="/encounters">{chronicleMessages.goToEncounters}</Link>
+              <Link to="/projects">{chronicleMessages.goToProjects}</Link>
             </Button>
           </section>
         ) : null}

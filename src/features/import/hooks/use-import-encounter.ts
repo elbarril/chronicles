@@ -12,10 +12,7 @@ import { setUserName } from "@/features/settings/services/user-name-service";
 import { AppError } from "@/lib/error";
 
 interface ImportSuccess {
-  kind: "encounter" | "full";
-  /** Set when the import was a per-encounter ZIP, so the caller can offer
-   *  a "go to encounter" link. Empty for full-database imports. */
-  encounterId?: string;
+  kind: "full";
 }
 
 export function useImportEncounter() {
@@ -63,20 +60,13 @@ export function useImportEncounter() {
     try {
       await confirmImport(preview);
 
-      if (preview.kind === "full") {
-        if (preview.preview.data.brandColor) {
-          setBrandColor(preview.preview.data.brandColor as BrandColor);
-        }
-        if (preview.preview.data.exportedBy) {
-          setUserName(preview.preview.data.exportedBy);
-        }
-        setSuccess({ kind: "full" });
-      } else {
-        setSuccess({
-          kind: "encounter",
-          encounterId: preview.preview.data.encounter.id,
-        });
+      if (preview.preview.data.brandColor) {
+        setBrandColor(preview.preview.data.brandColor as BrandColor);
       }
+      if (preview.preview.data.exportedBy) {
+        setUserName(preview.preview.data.exportedBy);
+      }
+      setSuccess({ kind: "full" });
 
       toast.success(importMessages.importSuccess);
     } catch (cause) {

@@ -11,15 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { type Observation } from "@/domain/observation";
-import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
 import { EncounterHeader } from "@/features/encounters/components/EncounterHeader";
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
-import { encounterMessages } from "@/features/encounters/lib/messages";
 import { ObservationForm } from "@/features/observations/components/ObservationForm";
 import { useObservationActions } from "@/features/observations/hooks/use-observation-actions";
-import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
 
 export function EncounterDetailPage(): JSX.Element {
   const params = useParams();
@@ -28,10 +25,10 @@ export function EncounterDetailPage(): JSX.Element {
   const encounterId = params.id ?? "";
   const isObservationNewRoute = location.pathname.endsWith("/observations/new");
 
-  const { encounter, fields, participants, observations, isLoading } = useEncounter(encounterId);
+  const { encounter, project, fields, participants, observations, isLoading } =
+    useEncounter(encounterId);
   const encounterActions = useEncounterActions();
-  const chronicleActions = useChronicleActions();
-  const observationActions = useObservationActions(fields);
+  const observationActions = useObservationActions();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingObservation, setEditingObservation] = useState<Observation | undefined>();
@@ -41,13 +38,7 @@ export function EncounterDetailPage(): JSX.Element {
     [participants],
   );
 
-  async function handleFinishEncounter(): Promise<void> {
-    if (!encounter) {
-      return;
-    }
-
-    await encounterActions.finish(encounter.id);
-  }
+  const fieldsById = useMemo(() => new Map(fields.map((field) => [field.id, field])), [fields]);
 
   async function handleArchiveEncounter(): Promise<void> {
     if (!encounter) {
@@ -66,6 +57,7 @@ export function EncounterDetailPage(): JSX.Element {
   }
 
   async function handleSubmitObservation(values: {
+    formId: string;
     participantId?: string;
     title?: string;
     values: Record<string, unknown>;
@@ -75,10 +67,16 @@ export function EncounterDetailPage(): JSX.Element {
     }
 
     if (editingObservation) {
-      await observationActions.update(editingObservation.id, values);
+      await observationActions.update(editingObservation.id, {
+        formId: editingObservation.formId,
+        participantId: values.participantId,
+        title: values.title,
+        values: values.values,
+      });
     } else {
       await observationActions.create({
         encounterId: encounter.id,
+        formId: values.formId,
         participantId: values.participantId,
         title: values.title,
         values: values.values,
@@ -91,15 +89,6 @@ export function EncounterDetailPage(): JSX.Element {
     if (isObservationNewRoute) {
       navigate(`/encounters/${encounter.id}`, { replace: true });
     }
-  }
-
-  async function handleGenerateChronicle(): Promise<void> {
-    if (!encounter) {
-      return;
-    }
-
-    const chronicle = await chronicleActions.generate(encounter.id);
-    navigate(`/chronicles/${chronicle.id}`);
   }
 
   if (!params.id) {
@@ -119,37 +108,36 @@ export function EncounterDetailPage(): JSX.Element {
         <p className="text-muted-foreground text-sm">
           No pudimos encontrar este encuentro. Puede haber sido eliminado.
         </p>
-        <Button type="button" variant="secondary" onClick={() => navigate("/encounters")}>
-          Volver a encuentros
+        <Button type="button" variant="secondary" onClick={() => navigate("/projects")}>
+          Volver a proyectos
         </Button>
       </section>
     );
   }
 
+  const projectName = project?.name ?? "Proyecto";
+  const backToProjectTarget = project ? `/projects/${project.id}` : "/projects";
+
   return (
     <section className="space-y-6" aria-labelledby="encounter-detail-title">
       <nav aria-label="Migas de pan">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/encounters">← Volver a encuentros</Link>
+          <Link to={backToProjectTarget}>← Volver al proyecto</Link>
         </Button>
       </nav>
 
       <EncounterHeader
         encounter={encounter}
+        projectName={projectName}
         participantCount={participants.length}
-        onFinish={handleFinishEncounter}
-        onGenerateChronicle={handleGenerateChronicle}
+        observationCount={observations.length}
         onArchive={handleArchiveEncounter}
         onRestore={handleRestoreEncounter}
-        isGeneratingChronicle={chronicleActions.isGenerating}
-        generateChronicleLabel={encounterMessages.generateChronicleButton}
-        generatingChronicleLabel={encounterMessages.generatingChronicleButton}
-        aiStatusSlot={<AiKeyStatusBadge />}
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 id="encounter-detail-title" className="text-xl font-semibold">
-          Timeline de observaciones
+          Observaciones del encuentro
         </h2>
         <Button
           type="button"
@@ -167,7 +155,7 @@ export function EncounterDetailPage(): JSX.Element {
       <div data-tour="encounter.detail.observations-list">
         <EncounterTimeline
           observations={observations}
-          fields={fields}
+          fieldsById={fieldsById}
           participantById={participantById}
           onEdit={(observation) => {
             setEditingObservation(observation);
@@ -194,13 +182,12 @@ export function EncounterDetailPage(): JSX.Element {
               {editingObservation ? "Editar observación" : "Nueva observación"}
             </DialogTitle>
             <DialogDescription>
-              Registrá una observación asociada al encuentro en curso.
+              Elegí el formulario y registrá lo que viste durante el encuentro.
             </DialogDescription>
           </DialogHeader>
 
           <div data-tour="encounter.detail.observation-form">
             <ObservationForm
-              fields={fields}
               participants={participants.map((participant) => ({
                 id: participant.id,
                 displayName: participant.displayName,

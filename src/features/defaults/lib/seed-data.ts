@@ -223,14 +223,14 @@ export const DEMO_FORM_SEED: Pick<ObservationForm, "id" | "name" | "fieldIds"> =
   fieldIds: [...DEMO_FIELD_IDS],
 };
 
-export const DEMO_GROUP_ID = "00000000-0000-4000-8000-00000000d211";
+export const DEMO_PROJECT_ID = "00000000-0000-4000-8000-00000000d211";
 export const DEMO_PARTICIPANT_ONE_ID = "00000000-0000-4000-8000-00000000d311";
 export const DEMO_PARTICIPANT_TWO_ID = "00000000-0000-4000-8000-00000000d312";
 export const DEMO_ENCOUNTER_ID = "00000000-0000-4000-8000-00000000d411";
 
-export const DEMO_GROUP_SEED = {
-  id: DEMO_GROUP_ID,
-  name: "Grupo de prueba",
+export const DEMO_PROJECT_SEED = {
+  id: DEMO_PROJECT_ID,
+  name: "Proyecto de prueba",
 } as const;
 
 export const DEMO_PARTICIPANT_SEEDS = [
@@ -240,6 +240,5 @@ export const DEMO_PARTICIPANT_SEEDS = [
 
 export const DEMO_ENCOUNTER_SEED = {
   id: DEMO_ENCOUNTER_ID,
-  formId: DEMO_FORM_ID,
-  activity: "Actividad de prueba",
+  name: "Encuentro de prueba",
 } as const;

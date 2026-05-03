@@ -3,7 +3,7 @@ import { db } from "@/infra/db/client";
 export interface DataStatusCounts {
   fields: number;
   forms: number;
-  groups: number;
+  projects: number;
   encounters: number;
   observations: number;
   chronicles: number;
@@ -15,10 +15,10 @@ export interface DataStatus {
 }
 
 export async function getDataStatus(): Promise<DataStatus> {
-  const [fields, forms, groups, encounters, observations, chronicles] = await Promise.all([
+  const [fields, forms, projects, encounters, observations, chronicles] = await Promise.all([
     db.fields.count(),
     db.forms.count(),
-    db.groups.count(),
+    db.projects.count(),
     db.encounters.count(),
     db.observations.count(),
     db.chronicles.count(),
@@ -27,13 +27,13 @@ export async function getDataStatus(): Promise<DataStatus> {
   const counts: DataStatusCounts = {
     fields,
     forms,
-    groups,
+    projects,
     encounters,
     observations,
     chronicles,
   };
 
-  const hasData = fields + forms + groups + encounters + observations + chronicles > 0;
+  const hasData = fields + forms + projects + encounters + observations + chronicles > 0;
 
   return { counts, hasData };
 }

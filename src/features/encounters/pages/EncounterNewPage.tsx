@@ -1,69 +1,96 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { type EncounterInput } from "@/domain/encounter";
 import { EncounterForm } from "@/features/encounters/components/EncounterForm";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
 import { getDefaultEncounterInput } from "@/features/encounters/lib/encounter-defaults";
-import { listEncounterCreateDependencies } from "@/features/encounters/services/encounter-service";
+import {
+  getProjectDefinition,
+  type ProjectWithParticipants,
+} from "@/features/projects/services/project-service";
 
 export function EncounterNewPage(): JSX.Element {
   const navigate = useNavigate();
+  const params = useParams();
+  const projectId = params.projectId ?? "";
   const actions = useEncounterActions();
-  const defaultValues = useMemo(() => getDefaultEncounterInput(), []);
+  const [project, setProject] = useState<ProjectWithParticipants | null | undefined>(undefined);
 
-  const [isLoadingDependencies, setIsLoadingDependencies] = useState(true);
-  const [dependencies, setDependencies] = useState<
-    Awaited<ReturnType<typeof listEncounterCreateDependencies>>
-  >({
-    groups: [],
-    forms: [],
-  });
+  const initialValues = useMemo<EncounterInput>(
+    () => getDefaultEncounterInput(projectId),
+    [projectId],
+  );
 
   useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
     let isMounted = true;
 
-    void listEncounterCreateDependencies().then((result) => {
+    void getProjectDefinition(projectId).then((result) => {
       if (!isMounted) {
         return;
       }
 
-      setDependencies(result);
-      setIsLoadingDependencies(false);
+      setProject(result ?? null);
     });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [projectId]);
 
-  async function handleSubmit(values: Parameters<typeof actions.create>[0]) {
-    const encounter = await actions.create(values);
-    navigate(`/encounters/${encounter.id}`);
+  if (!projectId) {
+    return <p className="text-muted-foreground text-sm">Proyecto inválido.</p>;
   }
 
-  if (isLoadingDependencies) {
-    return <p className="text-muted-foreground text-sm">Cargando datos para crear encuentro...</p>;
+  if (project === undefined) {
+    return <p className="text-muted-foreground text-sm">Cargando proyecto...</p>;
   }
 
-  if (dependencies.groups.length === 0 || dependencies.forms.length === 0) {
+  if (!project) {
     return (
-      <section className="space-y-3" aria-labelledby="encounter-new-title">
-        <h1 id="encounter-new-title" className="text-3xl font-bold tracking-tight">
+      <section className="space-y-3" aria-labelledby="encounter-new-missing-title">
+        <h1 id="encounter-new-missing-title" className="text-3xl font-bold tracking-tight">
+          Proyecto no encontrado
+        </h1>
+        <Button type="button" variant="secondary" onClick={() => navigate("/projects")}>
+          Volver a proyectos
+        </Button>
+      </section>
+    );
+  }
+
+  if (project.participants.length === 0) {
+    return (
+      <section className="space-y-3" aria-labelledby="encounter-new-empty-title">
+        <h1 id="encounter-new-empty-title" className="text-3xl font-bold tracking-tight">
           Nuevo encuentro
         </h1>
         <p className="text-muted-foreground text-sm">
-          Necesitás al menos un grupo y un formulario activo para iniciar un encuentro.
+          Este proyecto todavía no tiene participantes. Editalo para sumar al menos uno antes de
+          crear un encuentro.
         </p>
+        <Button asChild variant="secondary">
+          <Link to={`/projects/${project.id}/edit`}>Editar proyecto</Link>
+        </Button>
       </section>
     );
+  }
+
+  async function handleSubmit(values: EncounterInput): Promise<void> {
+    const encounter = await actions.create(values);
+    navigate(`/encounters/${encounter.id}`);
   }
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-new-title">
       <nav aria-label="Migas de pan">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/encounters">← Volver a encuentros</Link>
+          <Link to={`/projects/${project.id}`}>← Volver al proyecto</Link>
         </Button>
       </nav>
 
@@ -72,24 +99,18 @@ export function EncounterNewPage(): JSX.Element {
           Nuevo encuentro
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Elegí grupo, formulario y actividad para empezar la captura de observaciones.
+          Registrá lo que ya pasó: nombre del encuentro, fecha y hora de inicio y cierre, y quiénes
+          participaron.
         </p>
       </header>
 
       <EncounterForm
-        initialValues={defaultValues}
-        groups={dependencies.groups.map((group) => ({
-          id: group.id,
-          name: group.name,
-        }))}
-        forms={dependencies.forms.map((form) => ({
-          id: form.id,
-          name: form.name,
-          version: form.version,
-        }))}
+        initialValues={initialValues}
+        participantsInProject={project.participants}
         isSaving={actions.isSaving}
+        submitLabel="Crear encuentro"
         onSubmit={handleSubmit}
-        onCancel={() => navigate("/encounters")}
+        onCancel={() => navigate(`/projects/${project.id}`)}
       />
     </section>
   );

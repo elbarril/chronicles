@@ -1,77 +1,90 @@
 import { encounterInputSchema, type Encounter, type EncounterInput } from "@/domain/encounter";
-import { type ObservationForm } from "@/domain/form";
+import { type Field } from "@/domain/field";
+import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
 import {
   archiveEncounter,
   createEncounter,
-  finishEncounter,
   getEncounterById,
-  listArchivedEncounters,
-  listEncounterByStatus,
   restoreEncounter,
   updateEncounter,
 } from "@/infra/db/repositories/encounter-repository";
-import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
-import { getFormById, listActiveForms } from "@/infra/db/repositories/form-repository";
+import { listObservationsByEncounter } from "@/infra/db/repositories/observation-repository";
 import {
-  getGroupById,
-  listActiveGroups,
-  listParticipantsByGroup,
-} from "@/infra/db/repositories/group-repository";
+  getProjectById,
+  listParticipantsByProject,
+} from "@/infra/db/repositories/project-repository";
 import { AppError } from "@/lib/error";
 
 function parseEncounterInput(input: EncounterInput): EncounterInput {
   return encounterInputSchema.parse({
     ...input,
-    activity: input.activity.trim(),
+    name: input.name.trim(),
   });
 }
 
-async function resolveEncounterForm(formId: string): Promise<ObservationForm> {
-  const form = await getFormById(formId);
+async function ensureProjectExists(projectId: string): Promise<void> {
+  const project = await getProjectById(projectId);
 
-  if (!form) {
-    throw new AppError("ENCOUNTER_FORM_NOT_FOUND", "Form not found for encounter.");
+  if (!project || (project.archivedAt && project.archivedAt !== "")) {
+    throw new AppError("ENCOUNTER_PROJECT_NOT_FOUND", "Project not found for encounter.");
   }
-
-  if (form.archivedAt && form.archivedAt !== "") {
-    throw new AppError("ENCOUNTER_FORM_ARCHIVED", "Cannot create encounter using archived form.");
-  }
-
-  return form;
 }
 
-async function ensureGroupExists(groupId: string): Promise<void> {
-  const group = await getGroupById(groupId);
+async function ensureParticipantsBelongToProject(
+  projectId: string,
+  participantIds: string[],
+): Promise<void> {
+  if (participantIds.length === 0) {
+    throw new AppError(
+      "ENCOUNTER_PARTICIPANTS_INVALID",
+      "Encounter must have at least one participant.",
+    );
+  }
 
-  if (!group || (group.archivedAt && group.archivedAt !== "")) {
-    throw new AppError("ENCOUNTER_GROUP_NOT_FOUND", "Group not found for encounter.");
+  const participants = await listParticipantsByProject(projectId);
+  const validIds = new Set(participants.map((participant) => participant.id));
+
+  if (!participantIds.every((id) => validIds.has(id))) {
+    throw new AppError(
+      "ENCOUNTER_PARTICIPANTS_INVALID",
+      "Encounter participants must belong to the project.",
+    );
   }
 }
 
 export async function createEncounterDefinition(input: EncounterInput): Promise<Encounter> {
   const parsed = parseEncounterInput(input);
 
-  await ensureGroupExists(parsed.groupId);
-  const form = await resolveEncounterForm(parsed.formId);
+  await ensureProjectExists(parsed.projectId);
+  await ensureParticipantsBelongToProject(parsed.projectId, parsed.participantIds);
 
   return createEncounter({
-    groupId: parsed.groupId,
-    formId: form.id,
-    formVersion: form.version,
-    fieldIds: form.fieldIds,
-    activity: parsed.activity,
-    startedAt: parsed.startedAt ?? new Date().toISOString(),
-    endedAt: "",
+    projectId: parsed.projectId,
+    name: parsed.name,
+    startsAt: parsed.startsAt,
+    endsAt: parsed.endsAt,
+    participantIds: parsed.participantIds,
     archivedAt: "",
   });
 }
 
 export async function updateEncounterDefinition(
   id: string,
-  input: Pick<EncounterInput, "activity">,
+  input: Pick<EncounterInput, "name" | "startsAt" | "endsAt" | "participantIds">,
 ): Promise<Encounter> {
+  const previous = await getEncounterById(id);
+
+  if (!previous) {
+    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found for update.");
+  }
+
+  await ensureParticipantsBelongToProject(previous.projectId, input.participantIds);
+
   const updated = await updateEncounter(id, {
-    activity: input.activity.trim(),
+    name: input.name.trim(),
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    participantIds: input.participantIds,
   });
 
   if (!updated) {
@@ -79,26 +92,6 @@ export async function updateEncounterDefinition(
   }
 
   return updated;
-}
-
-export async function finishEncounterDefinition(id: string): Promise<Encounter> {
-  const finished = await finishEncounter(id);
-
-  if (!finished) {
-    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found for finish.");
-  }
-
-  return finished;
-}
-
-export type EncounterListFilter = "inProgress" | "finished" | "archived";
-
-export async function listEncounterDefinitions(filter: EncounterListFilter): Promise<Encounter[]> {
-  if (filter === "archived") {
-    return listArchivedEncounters();
-  }
-
-  return listEncounterByStatus(filter);
 }
 
 export async function archiveEncounterDefinition(id: string): Promise<Encounter> {
@@ -125,50 +118,44 @@ export async function getEncounterDefinition(id: string): Promise<Encounter | un
   return getEncounterById(id);
 }
 
-export async function listEncounterCreateDependencies(): Promise<{
-  groups: Awaited<ReturnType<typeof listActiveGroups>>;
-  forms: Awaited<ReturnType<typeof listActiveForms>>;
-}> {
-  const [groups, forms] = await Promise.all([listActiveGroups(), listActiveForms()]);
-
-  return {
-    groups,
-    forms,
-  };
+export interface EncounterDependencies {
+  encounter: Encounter;
+  project: Awaited<ReturnType<typeof getProjectById>>;
+  participants: Awaited<ReturnType<typeof listParticipantsByProject>>;
+  /** Fields snapshotted by every observation in this encounter, deduped. */
+  fields: Field[];
 }
 
-export async function resolveEncounterFields(encounterId: string) {
+export async function resolveEncounterDependencies(
+  encounterId: string,
+): Promise<EncounterDependencies> {
   const encounter = await getEncounterById(encounterId);
 
   if (!encounter) {
     throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found.");
   }
 
-  const fields = await listFieldsByIds(encounter.fieldIds);
-
-  return {
-    encounter,
-    fields,
-  };
-}
-
-export async function resolveEncounterDependencies(encounterId: string) {
-  const encounter = await getEncounterById(encounterId);
-
-  if (!encounter) {
-    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found.");
-  }
-
-  const [fields, participants, form] = await Promise.all([
-    listFieldsByIds(encounter.fieldIds),
-    listParticipantsByGroup(encounter.groupId),
-    getFormById(encounter.formId),
+  const [project, projectParticipants, observations] = await Promise.all([
+    getProjectById(encounter.projectId),
+    listParticipantsByProject(encounter.projectId),
+    listObservationsByEncounter(encounter.id),
   ]);
 
+  const allFieldIds = new Set<string>();
+  observations.forEach((observation) => {
+    observation.fieldIds.forEach((fieldId) => allFieldIds.add(fieldId));
+  });
+
+  const fields = allFieldIds.size > 0 ? await listFieldsByIds([...allFieldIds]) : [];
+
+  // Restrict participants to the subset that actually attended this encounter.
+  const attendedIds = new Set(encounter.participantIds);
+  const participants = projectParticipants.filter((participant) => attendedIds.has(participant.id));
+
   return {
     encounter,
-    fields,
+    project,
     participants,
-    form,
+    fields,
   };
 }

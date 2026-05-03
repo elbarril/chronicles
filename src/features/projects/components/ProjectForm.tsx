@@ -11,24 +11,24 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { groupInputSchema, type GroupInput } from "@/domain/group";
+import { projectInputSchema, type ProjectInput } from "@/domain/project";
 import { buildResolver } from "@/lib/zod";
 
-interface GroupFormProps {
-  initialValues: GroupInput;
+interface ProjectFormProps {
+  initialValues: ProjectInput;
   isSaving: boolean;
-  onSubmit: (values: GroupInput) => Promise<void>;
+  onSubmit: (values: ProjectInput) => Promise<void>;
   onCancel: () => void;
 }
 
-export function GroupForm({
+export function ProjectForm({
   initialValues,
   isSaving,
   onSubmit,
   onCancel,
-}: GroupFormProps): JSX.Element {
-  const form = useForm<GroupInput>({
-    resolver: buildResolver(groupInputSchema),
+}: ProjectFormProps): JSX.Element {
+  const form = useForm<ProjectInput>({
+    resolver: buildResolver(projectInputSchema),
     defaultValues: initialValues,
   });
 
@@ -58,7 +58,7 @@ export function GroupForm({
     form.setValue("participantNames", next, { shouldValidate: true });
   }
 
-  async function handleSubmit(values: GroupInput): Promise<void> {
+  async function handleSubmit(values: ProjectInput): Promise<void> {
     await onSubmit(values);
   }
 
@@ -69,10 +69,10 @@ export function GroupForm({
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem data-tour="groups.new.name-input">
-              <FormLabel>Nombre del grupo</FormLabel>
+            <FormItem data-tour="projects.new.name-input">
+              <FormLabel>Nombre del proyecto</FormLabel>
               <FormControl>
-                <Input placeholder="Ej: Sala Azul" {...field} />
+                <Input placeholder="Ej: Taller de música" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,7 +89,7 @@ export function GroupForm({
               <section
                 className="space-y-3"
                 aria-labelledby="participants-title"
-                data-tour="groups.new.participants"
+                data-tour="projects.new.participants"
               >
                 <header className="flex items-center justify-between gap-2">
                   <h2 id="participants-title" className="text-base font-semibold">
@@ -145,8 +145,8 @@ export function GroupForm({
         />
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSaving} data-tour="groups.new.save-button">
-            {isSaving ? "Guardando..." : "Guardar grupo"}
+          <Button type="submit" disabled={isSaving} data-tour="projects.new.save-button">
+            {isSaving ? "Guardando..." : "Guardar proyecto"}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancelar
