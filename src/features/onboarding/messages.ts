@@ -42,6 +42,24 @@ const introSteps: OnboardingIntroStep[] = [
 ];
 
 const tourSteps: OnboardingTourStep[] = [
+  // ─── INICIO: SECCIÓN DE ENCUENTROS ────────────────────────────────────
+  {
+    kind: "hub-stop",
+    title: "Encuentros en el inicio",
+    description:
+      "En la página de inicio encontrás todos tus encuentros ordenados por fecha, del más reciente al más lejano. Para crear uno rápido desde acá, usá el botón Nuevo encuentro: te va a pedir elegir el proyecto al que pertenece.",
+    route: "/",
+    target: "home.encounters.section",
+  },
+  {
+    kind: "tour",
+    title: "Crear un encuentro desde el inicio",
+    description:
+      "Este botón abre un selector de proyectos. Elegís el proyecto, y te lleva directo al formulario para registrar el encuentro. Podés usarlo cada vez que llegues al inicio sin necesidad de entrar al detalle del proyecto.",
+    route: "/",
+    target: "home.encounters.new-button",
+  },
+
   // ─── CAMPOS ───────────────────────────────────────────────────────────
   {
     kind: "hub-stop",
