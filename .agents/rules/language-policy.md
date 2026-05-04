@@ -10,7 +10,7 @@ Agents MUST use English for:
 - Code comments, JSDoc/TSDoc
 - All thrown `Error` and `AppError` messages in `src/domain`, `src/infra`, `src/features/**/services/**`, `src/features/**/hooks/**`, `src/lib/**`, `src/app/**`
 - Unit, integration, and E2E test names, descriptions, and assertion messages (except when asserting on specific Spanish UI strings)
-- All files under `.agents/`, `.windsurf/`, `.cursor/`
+- All files under `.agents/`, `.windsurf/`
 - `AGENTS.md`, `README.md`, `docs/**`
 - Git commit messages and branch names
 - Route paths and URL query parameter names/values

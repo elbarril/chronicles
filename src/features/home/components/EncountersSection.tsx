@@ -145,10 +145,7 @@ export function EncountersSection(): JSX.Element {
             aria-label="Lista de encuentros recientes"
           >
             {pageEncounters.map(({ encounter, projectName }) => (
-              <li
-                key={encounter.id}
-                className="bg-card flex flex-col gap-3 rounded-2xl border p-4"
-              >
+              <li key={encounter.id} className="bg-card flex flex-col gap-3 rounded-2xl border p-4">
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <Link
                     to={`/encounters/${encounter.id}`}

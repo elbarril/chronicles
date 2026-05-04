@@ -14,5 +14,6 @@ export const fieldMessages = {
   notFound: "No encontramos el campo a editar.",
   defaultChoiceOption: "Opción 1",
   confirmDeleteTitle: "¿Eliminar campo?",
-  confirmDeleteDescription: "Esta acción es permanente y no se puede deshacer.",
+  confirmDeleteDescription:
+    "Esta acción es permanente. Si algún formulario seguía referenciando este campo, las observaciones que ya lo capturaron mantienen su valor (la observación guarda una copia del campo); pero no vas a poder volver a reutilizarlo en formularios nuevos.",
 } as const;

@@ -14,5 +14,6 @@ export const formMessages = {
   notFound: "No encontramos el formulario.",
   emptyFields: "Agregá al menos un campo antes de guardar.",
   confirmDeleteTitle: "¿Eliminar formulario?",
-  confirmDeleteDescription: "Esta acción es permanente y no se puede deshacer.",
+  confirmDeleteDescription:
+    "Esta acción es permanente. Se eliminarán también todas las observaciones (y los archivos multimedia y crónicas asociadas) que usaban este formulario.",
 } as const;

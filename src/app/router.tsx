@@ -6,8 +6,6 @@ import { ChronicleListPage } from "@/features/chronicles/pages/ChronicleListPage
 import { EncounterChroniclePage } from "@/features/chronicles/pages/EncounterChroniclePage";
 import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
 import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
-import { FieldFormPage } from "@/features/field-definitions/pages/FieldFormPage";
-import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage";
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
 import { HelpPage } from "@/features/help/HelpPage";
@@ -26,18 +24,6 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: <HomePage />,
-      },
-      {
-        path: "/fields",
-        element: <FieldListPage />,
-      },
-      {
-        path: "/fields/new",
-        element: <FieldFormPage />,
-      },
-      {
-        path: "/fields/:id/edit",
-        element: <FieldFormPage />,
       },
       {
         path: "/forms",

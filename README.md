@@ -21,24 +21,26 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 ## Current Roadmap State
 
 - F0 completed (base scaffolding).
-- F1 completed (baseline): Field CRUD with create/edit/archive/list and validations by type.
-- F2 completed (baseline): Observation Form Editor with compose/reorder/version and routes `/forms*`.
+- F1 completed (baseline; refactored in F11): Field CRUD with create/edit/archive/list and validations by type. The dedicated `/fields*` routes were retired in F11; field management now lives inside the form-builder via the `Editar campos` dialog.
+- F2 completed (baseline; updated in F11 to use `FormFieldInstance[]`): Observation Form Editor with compose/reorder/duplicate/version and routes `/forms*`.
 - F3..F8 completed (baseline; superseded by F9 for the encounter / observation / project model — see history in `.agents/memory/decisions.md`).
-- F9 completed (2026-05-02): **Projects refactor + post-event chronicles + per-observation form snapshot + Dexie v7 hard reset**. The `Project` entity replaces `Group`. Encounters are post-event records inside a project (`name`, `startsAt`, `endsAt`, `participantIds[]`). Each observation snapshots its own form (`formId` + `formVersion` + `fieldIds[]`), so a single encounter can mix forms across observations. Chronicle generation is gated to `/encounters/:id/chronicle` (single entry point); the encounter detail surfaces only "Ver crónica". Hub swaps `Grupos`/`Encuentros` for `Proyectos`. Export schema bumped to `chronicle-full-v2`; legacy `chronicle-full-v1` and `chronicle-encounter-v1` are no longer importable.
+- F9 completed (2026-05-02): **Projects refactor + post-event chronicles + per-observation form snapshot + Dexie v7 hard reset**. The `Project` entity replaces `Group`. Encounters are post-event records inside a project (`name`, `startsAt`, `endsAt`, `participantIds[]`). Each observation snapshots its own form (`formId` + `formVersion` + `fieldIds[]`), so a single encounter can mix forms across observations. Chronicle generation is gated to `/encounters/:id/chronicle` (single entry point); the encounter detail surfaces only "Ver crónica". Hub swaps `Grupos`/`Encuentros` for `Proyectos`. Export schema bumped to `chronicle-full-v2`.
+- F10 completed (2026-05-03): **Home encounters section + project-selector modal**.
+- F11 completed (2026-05-03): **Forms + Fields merge + per-instance label overrides + Dexie v8 hard reset + manifest v3**. The `/fields*` routes are gone — fields are managed inside the form-builder through the `Editar campos` dialog. Forms now hold `fields: FormFieldInstance[]` (each instance has `instanceId`, `fieldId`, optional `labelOverride`); the same field can appear more than once in a form, each with its own value. Observations carry their own `fields: FormFieldInstance[]` snapshot and key `values` by `instanceId`. Dexie schema bumped to v8 with a hard reset of `forms`, `observations`, `chronicles` and `media`. Export schema bumped to `chronicle-full-v3`; legacy v1/v2/encounter-v1 are rejected.
 
 ## F1 Module: Fields
 
-- Routes: `/fields`, `/fields/new`, `/fields/:id/edit`.
-- Feature: `src/features/field-definitions/`.
+- Routes: none — managed inside the form-builder via `ManageFieldsDialog` (since F11).
+- Feature assets: `src/features/field-definitions/` (`FieldForm`, `FieldListTable`, `useFields`, `useFieldActions`, repository, messages, defaults).
 - Domain: `src/domain/field.ts` (discriminated model by type).
 - Persistence: `src/infra/db/repositories/field-repository.ts`.
-- Main tests: `tests/unit/field-schema.test.ts`, `tests/e2e/field-crud.spec.ts`.
+- Main tests: `tests/unit/field-schema.test.ts`, plus the form-builder + dialog flows in `tests/e2e/forms-compose.spec.ts` / `tests/e2e/field-crud.spec.ts`.
 
-## F2 Module: Observation Forms
+## F2 Module: Observation Forms (extended in F11)
 
 - Routes: `/forms`, `/forms/new`, `/forms/:id/edit`.
-- Feature: `src/features/forms/`.
-- Domain: `src/domain/form.ts`.
+- Feature: `src/features/forms/` — including `FormBuilder` (instance list with reorder/duplicate/labelOverride) and `ManageFieldsDialog` (field create/edit/archive/restore embedded).
+- Domain: `src/domain/form.ts` (`FormFieldInstance = { instanceId, fieldId, labelOverride? }`; `ObservationForm.fields: FormFieldInstance[]`).
 - Persistence: `src/infra/db/repositories/form-repository.ts`.
 - Main tests: `tests/unit/form-schema.test.ts`, `tests/unit/form-service.test.ts`, `tests/e2e/forms-compose.spec.ts`.
 
@@ -58,20 +60,20 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
   - Unit: `tests/unit/project-schema.test.ts`, refreshed `participant-schema.test.ts`, `encounter-schema.test.ts`, `observation-schema.test.ts`, `chronicle-service.test.ts`, `seed-demo-encounter.test.ts`, `remove-demo-encounter.test.ts`, `full-exporter.test.ts`, `full-importer.test.ts`, `gemini-chronicle-generator.test.ts`, `home.test.tsx`, `help.test.tsx` (covers the three tabs of `/help`), `onboarding-dialog.test.tsx`.
   - E2E: `tests/e2e/projects-crud.spec.ts`, `tests/e2e/encounter-capture.spec.ts`, `tests/e2e/encounter-export-import.spec.ts`, `tests/e2e/chronicle-generation.spec.ts`, `tests/e2e/chronicle-ai-generation.spec.ts`, `tests/e2e/demo-encounter-media.spec.ts`, `tests/e2e/responsive-nav.spec.ts`.
 
-## F4 Module: Export / Import (post-F9 layout)
+## F4 Module: Export / Import (post-F11 layout)
 
 - Global export and import live at `/settings`. The dedicated `/import` route and the per-encounter "Exportar" action are gone (since post-F8); the legacy per-encounter ZIP is no longer importable (since F9).
-- Manifest schema: `chronicle-full-v2` (current). The discriminator (`anyManifestSchema`) only routes to the v2 parser; any other `schema` value yields `IMPORT_SCHEMA_MISMATCH`.
+- Manifest schema: `chronicle-full-v3` (since F11). `assertSupportedManifestSchema(schema)` in `src/infra/export/manifest.ts` rejects v1 / v2 / encounter-v1 / unknown values with `IMPORT_SCHEMA_MISMATCH`. v2 → v3 was not migrated because v2 stored observation values keyed by `fieldId`, which cannot be aligned with the v3 instance-id model without losing data.
 
 ## F5 Module: Chronicle Generation (refresh)
 
 - Generation entry point: `/encounters/:id/chronicle`. Deterministic by default; AI when the user has a Gemini API key configured. The chronicle body now reads `Proyecto: ...` and `Encuentro: ...` instead of group/activity.
 - Global list and detail: `/chronicles`, `/chronicles/:id`.
 
-## F6 Module: Onboarding, Defaults, Help, and App Shell (refresh)
+## F6 Module: Onboarding, Defaults, Help, and App Shell (refresh; updated in F11)
 
-- The onboarding tour walks through Campos → Formularios → Proyectos → ProjectDetail → Encuentro → Observación con form selector → Crónica del encuentro → Configuración → Crónicas globales → Compartir.
-- The demo encounter (`Cargar encuentro de prueba` on `/support`) seeds a demo project + encounter + two observations with mixed forms.
+- Since F11 the onboarding tour starts directly at Formularios (it includes a stop on the embedded `Editar campos` dialog and a stop showcasing instance duplication), then walks Proyectos → ProjectDetail → Encuentro → Observación con form selector → Crónica del encuentro → Configuración → Crónicas globales → Compartir. The legacy Campos hub-stop and `/fields/new` walkthrough were removed.
+- The demo seed (`Cargar encuentro de prueba` on `/support`) seeds a demo project with 13 participants and 8 encounters; the primary encounter holds two observations using two different forms (one covering every field type, one with longText + audio).
 
 ## Working with Agents
 
@@ -98,11 +100,11 @@ pnpm build
 pnpm preview
 ```
 
-## Migrating from pre-F9 builds
+## Migrating from pre-F11 builds
 
-The F9 release is a hard reset of the encounter / observation / project model. Anyone opening Chronicle for the first time on F9 with a pre-F9 IndexedDB will see their `participants`, `encounters`, `observations` and `chronicles` wiped (the legacy `groups` store is dropped entirely). Field, form, media and Settings preferences (theme, brand color, user name, Gemini key) are preserved.
+The F11 release is a hard reset of the form, observation, chronicle and media tables (Dexie v8). Anyone opening Chronicle for the first time on F11 with a pre-F11 IndexedDB will see their `forms`, `observations`, `chronicles` and `media` wiped because their record shapes changed (forms moved from `fieldIds: string[]` to `fields: FormFieldInstance[]`, and observation values are now keyed by `instanceId` instead of `fieldId`). Field definitions, projects, participants, encounters and Settings preferences (theme, brand color, user name, Gemini key) are preserved. The legacy `groups` store remains dropped (since v7).
 
-If you need to keep pre-F9 data around, downgrade temporarily, export the database from `/settings` ("Exportar todo") on the pre-F9 build, and store the resulting `chronicle-full-v1` / `chronicle-encounter-v1` ZIP somewhere safe — but be aware the F9 importer cannot read those files. They remain as historical artefacts only.
+If you need to keep pre-F11 data around, downgrade temporarily, export the database from `/settings` ("Exportar todo") on the pre-F11 build, and store the resulting `chronicle-full-v2` ZIP somewhere safe — but be aware the F11 importer cannot read those files. They remain as historical artefacts only. (For pre-F9 ZIPs, the same applies retroactively: `chronicle-full-v1` and `chronicle-encounter-v1` were already rejected since F9.)
 
 ## Deployment (Vercel)
 

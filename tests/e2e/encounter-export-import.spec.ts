@@ -3,31 +3,17 @@ import { expect, test } from "@playwright/test";
 test("can export everything from settings and import it back", async ({ page }, testInfo) => {
   const suffix = Date.now().toString();
   const projectName = `Proyecto Export ${suffix}`;
-  const fieldName = `Nota Export ${suffix}`;
-  const formName = `Formulario Export ${suffix}`;
+  const formName = "Observación de encuentro";
   const encounterName = `Encuentro Export ${suffix}`;
 
+  // Reuse the seeded default form ("Observación de encuentro") instead
+  // of authoring fields/forms manually; field authoring is covered by
+  // fields-from-form-builder.spec.ts.
   await page.goto("/projects/new");
   await page.getByLabel("Nombre del proyecto").fill(projectName);
   await page.getByPlaceholder("Participante 1").fill("Sofía");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
-
-  await page.goto("/fields/new");
-  await page.getByLabel("Nombre del campo").fill(fieldName);
-  await page.getByLabel("Tipo").selectOption("text");
-  await page.getByRole("button", { name: "Guardar campo" }).click();
-  await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
-
-  await page.goto("/forms/new");
-  await page.getByLabel("Nombre del formulario").fill(formName);
-  const availableFieldsPanel = page.locator("div", { hasText: "Campos disponibles" }).first();
-  await availableFieldsPanel
-    .locator("li", { hasText: fieldName })
-    .locator("button").first()
-    .click();
-  await page.getByRole("button", { name: "Guardar formulario" }).click();
-  await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
 
   await page.goto("/projects");
   await page.getByRole("link", { name: projectName }).first().click();
@@ -39,7 +25,7 @@ test("can export everything from settings and import it back", async ({ page }, 
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(new RegExp(fieldName)).fill("Observación exportable");
+  await page.getByLabel(/Texto de observación/).fill("Observación exportable");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   await page.goto("/settings");

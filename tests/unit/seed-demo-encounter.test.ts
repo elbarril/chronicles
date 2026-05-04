@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_FORM_ID,
   DEMO_ENCOUNTER_ID,
+  DEMO_ENCOUNTER_IDS,
+  DEMO_ENCOUNTER_SEEDS,
   DEMO_FIELD_AUDIO_ID,
   DEMO_FIELD_BOOLEAN_ID,
   DEMO_FIELD_DATE_ID,
@@ -22,7 +24,9 @@ import {
   DEMO_FIELD_VIDEO_ID,
   DEMO_FORM_ID,
   DEMO_FORM_INSTANCE_IDS,
+  DEMO_PARTICIPANT_IDS,
   DEMO_PARTICIPANT_ONE_ID,
+  DEMO_PARTICIPANT_SEEDS,
   DEMO_PARTICIPANT_TWO_ID,
   DEMO_PROJECT_ID,
 } from "@/features/defaults/lib/seed-data";
@@ -184,8 +188,14 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
         id: DEFAULT_FORM_ID,
         name: "Observación de encuentro",
         fields: [
-          { instanceId: "00000000-0000-4000-8000-00000000e001", fieldId: "00000000-0000-4000-8000-00000000d001" },
-          { instanceId: "00000000-0000-4000-8000-00000000e002", fieldId: "00000000-0000-4000-8000-00000000d002" },
+          {
+            instanceId: "00000000-0000-4000-8000-00000000e001",
+            fieldId: "00000000-0000-4000-8000-00000000d001",
+          },
+          {
+            instanceId: "00000000-0000-4000-8000-00000000e002",
+            fieldId: "00000000-0000-4000-8000-00000000d002",
+          },
         ],
         version: 1,
         archivedAt: "",
@@ -205,32 +215,42 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     });
   });
 
-  it("seeds the demo project, encounter, two observations and chronicle when nothing exists", async () => {
+  it("seeds the demo project, all eight encounters, two observations and chronicle when nothing exists", async () => {
     encountersGetMock.mockResolvedValueOnce(undefined);
     projectsGetMock.mockResolvedValue(undefined);
     participantsGetMock.mockResolvedValue(undefined);
 
     const outcome = await seedDemoEncounter();
 
-    expect(outcome).toEqual({ encounterId: DEMO_ENCOUNTER_ID, created: true });
+    expect(outcome).toEqual({
+      projectId: DEMO_PROJECT_ID,
+      encounterId: DEMO_ENCOUNTER_ID,
+      created: true,
+    });
 
     expect(projectsPutMock).toHaveBeenCalledOnce();
     expect(projectsPutMock.mock.calls[0]?.[0].id).toBe(DEMO_PROJECT_ID);
 
-    expect(participantsPutMock).toHaveBeenCalledTimes(2);
+    // All 13 demo participants are written.
+    expect(participantsPutMock).toHaveBeenCalledTimes(DEMO_PARTICIPANT_SEEDS.length);
     const participantIds = participantsPutMock.mock.calls.map((call) => call[0].id);
-    expect(participantIds).toEqual([DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID]);
+    expect(participantIds).toEqual([...DEMO_PARTICIPANT_IDS]);
 
-    expect(encountersPutMock).toHaveBeenCalledOnce();
-    const encounterArg = encountersPutMock.mock.calls[0]?.[0];
-    expect(encounterArg.id).toBe(DEMO_ENCOUNTER_ID);
-    expect(encounterArg.projectId).toBe(DEMO_PROJECT_ID);
-    expect(encounterArg.participantIds).toEqual([DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID]);
-    expect(typeof encounterArg.startsAt).toBe("string");
-    expect(typeof encounterArg.endsAt).toBe("string");
+    // All 8 encounters are written, each with the same 13 attendees.
+    expect(encountersPutMock).toHaveBeenCalledTimes(DEMO_ENCOUNTER_SEEDS.length);
+    const encounterArgs = encountersPutMock.mock.calls.map((call) => call[0]);
+    expect(encounterArgs.map((arg) => arg.id)).toEqual([...DEMO_ENCOUNTER_IDS]);
 
-    // Two observations are created: one with the demo form and one with the
-    // default form, to showcase that an encounter can mix forms.
+    for (const arg of encounterArgs) {
+      expect(arg.projectId).toBe(DEMO_PROJECT_ID);
+      expect(arg.participantIds).toEqual([...DEMO_PARTICIPANT_IDS]);
+      expect(typeof arg.startsAt).toBe("string");
+      expect(typeof arg.endsAt).toBe("string");
+    }
+
+    // Two observations are created on the FIRST encounter: one with the
+    // demo form and one with the default form, to showcase that an
+    // encounter can mix forms.
     expect(createObservationDefinitionMock).toHaveBeenCalledTimes(2);
     const [firstObs, secondObs] = createObservationDefinitionMock.mock.calls.map((call) => call[0]);
     expect(firstObs?.encounterId).toBe(DEMO_ENCOUNTER_ID);
@@ -271,14 +291,14 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     expect(generateChronicleMock).toHaveBeenCalledWith(DEMO_ENCOUNTER_ID);
   });
 
-  it("is idempotent: existing encounter returns without writing observations or chronicle", async () => {
+  it("is idempotent: existing primary encounter returns without writing observations or chronicle", async () => {
     encountersGetMock.mockResolvedValueOnce({
       id: DEMO_ENCOUNTER_ID,
       projectId: DEMO_PROJECT_ID,
-      name: "Encuentro de prueba",
+      name: "Encuentro 1",
       startsAt: isoDate,
       endsAt: isoDate,
-      participantIds: [DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID],
+      participantIds: [...DEMO_PARTICIPANT_IDS],
       archivedAt: "",
       createdAt: isoDate,
       updatedAt: isoDate,
@@ -286,7 +306,11 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
 
     const outcome = await seedDemoEncounter();
 
-    expect(outcome).toEqual({ encounterId: DEMO_ENCOUNTER_ID, created: false });
+    expect(outcome).toEqual({
+      projectId: DEMO_PROJECT_ID,
+      encounterId: DEMO_ENCOUNTER_ID,
+      created: false,
+    });
     expect(projectsPutMock).not.toHaveBeenCalled();
     expect(participantsPutMock).not.toHaveBeenCalled();
     expect(encountersPutMock).not.toHaveBeenCalled();

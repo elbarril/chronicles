@@ -14,5 +14,5 @@ Before taking any action:
 - Define canonical workflows under `.agents/workflows/`.
 - Define canonical rules under `.agents/rules/`.
 - Files in `.windsurf/workflows/` must be lightweight stubs that delegate to `.agents/workflows/`.
-- Files in `.windsurf/rules/` and `.cursor/rules/` must be lightweight bridges that point to `.agents/rules/`.
+- Files in `.windsurf/rules/` must be lightweight bridges that point to `.agents/rules/`.
 - Do not duplicate business logic between canonical `.agents` files and IDE-specific bridge files.

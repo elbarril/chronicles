@@ -26,24 +26,12 @@ description: Create a new canonical rule in .agents/rules/ and its IDE bridges
    Do not duplicate the logic in this file.
    ```
 
-6. If the rule applies to Cursor, create the bridge in `.cursor/rules/<name>.mdc` with minimal content:
+6. Verify consistency: any future rule changes must be made first in `.agents/rules/<name>.md`.
 
-   ```markdown
-   ---
-   description: Bridge to canonical rule in .agents/rules/
-   alwaysApply: true
-   ---
-
-   Follow exactly the instructions defined in `.agents/rules/<name>.md`.
-   Do not duplicate the logic in this file.
-   ```
-
-7. Verify consistency: any future rule changes must be made first in `.agents/rules/<name>.md`.
-
-8. Update `.agents/README.md` if the rule is for general use.
+7. Update `.agents/README.md` if the rule is for general use.
 
 ## Notes
 
 - Canonical rules live in `.agents/rules/`.
-- `.windsurf/rules/` and `.cursor/rules/` are compatibility bridges per IDE.
+- `.windsurf/rules/` is compatibility bridges per IDE.
 - Do not duplicate or diverge content between bridge files and canonical files.

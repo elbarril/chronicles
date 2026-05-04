@@ -115,15 +115,15 @@ type WorkflowStep = {
 
 const workflowSteps: readonly WorkflowStep[] = [
   {
-    title: "1. Definí los campos",
+    title: "1. Armá uno o más formularios de observación",
     description:
-      "Los campos son los datos que querés capturar: una nota corta, un puntaje, una foto, un audio, una fecha, una elección. Los creás una vez y los reutilizás en distintos formularios.",
-    cta: { label: "Ir a campos", to: "/fields" },
+      'Un formulario es un conjunto ordenado de campos: notas, puntajes, fotos, audios, fechas, elecciones. Desde el formulario tenés un botón "Editar campos" que abre un panel para crear, editar o archivar campos sin salirte del flujo. El mismo campo puede aparecer más de una vez en un formulario, cada instancia con su propia etiqueta.',
+    cta: { label: "Ir a formularios", to: "/forms" },
   },
   {
-    title: "2. Armá uno o más formularios de observación",
+    title: "2. Versioná tus formularios sin perder lo viejo",
     description:
-      "Un formulario es un conjunto ordenado de campos. Es la plantilla que vas a completar al cargar cada observación. Si más adelante editás un formulario se guarda una versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
+      "Si más adelante editás un formulario se guarda como una versión nueva, así las observaciones viejas siguen mostrando exactamente la versión con la que se cargaron.",
     cta: { label: "Ir a formularios", to: "/forms" },
   },
   {

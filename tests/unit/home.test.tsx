@@ -39,7 +39,6 @@ describe("Home route", () => {
     expect(nav).toBeInTheDocument();
 
     // Each nav section should render as a link
-    expect(screen.getAllByRole("link", { name: /campos/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /formularios/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /proyectos/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /crónicas/i }).length).toBeGreaterThan(0);
@@ -47,12 +46,13 @@ describe("Home route", () => {
     expect(screen.getAllByRole("link", { name: /soporte/i }).length).toBeGreaterThan(0);
   });
 
-  it("does not include the legacy Grupos and Encuentros tiles", () => {
+  it("does not include the legacy Grupos, Encuentros or Campos tiles", () => {
     renderHome();
 
     const grid = screen.getByRole("navigation", { name: /accesos directos a secciones/i });
     expect(grid).not.toHaveTextContent(/^Grupos$/m);
     expect(grid).not.toHaveTextContent(/^Encuentros$/m);
+    expect(grid).not.toHaveTextContent(/^Campos$/m);
   });
 
   it("nav links point to the correct routes", () => {

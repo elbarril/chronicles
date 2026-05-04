@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEMO_ENCOUNTER_ID,
+  DEMO_ENCOUNTER_IDS,
   DEMO_FIELD_IDS,
   DEMO_FORM_ID,
-  DEMO_PARTICIPANT_ONE_ID,
-  DEMO_PARTICIPANT_TWO_ID,
+  DEMO_PARTICIPANT_IDS,
   DEMO_PROJECT_ID,
 } from "@/features/defaults/lib/seed-data";
 import { removeDemoEncounter } from "@/features/defaults/services/defaults-service";
@@ -15,8 +15,8 @@ const {
   observationsBulkDeleteMock,
   chroniclesWhereMock,
   chroniclesBulkDeleteMock,
-  encountersGetMock,
-  encountersDeleteMock,
+  projectsGetMock,
+  encountersBulkDeleteMock,
   participantsBulkDeleteMock,
   projectsDeleteMock,
   formsDeleteMock,
@@ -27,8 +27,8 @@ const {
   observationsBulkDeleteMock: vi.fn(),
   chroniclesWhereMock: vi.fn(),
   chroniclesBulkDeleteMock: vi.fn(),
-  encountersGetMock: vi.fn(),
-  encountersDeleteMock: vi.fn(),
+  projectsGetMock: vi.fn(),
+  encountersBulkDeleteMock: vi.fn(),
   participantsBulkDeleteMock: vi.fn(),
   projectsDeleteMock: vi.fn(),
   formsDeleteMock: vi.fn(),
@@ -60,13 +60,13 @@ vi.mock("@/infra/db/client", () => {
         bulkDelete: chroniclesBulkDeleteMock,
       },
       encounters: {
-        get: encountersGetMock,
-        delete: encountersDeleteMock,
+        bulkDelete: encountersBulkDeleteMock,
       },
       participants: {
         bulkDelete: participantsBulkDeleteMock,
       },
       projects: {
+        get: projectsGetMock,
         delete: projectsDeleteMock,
       },
       forms: {
@@ -85,23 +85,40 @@ vi.mock("@/infra/db/client", () => {
 describe("removeDemoEncounter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // `observationsWhereMock` and `chroniclesWhereMock` are queried once
+    // per demo encounter id (eight total). Default each query to an empty
+    // result so individual tests only have to override what they need.
+    observationsWhereMock.mockResolvedValue([]);
+    chroniclesWhereMock.mockResolvedValue([]);
   });
 
-  it("wipes the entire demo scenario including media blobs from observations", async () => {
-    encountersGetMock.mockResolvedValueOnce({ id: DEMO_ENCOUNTER_ID });
-    observationsWhereMock.mockResolvedValueOnce([
-      {
-        id: "obs-1",
-        encounterId: DEMO_ENCOUNTER_ID,
-        values: {
-          fAudio: { mediaId: "media-audio" },
-          fImages: { mediaIds: ["media-img-1", "media-img-2"] },
-          fText: "Algo",
-        },
-        createdAt: "2026-04-30T18:00:00.000Z",
-      },
-    ]);
-    chroniclesWhereMock.mockResolvedValueOnce([{ id: "chr-1", encounterId: DEMO_ENCOUNTER_ID }]);
+  it("wipes the entire demo scenario including media blobs from observations on any of the eight encounters", async () => {
+    projectsGetMock.mockResolvedValueOnce({ id: DEMO_PROJECT_ID });
+
+    // Observations only sit on the primary (first) encounter by default.
+    observationsWhereMock.mockImplementation(async (_column: string, value: string) => {
+      if (value === DEMO_ENCOUNTER_ID) {
+        return [
+          {
+            id: "obs-1",
+            encounterId: DEMO_ENCOUNTER_ID,
+            values: {
+              fAudio: { mediaId: "media-audio" },
+              fImages: { mediaIds: ["media-img-1", "media-img-2"] },
+              fText: "Algo",
+            },
+            createdAt: "2026-04-30T18:00:00.000Z",
+          },
+        ];
+      }
+      return [];
+    });
+    chroniclesWhereMock.mockImplementation(async (_column: string, value: string) => {
+      if (value === DEMO_ENCOUNTER_ID) {
+        return [{ id: "chr-1", encounterId: DEMO_ENCOUNTER_ID }];
+      }
+      return [];
+    });
 
     const outcome = await removeDemoEncounter();
 
@@ -112,20 +129,16 @@ describe("removeDemoEncounter", () => {
     // Order isn't guaranteed by Set iteration in some browsers; assert by content.
     const deletedMedia = mediaBulkDeleteMock.mock.calls[0]?.[0] ?? [];
     expect(new Set(deletedMedia)).toEqual(new Set(["media-audio", "media-img-1", "media-img-2"]));
-    expect(encountersDeleteMock).toHaveBeenCalledWith(DEMO_ENCOUNTER_ID);
-    expect(participantsBulkDeleteMock).toHaveBeenCalledWith([
-      DEMO_PARTICIPANT_ONE_ID,
-      DEMO_PARTICIPANT_TWO_ID,
-    ]);
+    // All 8 encounter IDs are bulk-deleted in one go.
+    expect(encountersBulkDeleteMock).toHaveBeenCalledWith([...DEMO_ENCOUNTER_IDS]);
+    expect(participantsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_PARTICIPANT_IDS]);
     expect(projectsDeleteMock).toHaveBeenCalledWith(DEMO_PROJECT_ID);
     expect(formsDeleteMock).toHaveBeenCalledWith(DEMO_FORM_ID);
     expect(fieldsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_FIELD_IDS]);
   });
 
-  it("returns removed:false when nothing matches but still cleans up stable IDs", async () => {
-    encountersGetMock.mockResolvedValueOnce(undefined);
-    observationsWhereMock.mockResolvedValueOnce([]);
-    chroniclesWhereMock.mockResolvedValueOnce([]);
+  it("returns removed:false when no demo project exists but still cleans up stable IDs", async () => {
+    projectsGetMock.mockResolvedValueOnce(undefined);
 
     const outcome = await removeDemoEncounter();
 
@@ -137,11 +150,8 @@ describe("removeDemoEncounter", () => {
     expect(mediaBulkDeleteMock).not.toHaveBeenCalled();
 
     // Stable demo IDs are still attempted in case partial state remains.
-    expect(encountersDeleteMock).toHaveBeenCalledWith(DEMO_ENCOUNTER_ID);
-    expect(participantsBulkDeleteMock).toHaveBeenCalledWith([
-      DEMO_PARTICIPANT_ONE_ID,
-      DEMO_PARTICIPANT_TWO_ID,
-    ]);
+    expect(encountersBulkDeleteMock).toHaveBeenCalledWith([...DEMO_ENCOUNTER_IDS]);
+    expect(participantsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_PARTICIPANT_IDS]);
     expect(projectsDeleteMock).toHaveBeenCalledWith(DEMO_PROJECT_ID);
     expect(formsDeleteMock).toHaveBeenCalledWith(DEMO_FORM_ID);
     expect(fieldsBulkDeleteMock).toHaveBeenCalledWith([...DEMO_FIELD_IDS]);

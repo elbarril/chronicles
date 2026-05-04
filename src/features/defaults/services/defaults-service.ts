@@ -14,13 +14,16 @@ import {
   DEFAULT_FIELD_SEEDS,
   DEFAULT_FORM_SEED,
   DEFAULT_FIELD_IDS,
-  DEMO_ENCOUNTER_SEED,
+  DEMO_ENCOUNTER_ID,
+  DEMO_ENCOUNTER_IDS,
+  DEMO_ENCOUNTER_SEEDS,
   DEMO_FIELD_IDS,
   DEMO_FIELD_SEEDS,
   DEMO_FORM_INSTANCE_IDS,
   DEMO_FORM_SEED,
   DEFAULT_FORM_INSTANCE_AUDIO_ID,
   DEFAULT_FORM_INSTANCE_LONGTEXT_ID,
+  DEMO_PARTICIPANT_IDS,
   DEMO_PROJECT_SEED,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_SEEDS,
@@ -258,25 +261,40 @@ function buildDemoDefaultFormValues(): Record<string, unknown> {
 }
 
 export interface DemoEncounterOutcome {
+  /** ID of the demo project. */
+  projectId: string;
+  /**
+   * ID of the primary demo encounter — the one with pre-populated
+   * observations and the auto-generated chronicle. Kept under this name
+   * so callers (onboarding tour, support page) can navigate to it.
+   */
   encounterId: string;
   created: boolean;
+}
+
+/** Builds an ISO datetime string from a [Y, M, D, h, m] tuple in local time. */
+function localTupleToIso(tuple: readonly [number, number, number, number, number]): string {
+  const [year, monthIndex, day, hour, minute] = tuple;
+  return new Date(year, monthIndex, day, hour, minute, 0, 0).toISOString();
 }
 
 /**
  * Idempotently seeds a comprehensive end-to-end demo:
  *
  * - Demo fields (one per supported type) and a demo form referencing all of them.
- * - A demo project with two participants.
- * - An encounter belonging to the demo project, with start/end times one hour
- *   apart and both participants attending.
- * - Two pre-populated observations with valid content: one using the demo form
- *   (all field types) and one using the default form (text + audio), to show
- *   that a single encounter can mix forms.
- * - A generated chronicle for that encounter.
+ * - A demo project with thirteen participants.
+ * - Eight Thursday encounters (May–July 2026, 17:00–18:15) belonging to
+ *   the demo project, all with every participant attending.
+ * - On the **first** encounter, two pre-populated observations with valid
+ *   content (one using the demo form covering every field type, one using
+ *   the default form) plus an auto-generated chronicle, so the user can
+ *   instantly see the full pipeline working.
+ * - The other seven encounters are intentionally left empty so the user
+ *   can practice loading observations from a realistic starting point.
  *
  * Reusing stable UUIDs guarantees that re-running never duplicates rows;
- * if the demo encounter already exists the seed becomes a no-op so any
- * customisation the user made afterwards is preserved.
+ * if the primary demo encounter already exists the seed becomes a no-op
+ * so any customisation the user made afterwards is preserved.
  */
 export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
   // Keep the basic defaults intact (audio + longText + their form). The
@@ -285,16 +303,18 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
 
   await ensureDemoFieldsAndForm();
 
-  const existing = await db.encounters.get(DEMO_ENCOUNTER_SEED.id);
+  const existingPrimary = await db.encounters.get(DEMO_ENCOUNTER_ID);
 
-  if (existing) {
-    return { encounterId: existing.id, created: false };
+  if (existingPrimary) {
+    return {
+      projectId: DEMO_PROJECT_SEED.id,
+      encounterId: existingPrimary.id,
+      created: false,
+    };
   }
 
-  const now = new Date();
-  const encounterEnd = now.toISOString();
-  const encounterStart = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-  const nowIso = now.toISOString();
+  const nowIso = new Date().toISOString();
+  const allParticipantIds = [...DEMO_PARTICIPANT_IDS];
 
   await db.transaction("rw", db.projects, db.participants, db.encounters, async () => {
     const previousProject = await db.projects.get(DEMO_PROJECT_SEED.id);
@@ -325,27 +345,29 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
       await db.participants.put(participant);
     }
 
-    const encounter: Encounter = encounterSchema.parse({
-      id: DEMO_ENCOUNTER_SEED.id,
-      projectId: project.id,
-      name: DEMO_ENCOUNTER_SEED.name,
-      startsAt: encounterStart,
-      endsAt: encounterEnd,
-      participantIds: [DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID],
-      archivedAt: "",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
+    for (const encounterSeed of DEMO_ENCOUNTER_SEEDS) {
+      const encounter: Encounter = encounterSchema.parse({
+        id: encounterSeed.id,
+        projectId: project.id,
+        name: encounterSeed.name,
+        startsAt: localTupleToIso(encounterSeed.start),
+        endsAt: localTupleToIso(encounterSeed.end),
+        participantIds: allParticipantIds,
+        archivedAt: "",
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
 
-    await db.encounters.put(encounter);
+      await db.encounters.put(encounter);
+    }
   });
 
-  // Pre-populate the encounter with two observations that exercise both
-  // forms, to showcase that an encounter can mix forms across observations.
-  // Done outside the transaction because the observation service also writes
-  // to the media table and runs its own normalisation.
+  // Pre-populate the FIRST encounter with two observations that exercise
+  // both forms, to showcase that an encounter can mix forms across
+  // observations. Done outside the transaction because the observation
+  // service also writes to the media table and runs its own normalisation.
   await createObservationDefinition({
-    encounterId: DEMO_ENCOUNTER_SEED.id,
+    encounterId: DEMO_ENCOUNTER_ID,
     formId: DEMO_FORM_SEED.id,
     participantId: DEMO_PARTICIPANT_ONE_ID,
     title: "Observación con formulario completo",
@@ -353,18 +375,23 @@ export async function seedDemoEncounter(): Promise<DemoEncounterOutcome> {
   });
 
   await createObservationDefinition({
-    encounterId: DEMO_ENCOUNTER_SEED.id,
+    encounterId: DEMO_ENCOUNTER_ID,
     formId: DEFAULT_FORM_SEED.id,
     participantId: DEMO_PARTICIPANT_TWO_ID,
     title: "Observación con el formulario por defecto",
     values: buildDemoDefaultFormValues(),
   });
 
-  // Generate the chronicle so the user can immediately see the full
-  // pipeline (project → encounter → observation → chronicle) without extra clicks.
-  await generateChronicle(DEMO_ENCOUNTER_SEED.id);
+  // Generate the chronicle for the populated encounter so the user can
+  // immediately see the full pipeline (project → encounter → observation
+  // → chronicle) without extra clicks.
+  await generateChronicle(DEMO_ENCOUNTER_ID);
 
-  return { encounterId: DEMO_ENCOUNTER_SEED.id, created: true };
+  return {
+    projectId: DEMO_PROJECT_SEED.id,
+    encounterId: DEMO_ENCOUNTER_ID,
+    created: true,
+  };
 }
 
 export interface DemoEncounterRemovalOutcome {
@@ -374,10 +401,11 @@ export interface DemoEncounterRemovalOutcome {
 /**
  * Removes every entity that was seeded by `seedDemoEncounter`:
  *
- * - The demo chronicle (or any chronicle for the demo encounter).
- * - All observations attached to the demo encounter (media blobs they
- *   reference are cleaned up via the observation service when wiped).
- * - The demo encounter, participants and project.
+ * - All chronicles for any of the demo encounters.
+ * - All observations attached to any demo encounter (media blobs they
+ *   reference are cleaned up too).
+ * - The eight demo encounters, the thirteen demo participants and the
+ *   demo project.
  * - The demo form and the 15 demo fields.
  *
  * The basic defaults (audio + longText fields and the default form)
@@ -385,19 +413,29 @@ export interface DemoEncounterRemovalOutcome {
  * the demo. Re-running the operation after a partial state cleans up
  * whatever still exists, so it is safe to call repeatedly.
  *
- * Returns `{ removed: false }` when the demo encounter does not exist,
- * `{ removed: true }` when at least the demo encounter row was wiped.
+ * Returns `{ removed: false }` when the demo project does not exist,
+ * `{ removed: true }` when at least the demo project row was wiped.
  */
 export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome> {
-  const observations = await db.observations
-    .where("encounterId")
-    .equals(DEMO_ENCOUNTER_SEED.id)
-    .toArray();
+  // Pull observations and chronicles attached to ANY of the eight demo
+  // encounters — the user may have added their own observations on the
+  // empty encounters and we still want to clean those up since they
+  // belong to demo content.
+  const observations = (
+    await Promise.all(
+      DEMO_ENCOUNTER_IDS.map((encounterId) =>
+        db.observations.where("encounterId").equals(encounterId).toArray(),
+      ),
+    )
+  ).flat();
 
-  const chronicles = await db.chronicles
-    .where("encounterId")
-    .equals(DEMO_ENCOUNTER_SEED.id)
-    .toArray();
+  const chronicles = (
+    await Promise.all(
+      DEMO_ENCOUNTER_IDS.map((encounterId) =>
+        db.chronicles.where("encounterId").equals(encounterId).toArray(),
+      ),
+    )
+  ).flat();
 
   // Collect every media id referenced by any of the demo observations,
   // regardless of which form snapshot they belong to.
@@ -420,7 +458,7 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
   const observationIds = observations.map((observation) => observation.id);
   const chronicleIds = chronicles.map((chronicle) => chronicle.id);
 
-  const existingEncounter = await db.encounters.get(DEMO_ENCOUNTER_SEED.id);
+  const existingProject = await db.projects.get(DEMO_PROJECT_SEED.id);
 
   await db.transaction(
     "rw",
@@ -447,9 +485,9 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
         await db.media.bulkDelete([...mediaIds]);
       }
 
-      await db.encounters.delete(DEMO_ENCOUNTER_SEED.id);
+      await db.encounters.bulkDelete([...DEMO_ENCOUNTER_IDS]);
 
-      await db.participants.bulkDelete([DEMO_PARTICIPANT_ONE_ID, DEMO_PARTICIPANT_TWO_ID]);
+      await db.participants.bulkDelete([...DEMO_PARTICIPANT_IDS]);
       await db.projects.delete(DEMO_PROJECT_SEED.id);
 
       await db.forms.delete(DEMO_FORM_SEED.id);
@@ -457,7 +495,7 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
     },
   );
 
-  return { removed: Boolean(existingEncounter) };
+  return { removed: Boolean(existingProject) };
 }
 
 /**

@@ -1,5 +1,6 @@
 import { fieldSchema, type Field, type FieldFormInput } from "@/domain/field";
 import { db } from "@/infra/db/client";
+import { AppError } from "@/lib/error";
 
 function nowIsoString(): string {
   return new Date().toISOString();
@@ -117,7 +118,10 @@ export async function deleteField(id: string): Promise<boolean> {
   }
 
   if (!field.archivedAt || field.archivedAt === "") {
-    throw new Error("FIELD_DELETE_NOT_ARCHIVED");
+    throw new AppError(
+      "FIELD_DELETE_NOT_ARCHIVED",
+      "Field must be archived before it can be deleted.",
+    );
   }
 
   await db.fields.delete(id);

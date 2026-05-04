@@ -84,5 +84,5 @@ When there are trade-offs, prioritize in this order:
 
 - This repo uses `AGENTS.md` as the single source of truth for agents.
 - `.agents/` acts as a tool-agnostic operational layer for runbooks, memory, and templates.
-- Windsurf and Cursor also use native rules in `/.windsurf/rules/` and `/.cursor/rules/`.
+- Windsurf and Cursor also use native rules in `/.windsurf/rules/`.
 - Claude Code, Codex CLI, Aider, and compatible tools can bootstrap by reading this file.

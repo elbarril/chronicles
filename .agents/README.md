@@ -40,7 +40,6 @@ See `.agents/memory/project-context.md` for current project state, active routes
 
 - **Canonical:** workflows and rules live in `.agents/`.
 - **Windsurf/Cascade:** uses bridges in `/.windsurf/rules/` and stubs in `/.windsurf/workflows/` that delegate to `.agents/`.
-- **Cursor:** uses bridges in `/.cursor/rules/` that delegate to `.agents/rules/`.
 - **Claude Code:** uses `AGENTS.md` by convention without an extra bridge file.
 - **Codex CLI / Aider / Jules:** use `AGENTS.md` as the root instruction.
 - **Human Contributors:** use this index as an operational map and `decisions.md` as historical log.

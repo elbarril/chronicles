@@ -9,9 +9,9 @@ export type OnboardingTourStep = {
   title: string;
   description: string;
   /**
-   * Target route. Supports `:demoProjectId`, `:demoEncounterId` and
-   * `:demoChronicleId` placeholders that get resolved at navigation time
-   * using the demo data the tutorial seeds at start.
+   * Target route. Supports `:demoProjectId`, `:demoEncounterId`,
+   * `:demoChronicleId` and `:demoFormId` placeholders that get resolved
+   * at navigation time using the demo data the tutorial seeds at start.
    */
   route: string;
   /** `data-tour` attribute value of the element to highlight. */
@@ -60,62 +60,12 @@ const tourSteps: OnboardingTourStep[] = [
     target: "home.encounters.new-button",
   },
 
-  // ─── CAMPOS ───────────────────────────────────────────────────────────
-  {
-    kind: "hub-stop",
-    title: "Vamos a Campos",
-    description:
-      "Para que el recorrido tenga datos reales, ya creamos por vos un set de prueba completo. Vas a ver todo poblado a medida que avanzamos. Arrancamos por Campos: ese ícono iluminado del hub.",
-    route: "/",
-    target: "hub.fields",
-  },
-  {
-    kind: "tour",
-    title: "Campos: la lista",
-    description:
-      "Esta es la pantalla de campos. Acá ves todos los que ya tenés y podés filtrar entre activos y archivados. Los campos son los pedacitos de información que vas a capturar en cada observación: nota, puntaje, foto, audio, fecha, opciones, etc.",
-    route: "/fields",
-    target: "fields.list-region",
-  },
-  {
-    kind: "tour",
-    title: "Crear un campo",
-    description:
-      "Para sumar un campo nuevo tocás este botón. Vamos a entrar a verlo y describimos cada parte del formulario.",
-    route: "/fields",
-    target: "fields.new-button",
-  },
-  {
-    kind: "tour",
-    title: "Tipo del campo",
-    description:
-      "Lo primero que elegís es el tipo. Eso define cómo se va a comportar el campo en el formulario y qué configuración te pide debajo (opciones, mínimo/máximo, formato de fecha, etc.).",
-    route: "/fields/new",
-    target: "fields.type-selector",
-  },
-  {
-    kind: "tour",
-    title: "Nombre del campo",
-    description:
-      "Acá le ponés el nombre humano que vas a leer en los formularios y observaciones. Algo claro como “Nivel de participación” o “Foto del momento”.",
-    route: "/fields/new",
-    target: "fields.new.name-input",
-  },
-  {
-    kind: "tour",
-    title: "Guardar el campo",
-    description:
-      "Cuando completás los datos, lo guardás con este botón. Listo, el campo queda disponible para sumarlo a cualquier formulario.",
-    route: "/fields/new",
-    target: "fields.save-button",
-  },
-
   // ─── FORMULARIOS ──────────────────────────────────────────────────────
   {
     kind: "hub-stop",
-    title: "Ahora vamos a Formularios",
+    title: "Arrancamos por Formularios",
     description:
-      "Volvemos al hub para entrar al siguiente flujo. El ícono iluminado ahora es el de Formularios.",
+      "Para que el recorrido tenga datos reales, ya creamos por vos un set de prueba completo. Vas a ver todo poblado a medida que avanzamos. Arrancamos por Formularios: ese ícono iluminado del hub.",
     route: "/",
     target: "hub.forms",
   },
@@ -123,7 +73,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Formularios",
     description:
-      "Cada formulario es una plantilla de observación que combina campos en un orden fijo. Cuando editás un formulario se guarda como versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
+      "Cada formulario es una plantilla de observación que agrupa campos en un orden definido. Los campos se crean y editán desde dentro del propio formulario. Cuando editás un formulario se guarda como versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
     route: "/forms",
     target: "forms.list-region",
   },
@@ -138,17 +88,17 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Nombre del formulario",
     description:
-      "Lo primero es ponerle un nombre que lo identifique fácil cuando cargues una observación: por ejemplo “Sesión grupal” o “Observación diaria”.",
+      "Lo primero es ponerle un nombre que lo identifique fácil cuando cargues una observación: por ejemplo \u201cSesión grupal\u201d o \u201cObservación diaria\u201d.",
     route: "/forms/new",
     target: "forms.new.name-input",
   },
   {
     kind: "tour",
-    title: "Combinar campos",
+    title: "Agregar campos al formulario",
     description:
-      "Acá elegís qué campos forman parte del formulario y en qué orden van a aparecer durante la observación. A la izquierda los campos disponibles, a la derecha los seleccionados; podés subirlos, bajarlos o quitarlos.",
+      "Con este botón abrís el panel para gestionar los campos del formulario: podés agregar campos existentes, crear nuevos directamente desde acá, o editar los que ya tenés.",
     route: "/forms/new",
-    target: "forms.new.field-picker",
+    target: "forms.builder.manage-fields",
   },
   {
     kind: "tour",
@@ -157,6 +107,14 @@ const tourSteps: OnboardingTourStep[] = [
       "Cuando tenés el set de campos como querés, guardás con este botón. Si más adelante editás el formulario se va a guardar una versión nueva, sin pisar la que usan las observaciones viejas.",
     route: "/forms/new",
     target: "forms.new.save-button",
+  },
+  {
+    kind: "tour",
+    title: "Usar el mismo campo dos veces",
+    description:
+      "Si querés capturar el mismo tipo de dato más de una vez en una observación (por ejemplo, \u201cFoto antes\u201d y \u201cFoto después\u201d), tocás el botón \u201cDuplicar\u201d junto al campo. Cada instancia tiene su propio rótulo y su propio valor. Te llevamos al formulario de prueba que ya tiene campos cargados para que veas el botón en acción.",
+    route: "/forms/:demoFormId/edit",
+    target: "forms.builder.duplicate-instance",
   },
 
   // ─── PROYECTOS ────────────────────────────────────────────────────────
@@ -187,7 +145,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Nombre del proyecto",
     description:
-      "Le ponés un nombre que identifique al proyecto: por ejemplo “Taller de música”, “Sala Azul” o el nombre del aula.",
+      "Le ponés un nombre que identifique al proyecto: por ejemplo \u201cTaller de música\u201d, \u201cSala Azul\u201d o el nombre del aula.",
     route: "/projects/new",
     target: "projects.new.name-input",
   },
@@ -229,7 +187,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Nombre del encuentro",
     description:
-      "Cuando registrás un encuentro le ponés un nombre claro (por ejemplo “Sesión del lunes”), porque vas a tener varios dentro del mismo proyecto.",
+      "Cuando registrás un encuentro le ponés un nombre claro (por ejemplo \u201cSesión del lunes\u201d), porque vas a tener varios dentro del mismo proyecto.",
     route: "/projects/:demoProjectId/encounters/new",
     target: "encounters.new.name-input",
   },
@@ -303,7 +261,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "tour",
     title: "Generar la crónica",
     description:
-      "En la página de la crónica del encuentro está el botón “Generar crónica”. Si tenés la clave de Gemini configurada sale en prosa narrativa; si no, sale como un resumen estructurado. Acá también podés regenerarla.",
+      "En la página de la crónica del encuentro está el botón \u201cGenerar crónica\u201d. Si tenés la clave de Gemini configurada sale en prosa narrativa; si no, sale como un resumen estructurado. Acá también podés regenerarla.",
     route: "/encounters/:demoEncounterId/chronicle",
     target: "encounter.chronicle.generate",
   },
@@ -380,7 +338,7 @@ const tourSteps: OnboardingTourStep[] = [
     kind: "outro",
     title: "Listo, ya conocés Chronicle",
     description:
-      "Hiciste el recorrido completo: campos → formularios → proyectos → encuentros → observaciones → crónica. Cuando termines este tutorial, los datos de prueba que usamos se borran solos para que arranques con el navegador limpio. Antes de soltarte, te vamos a pedir un nombre para identificarte en los archivos que exportes.",
+      "Hiciste el recorrido completo: formularios → proyectos → encuentros → observaciones → crónica. Cuando termines este tutorial, los datos de prueba que usamos se borran solos para que arranques con el navegador limpio. Antes de soltarte, te vamos a pedir un nombre para identificarte en los archivos que exportes.",
     route: "/",
   },
 ];

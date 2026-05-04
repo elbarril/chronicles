@@ -1,12 +1,4 @@
-import {
-  BookOpen,
-  CircleHelp,
-  ClipboardList,
-  FolderKanban,
-  Settings,
-  Tag,
-  Wrench,
-} from "lucide-react";
+import { BookOpen, CircleHelp, ClipboardList, FolderKanban, Settings, Wrench } from "lucide-react";
 import { Link } from "react-router";
 
 import { EncountersSection } from "@/features/home/components/EncountersSection";
@@ -14,7 +6,6 @@ import { homeMessages } from "@/features/home/messages";
 import { cn } from "@/lib/utils";
 
 const navSections = [
-  { to: "/fields", label: "Campos", Icon: Tag, tourId: "hub.fields" },
   { to: "/forms", label: "Formularios", Icon: ClipboardList, tourId: "hub.forms" },
   { to: "/projects", label: "Proyectos", Icon: FolderKanban, tourId: "hub.projects" },
   { to: "/chronicles", label: "Crónicas", Icon: BookOpen, tourId: "hub.chronicles" },

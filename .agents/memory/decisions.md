@@ -702,3 +702,81 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - The `dataStoragePage` and `howItWorksPage` exports from `src/features/help/messages.ts` are gone. Anyone importing them must move to the new `helpPage` block.
 - `HelpPage` now depends on `useSearchParams`. Tests rendering it must use a router (the existing tests already do; the rewritten `help.test.tsx` follows the same pattern).
 - The `Cómo funciona` entry no longer appears in the home hub or in the mobile nav drawer. The total number of nav entries goes from 9 to 8.
+
+---
+
+## [2026-05-03] F11 — Forms + Fields merge: instances with label overrides, Dexie v8, manifest v3
+
+**Context:** F1 introduced a dedicated `Campos` route to manage Field definitions (`/fields`, `/fields/new`, `/fields/:id/edit`), and F2 wired Forms as ordered lists of `fieldIds` referencing those Fields. After F9 and F10, two recurring pain points became clear:
+
+1. The Practitioner had to context-switch between `/fields` and `/forms` to compose a form. Discovery of where to define a new field — and how to come back — was unintuitive, especially during onboarding.
+2. A field could only appear once per form. Real workflows often need the same field multiple times in a single observation (e.g. "Foto antes" / "Foto después", or two free-text observations with different prompts).
+
+**Decision:** Merge Field management into the form-builder and replace the per-form `fieldIds: string[]` with `fields: FormFieldInstance[]`, where each instance carries a stable `instanceId`, a referenced `fieldId`, and an optional `labelOverride`. Hard-reset Dexie to v8 and bump the export manifest to `chronicle-full-v3`.
+
+Specifically:
+
+1. **Domain.** `src/domain/form.ts` introduces `FormFieldInstance = { instanceId, fieldId, labelOverride? }` (plus a parallel `FormFieldInstanceInput` for form input). `ObservationFormSchema` now has `fields: FormFieldInstance[]`. `src/domain/observation.ts` mirrors the change: `Observation.fields: FormFieldInstance[]`, and `Observation.values: Record<instanceId, ObservationValue>` (was keyed by `fieldId`).
+2. **Persistence.** `src/infra/db/schema.ts` bumped to `DB_VERSION = 8`. The v8 upgrade in `src/infra/db/client.ts` is a hard reset — it clears `forms`, `observations`, `chronicles` and `media` because their stored shapes can no longer be migrated forward. `field-repository.ts` gains a `deleteForm()` helper used during the cleanup paths.
+3. **Form-builder.** `src/features/forms/components/FormBuilder.tsx` was rewritten around an `instances` list. New affordances: a **Duplicar** button per instance (creates a new instance pointing to the same `fieldId` with the same `labelOverride`), a per-instance `labelOverride` text input rendered as a small inline field, and the existing accessible reorder (↑/↓) and remove buttons. The `data-tour` attributes `forms.builder.manage-fields` (on the dialog trigger) and `forms.builder.duplicate-instance` (on the first row's Duplicar button) drive the new tour stops.
+4. **Field management embedded.** New `src/features/forms/components/ManageFieldsDialog.tsx` opens from a `Editar campos` button inside the form-builder. It hosts tabs `Activos` / `Archivados`, a `+ Nuevo campo` button, and a list backed by `useFields("active")` / `useFields("archived")` live queries. Selecting a field switches the dialog into an inline `FieldForm` (same component used by the legacy `/fields/new` page) for create/edit. `FieldListTable` was generalised so callers can pass an optional `onEdit` (renders a button instead of a link to `/fields/:id/edit`) and an optional `onDelete`. The `useFields` hook + `FieldListTable` + `FieldForm` are now reused inside the dialog rather than rendered on a dedicated route.
+5. **Routing & navigation.** `src/app/router.tsx` no longer registers `/fields`, `/fields/new` or `/fields/:id/edit`. The `Campos` entry was removed from `src/app/nav-items.ts` and the `Campos` tile (with its `Tag` icon and `hub.fields` `data-tour`) was removed from `src/features/home/HomePage.tsx`. The unused `FieldListPage.tsx` and `FieldFormPage.tsx` files were deleted.
+6. **Render path.** `ObservationForm.tsx` was rewritten to iterate `instances` and key by `instance.instanceId` (resolving the underlying `Field` via a `Map<fieldId, Field>` once); `EncounterTimeline`, `chronicle-service` and `gemini-chronicle-generator` iterate `observation.fields` and read `values[instance.instanceId]`, falling back through `instance.labelOverride ?? field.label`. `chronicle-input-hash.ts` was updated so the SHA-256 fingerprint is stable across the new shape (and incompatible with v2 hashes — but observations were wiped by the v8 reset anyway).
+7. **Export / Import.** `src/infra/export/manifest.ts` bumps `FULL_MANIFEST_SCHEMA` to `"chronicle-full-v3"` and exports a new `assertSupportedManifestSchema(schema)` helper that throws `AppError("IMPORT_SCHEMA_MISMATCH", …)` for any v1 / v2 / encounter-v1 / unknown manifest. Both `full-importer.ts` and `import-service.ts` call it before parsing. v2 → v3 migration was explicitly **rejected**: v2 stored values keyed by `fieldId`, and reconstructing `instanceId`s would require fabricating UUIDs without preserving any stable reference, which would silently misalign data.
+8. **Demo & defaults.** `src/features/defaults/lib/seed-data.ts` introduces `DEFAULT_FORM_INSTANCE_AUDIO_ID`, `DEFAULT_FORM_INSTANCE_LONGTEXT_ID` and `DEMO_FORM_INSTANCE_IDS`, and `DEFAULT_FORM_SEED` / `DEMO_FORM_SEED` use `fields: FormFieldInstance[]`. `defaults-service.ts` produces demo observation values keyed by instance id.
+9. **Onboarding tour.** `src/features/onboarding/messages.ts` drops the entire Campos block (hub-stop + 5 tour steps walking the practitioner through `/fields/new`) and adds two new steps inside the Formularios block: `forms.builder.manage-fields` (introduces the embedded `Editar campos` dialog) and `forms.builder.duplicate-instance` (showcases the new "use the same field twice" feature). The outro copy was updated to reflect the new flow ("formularios → proyectos → encuentros → observaciones → crónica"). The corresponding unit test (`tests/unit/onboarding-dialog.test.tsx`) was rewritten to remove the obsolete Campos route stubs and to assert the new "Arrancamos por Formularios" hub-stop.
+10. **Tests.** `tests/unit/home.test.tsx` no longer expects the `Campos` link in the hub and explicitly asserts its absence. `tests/unit/observation-media-list.test.tsx` was rewritten to use `instances` + `fieldsById`. The full E2E suite was retargeted off `/fields*`: `forms-compose.spec.ts` exercises the embedded `Editar campos` dialog, `field-crud.spec.ts` was rewritten to drive that dialog, and the chronicle / encounter / responsive-nav specs use the seeded default fields and form rather than creating fresh ones.
+
+**Justification:**
+
+- **Single workspace for form composition.** The Practitioner now creates, picks, reorders, duplicates and labels fields without leaving the form-builder. Onboarding is shorter (two fewer hub-stops) and discovery friction drops.
+- **Multiple instances of a field per form** is the simplest possible domain change that unlocks the "before/after" / "first/second observation" patterns observed in real workflows. Each instance is independently versioned with the form, has its own value bucket on every observation, and its own label override — so the chronicle prose can read "Foto antes: …" and "Foto después: …" instead of two ambiguous "Foto" headings.
+- **Hard reset over migration.** v2 stored `Observation.values` keyed by `fieldId`. The v3 model keys them by `instanceId`. Any deterministic migration would need to invent `instanceId`s, which would silently break the `Chronicle.inputHash` cache and the chronicle prose. The v8 reset is the same kind of trade-off F9 took for `groups`: documented up-front, surfaced via the `/support` "Importar" path before users on older builds upgrade.
+- **No third-party dependencies added.** `crypto.randomUUID()` (already a project convention) generates `instanceId`s on the fly. Zod, Dexie, and React Hook Form continue as before.
+
+**Consequences:**
+
+- Anyone bookmarking `/fields`, `/fields/new` or `/fields/:id/edit` will hit the 404 page. Field management is reachable only from inside `/forms/new` or `/forms/:id/edit` via the `Editar campos` dialog.
+- Pre-F11 IndexedDB databases will be reset on first open: forms, observations, chronicles and media are wiped (v8 hard reset). Field, project, participant, encounter and Settings preferences (theme, brand color, user name, Gemini key) are preserved.
+- Pre-F11 `chronicle-full-v2` exports cannot be imported on F11. The importer now rejects v1, v2 and encounter-v1 with `IMPORT_SCHEMA_MISMATCH`. Users who need to keep pre-F11 data should keep the v2 ZIPs as historical artefacts; they will not round-trip on F11.
+- The total number of nav entries drops from 8 to 7 (F11 removes `Campos`).
+- Future field-related UX (search, drag-and-drop reorder of instances, bulk duplicate) can extend the `FormBuilder` and `ManageFieldsDialog` without touching the router.
+- Any future feature that needs to refer to a specific field within a specific form must use `instanceId` (not `fieldId`) as the stable key — including chronicle prose, AI prompts, and any custom analytics.
+
+---
+
+## [2026-05-03] Post-F11 audit fixes — close stale `/fields` links and align language policy
+
+**Context:** F11 was implemented across two commits (the in-tree mega-commit `e611e96` and the uncommitted continuation that removes the `/fields*` routes, ships the 13/8 demo seed and bumps the manifest to `chronicle-full-v3`). An end-to-end audit surfaced several inconsistencies that survived the merge: dead `/fields` links in the help guide and the field empty-state, a tour spotlight pointing to a button that did not exist on a brand-new form, a `throw new Error` in `field-repository`, and Spanish copy thrown from `assertSupportedManifestSchema` (which violated the language policy).
+
+**Decision:**
+
+1. **Help guide.** `workflowSteps[0]` no longer links to `/fields`. The first step now describes how to start a form (with the embedded `Editar campos` dialog) and the second step covers form versioning. The `/help` route is the only remaining surface that referenced `/fields`, so this closes the last 404.
+2. **`FieldListTable.onCreate`.** The empty-state CTA (`Crear primer campo`) now accepts an `onCreate?` callback. `ManageFieldsDialog` passes one that switches the dialog to its inline `mode: "create"` view; the legacy `Link to="/fields/new"` is kept only as a no-op fallback that no live consumer hits anymore.
+3. **`forms.builder.duplicate-instance` tour stop.** The step is rerouted to `/forms/:demoFormId/edit` (the seeded demo form, which has fifteen instances) so the spotlight always finds its target. `OnboardingDialog` gains a `:demoFormId` placeholder resolver and the tutorial seed now exposes `demoFormId` as part of the `TutorialContext`.
+4. **`deleteFormCascade`.** Replaces the previous `deleteForm` call from `form-service`. It deletes every observation that snapshots the form and the media blobs they reference, in a single transaction; chronicles are intentionally preserved because they may describe other forms in the same encounter and regenerate via the input-hash mechanism. The `Form` confirm-dialog copy now mirrors `Project` / `Encounter` and explains the cascade.
+5. **`field-repository.deleteField`.** Throws `AppError("FIELD_DELETE_NOT_ARCHIVED", "...")` instead of a native `Error`, so the UI can map the code to the existing `fieldMessages.deleteNotArchived` toast.
+6. **`assertSupportedManifestSchema`.** Its messages return to English, per `.agents/rules/language-policy.md`. The UI keeps using `IMPORT_SCHEMA_MISMATCH` to map to `importMessages.schemaError`. `LEGACY_SCHEMAS` now includes `chronicle-encounter-v1` so that legacy schema gets the same descriptive branch instead of the generic "unknown manifest" one.
+
+**Where:**
+
+- `src/features/help/messages.ts` and `tests/unit/help.test.tsx`
+- `src/features/field-definitions/components/FieldListTable.tsx` and `src/features/forms/components/ManageFieldsDialog.tsx`
+- `src/features/onboarding/messages.ts`, `src/features/onboarding/components/OnboardingDialog.tsx` and `tests/unit/onboarding-dialog.test.tsx`
+- `src/infra/db/repositories/form-repository.ts` and `src/features/forms/services/form-service.ts`
+- `src/features/forms/lib/messages.ts` and `src/features/field-definitions/lib/messages.ts`
+- `src/infra/db/repositories/field-repository.ts`
+- `src/infra/export/manifest.ts`
+- `docs/stack-and-architecture.md` (stale `fieldIds[] snapshot` comment) and `src/features/defaults/lib/seed-data.ts` (stale `d2xx groups` namespace comment)
+
+**Justification:**
+
+- Every `404` reachable from in-product navigation is a regression in user trust; the audit found three of them surviving F11 and the fix-up closes them all.
+- Honouring the language policy at the service boundary keeps `messages.ts` as the single source of user-facing copy and lets future UIs (or a re-import preview) reuse the same code without inheriting a hardcoded Spanish string.
+- A cascading `deleteFormCascade` brings forms in line with the cascading semantics already in place for projects and encounters; without it, a destructive action on a form left observations dangling against a missing form id.
+
+**Consequences:**
+
+- The demo seed must always succeed before the tour reaches the duplicate-instance stop. If the seed fails (typically only in tests with a stubbed db), the placeholder route still resolves to `/` and the spotlight gracefully gives up — same fallback as the other `:demo*` placeholders.
+- Users who previously bookmarked `/help?tab=funcionamientos` and clicked through the legacy "Ir a campos" CTA will land on `/forms` instead of a 404. Anyone bookmarking `/fields*` directly still hits the 404 page; that is the intentional F11 outcome and is not changed by this fix-up.
+- `deleteFormCascade` is irreversible. The confirmation dialog now describes the cascade, so the destructive action remains explicit.

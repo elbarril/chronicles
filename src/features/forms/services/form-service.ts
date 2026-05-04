@@ -7,7 +7,7 @@ import { listActiveFields } from "@/infra/db/repositories/field-repository";
 import {
   archiveForm,
   createForm,
-  deleteForm,
+  deleteFormCascade,
   getFormById,
   isFormNameUnique,
   listActiveForms,
@@ -91,7 +91,7 @@ export async function deleteObservationForm(id: string): Promise<void> {
     );
   }
 
-  const deleted = await deleteForm(id);
+  const deleted = await deleteFormCascade(id);
 
   if (!deleted) {
     throw new AppError("FORM_DELETE_FAILED", "Failed to delete form.");

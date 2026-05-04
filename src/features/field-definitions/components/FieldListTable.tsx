@@ -15,6 +15,10 @@ interface FieldListTableProps {
   onDelete?: (id: string) => Promise<void>;
   /** When provided, "Editar" calls this instead of navigating to /fields/:id/edit */
   onEdit?: (field: Field) => void;
+  /** When provided, the empty-state "Crear primer campo" CTA calls this instead
+   *  of navigating to /fields/new. F11 removed the dedicated /fields routes,
+   *  so consumers (e.g. ManageFieldsDialog) must pass this callback. */
+  onCreate?: () => void;
 }
 
 function FieldActions({
@@ -91,6 +95,7 @@ export function FieldListTable({
   onRestore,
   onDelete,
   onEdit,
+  onCreate,
 }: FieldListTableProps): JSX.Element {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -119,9 +124,15 @@ export function FieldListTable({
             : "No hay campos archivados para mostrar."}
         </p>
         {status === "active" ? (
-          <Button asChild>
-            <Link to="/fields/new">Crear primer campo</Link>
-          </Button>
+          onCreate ? (
+            <Button type="button" onClick={onCreate}>
+              Crear primer campo
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link to="/fields/new">Crear primer campo</Link>
+            </Button>
+          )
         ) : null}
       </div>
     );

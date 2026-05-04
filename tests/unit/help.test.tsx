@@ -49,7 +49,7 @@ describe("Help route", () => {
 
     expect(screen.getByText(/para qué sirve chronicle/i)).toBeInTheDocument();
     expect(screen.getByText(/el flujo en 6 pasos/i)).toBeInTheDocument();
-    expect(screen.getByText(/1\. definí los campos/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\. armá uno o más formularios/i)).toBeInTheDocument();
     expect(screen.getByText(/6\. generá la crónica/i)).toBeInTheDocument();
     expect(screen.getByText(/compartir y mover datos/i)).toBeInTheDocument();
     expect(screen.getByText(/funciona sin internet/i)).toBeInTheDocument();
@@ -114,11 +114,15 @@ describe("Help route", () => {
     );
   });
 
-  it("links to fields, forms, projects, chronicles and settings from the funcionamientos tab", () => {
+  it("links to forms, projects, chronicles and settings from the funcionamientos tab", () => {
     renderHelp();
 
-    expect(screen.getByRole("link", { name: /^ir a campos$/i })).toHaveAttribute("href", "/fields");
-    expect(screen.getByRole("link", { name: /^ir a formularios$/i })).toHaveAttribute(
+    // The legacy `/fields` route was removed in F11 — fields are now managed
+    // exclusively from inside the form builder via the "Editar campos" dialog,
+    // so the help guide must not surface a CTA pointing at `/fields`.
+    expect(screen.queryByRole("link", { name: /^ir a campos$/i })).toBeNull();
+
+    expect(screen.getAllByRole("link", { name: /^ir a formularios$/i })[0]).toHaveAttribute(
       "href",
       "/forms",
     );

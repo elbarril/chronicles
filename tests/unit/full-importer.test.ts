@@ -195,7 +195,7 @@ describe("full importer + import service dispatch", () => {
     });
   });
 
-  it("parses a chronicle-full-v2 zip and imports every table", async () => {
+  it("parses a chronicle-full-v3 zip and imports every table", async () => {
     const seed: FullSampleSeed = {
       fieldId: crypto.randomUUID(),
       instanceId: crypto.randomUUID(),
@@ -259,14 +259,28 @@ describe("full importer + import service dispatch", () => {
     expect(mediaBulkPutMock).toHaveBeenCalledWith([]);
   });
 
-  it("rejects manifests using a legacy schema", async () => {
+  it("rejects manifests using the legacy chronicle-full-v1 schema", async () => {
     const zip = new JSZip();
     zip.file(
       "manifest.json",
       JSON.stringify({ schema: "chronicle-full-v1", exportedAt: isoNow() }),
     );
 
-    const file = await fileFromZip(zip, "legacy.zip");
+    const file = await fileFromZip(zip, "legacy-v1.zip");
+
+    await expect(parseZipForImport(file)).rejects.toMatchObject({
+      code: "IMPORT_SCHEMA_MISMATCH",
+    });
+  });
+
+  it("rejects manifests using the legacy chronicle-full-v2 schema", async () => {
+    const zip = new JSZip();
+    zip.file(
+      "manifest.json",
+      JSON.stringify({ schema: "chronicle-full-v2", exportedAt: isoNow() }),
+    );
+
+    const file = await fileFromZip(zip, "legacy-v2.zip");
 
     await expect(parseZipForImport(file)).rejects.toMatchObject({
       code: "IMPORT_SCHEMA_MISMATCH",

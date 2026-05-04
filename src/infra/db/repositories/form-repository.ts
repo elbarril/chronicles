@@ -4,7 +4,9 @@ import {
   type ObservationForm,
   type ObservationFormInput,
 } from "@/domain/form";
+import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { db } from "@/infra/db/client";
+import { deleteMediaBlob } from "@/infra/media/store";
 
 function nowIsoString(): string {
   return new Date().toISOString();
@@ -110,14 +112,37 @@ export async function listArchivedForms(): Promise<ObservationForm[]> {
     );
 }
 
-export async function deleteForm(id: string): Promise<boolean> {
+/**
+ * Permanently deletes a form and every observation that snapshots it,
+ * plus the media blobs those observations reference. The chronicles
+ * attached to the affected encounters are intentionally preserved:
+ * they may still describe observations from other forms in the same
+ * encounter, and the input-hash mechanism makes them regenerate on
+ * the next "Generar crónica" click anyway.
+ */
+export async function deleteFormCascade(id: string): Promise<boolean> {
   const form = await db.forms.get(id);
 
   if (!form) {
     return false;
   }
 
-  await db.forms.delete(id);
+  // Collect observations and media ids before deleting
+  const observations = await db.observations.where("formId").equals(id).toArray();
+  const allMediaIds = observations.flatMap((observation) =>
+    collectObservationMediaIds(observation),
+  );
+
+  await db.transaction("rw", [db.forms, db.observations], async () => {
+    if (observations.length > 0) {
+      await db.observations.bulkDelete(observations.map((observation) => observation.id));
+    }
+
+    await db.forms.delete(id);
+  });
+
+  // Delete media blobs outside the transaction
+  await Promise.all(allMediaIds.map((mediaId) => deleteMediaBlob(mediaId)));
 
   return true;
 }

@@ -8,13 +8,17 @@ interface EncounterFixture {
   encounterName: string;
 }
 
+/**
+ * Reuses the seeded default form ("Observación de encuentro") to set
+ * up an encounter with a single text observation. Skipping field/form
+ * authoring keeps the test focused on the chronicle generation flow.
+ */
 async function createEncounterWithObservation(
   page: Page,
   suffix: string,
 ): Promise<EncounterFixture> {
   const projectName = `Proyecto IA ${suffix}`;
-  const fieldName = `Nota IA ${suffix}`;
-  const formName = `Formulario IA ${suffix}`;
+  const formName = "Observación de encuentro";
   const encounterName = `Encuentro IA ${suffix}`;
 
   await page.goto("/projects/new");
@@ -22,22 +26,6 @@ async function createEncounterWithObservation(
   await page.getByPlaceholder("Participante 1").fill("Ana");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
-
-  await page.goto("/fields/new");
-  await page.getByLabel("Nombre del campo").fill(fieldName);
-  await page.getByLabel("Tipo").selectOption("text");
-  await page.getByRole("button", { name: "Guardar campo" }).click();
-  await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
-
-  await page.goto("/forms/new");
-  await page.getByLabel("Nombre del formulario").fill(formName);
-  const availableFieldsPanel = page.locator("div", { hasText: "Campos disponibles" }).first();
-  await availableFieldsPanel
-    .locator("li", { hasText: fieldName })
-    .locator("button").first()
-    .click();
-  await page.getByRole("button", { name: "Guardar formulario" }).click();
-  await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
 
   await page.goto("/projects");
   await page.getByRole("link", { name: projectName }).first().click();
@@ -49,7 +37,7 @@ async function createEncounterWithObservation(
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(new RegExp(fieldName)).fill("Texto de observación para IA");
+  await page.getByLabel(/Texto de observación/).fill("Texto de observación para IA");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   return { projectName, encounterName };

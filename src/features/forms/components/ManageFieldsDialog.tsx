@@ -153,6 +153,7 @@ export function ManageFieldsDialog(): JSX.Element {
           onArchive={actions.archive}
           onRestore={actions.restore}
           onEdit={(field) => setView({ mode: "edit", field })}
+          onCreate={() => setView({ mode: "create" })}
         />
       </div>
     );

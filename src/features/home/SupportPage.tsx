@@ -55,8 +55,8 @@ export function SupportPage(): JSX.Element {
         </CardHeader>
         <CardContent>
           <DemoEncounterButton
-            onLoaded={(encounterId) => {
-              navigate(`/encounters/${encounterId}`);
+            onLoaded={({ projectId }) => {
+              navigate(`/projects/${projectId}`);
             }}
           />
         </CardContent>
