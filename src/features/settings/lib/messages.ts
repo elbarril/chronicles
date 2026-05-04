@@ -20,6 +20,9 @@ export const settingsMessages = {
   brandForest: "Verde campo",
   brandForestDescription: "Terroso y enfocado — trabajo de campo y observación.",
   aiSectionTitle: "Generación de crónicas con IA",
+  aiSectionDescription:
+    "Configurá tu clave de API de Gemini para generar crónicas en prosa narrativa. Si querés saber cómo funciona y qué datos se envían, leé",
+  aiSectionGuideLink: "la guía de IA en Ayuda",
   apiKeyLabel: "Clave de API de Gemini",
   apiKeyPlaceholder: "AIza...",
   apiKeyConfigured: "Clave configurada",

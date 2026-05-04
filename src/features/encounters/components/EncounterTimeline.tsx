@@ -9,24 +9,17 @@ interface EncounterTimelineProps {
   fieldsById: Map<string, Field>;
   participantById: Map<string, string>;
   onEdit: (observation: Observation) => void;
-  onDelete: (observationId: string) => Promise<void>;
+  onRequestDelete: (observationId: string) => void;
 }
 
 const MEDIA_FIELD_TYPES: ReadonlySet<Field["type"]> = new Set(["audio", "video", "image", "file"]);
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
 
 export function EncounterTimeline({
   observations,
   fieldsById,
   participantById,
   onEdit,
-  onDelete,
+  onRequestDelete,
 }: EncounterTimelineProps): JSX.Element {
   if (observations.length === 0) {
     return (
@@ -39,12 +32,14 @@ export function EncounterTimeline({
   return (
     <ul className="space-y-3">
       {observations.map((observation) => {
-        const observationFields = observation.fieldIds
-          .map((fieldId) => fieldsById.get(fieldId))
-          .filter((field): field is Field => Boolean(field));
+        // values are keyed by instanceId; resolve fieldId via the snapshot
+        const instanceToFieldId = new Map(
+          observation.fields.map((instance) => [instance.instanceId, instance.fieldId]),
+        );
 
-        const scalarEntries = Object.entries(observation.values).filter(([fieldId]) => {
-          const field = fieldsById.get(fieldId);
+        const scalarEntries = Object.entries(observation.values).filter(([instanceId]) => {
+          const fieldId = instanceToFieldId.get(instanceId);
+          const field = fieldId ? fieldsById.get(fieldId) : undefined;
           return !field || !MEDIA_FIELD_TYPES.has(field.type);
         });
 
@@ -62,17 +57,19 @@ export function EncounterTimeline({
                   ? (participantById.get(observation.participantId) ?? "Participante desconocido")
                   : "Sin participante"}
               </p>
-              <p className="text-muted-foreground text-xs">{formatDate(observation.createdAt)}</p>
             </header>
 
             {scalarEntries.length > 0 ? (
               <dl className="grid gap-2 text-sm">
-                {scalarEntries.map(([fieldId, value]) => {
-                  const field = fieldsById.get(fieldId);
+                {scalarEntries.map(([instanceId, value]) => {
+                  const fieldId = instanceToFieldId.get(instanceId);
+                  const instance = observation.fields.find((fi) => fi.instanceId === instanceId);
+                  const field = fieldId ? fieldsById.get(fieldId) : undefined;
+                  const label = instance?.labelOverride?.trim() || field?.label || instanceId;
 
                   return (
-                    <div key={fieldId} className="grid gap-1">
-                      <dt className="text-muted-foreground text-xs">{field?.label ?? fieldId}</dt>
+                    <div key={instanceId} className="grid gap-1">
+                      <dt className="text-muted-foreground text-xs">{label}</dt>
                       <dd>{formatObservationValueAsText(field, value, { emptyLabel: "—" })}</dd>
                     </div>
                   );
@@ -80,7 +77,11 @@ export function EncounterTimeline({
               </dl>
             ) : null}
 
-            <ObservationMediaList fields={observationFields} values={observation.values} />
+            <ObservationMediaList
+              instances={observation.fields}
+              fieldsById={fieldsById}
+              values={observation.values}
+            />
 
             <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
               <Button
@@ -100,7 +101,7 @@ export function EncounterTimeline({
                 variant="secondary"
                 className="w-full sm:w-auto"
                 onClick={() => {
-                  void onDelete(observation.id);
+                  onRequestDelete(observation.id);
                 }}
               >
                 Eliminar

@@ -53,9 +53,9 @@ export const homeMessages = {
   demoEncounter: {
     titleEmpty: "Probar el flujo con un proyecto de prueba",
     descriptionEmpty:
-      "Te creamos un proyecto con dos participantes, un encuentro post-evento con observaciones que cubren todos los tipos de campo y la crónica ya generada. Sirve para recorrer el flujo completo sin completar nada a mano.",
-    titleLoaded: "Contenido de prueba cargado",
+      "Te creamos un proyecto con 13 participantes y 8 encuentros (jueves de 17 a 18:15). El primer encuentro viene con observaciones que cubren todos los tipos de campo y la crónica ya generada; los otros siete quedan vacíos para que practiques cargar lo tuyo.",
+    titleLoaded: "Proyecto de prueba cargado",
     descriptionLoaded:
-      "Tenés el proyecto, encuentro, observaciones y crónica de prueba listos para explorar. Cuando quieras volver al estado inicial, eliminá todo el contenido de prueba con un clic.",
+      "Ya tenés el proyecto con sus 13 participantes y los 8 encuentros listos para explorar, más las observaciones y la crónica del primero. Cuando quieras volver al estado inicial, eliminá el proyecto de prueba con un clic.",
   },
 } as const;

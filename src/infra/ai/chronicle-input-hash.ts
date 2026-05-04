@@ -27,15 +27,19 @@ function toHashableObject(input: ChronicleHashInput): object {
       // Only include scalar field values — media fields are excluded from the
       // Gemini prompt and therefore must not affect the hash either.
       const scalarValues: Record<string, unknown> = {};
-      for (const fieldId of obs.fieldIds) {
-        const field = input.fieldsById.get(fieldId);
+      for (const instance of obs.fields) {
+        const field = input.fieldsById.get(instance.fieldId);
         if (!field || MEDIA_TYPES.has(field.type)) continue;
-        scalarValues[fieldId] = obs.values[fieldId] ?? null;
+        scalarValues[instance.instanceId] = obs.values[instance.instanceId] ?? null;
       }
       return {
         formId: obs.formId,
         formVersion: obs.formVersion,
-        fieldIds: [...obs.fieldIds],
+        fields: obs.fields.map((inst) => ({
+          instanceId: inst.instanceId,
+          fieldId: inst.fieldId,
+          labelOverride: inst.labelOverride ?? null,
+        })),
         participantId: obs.participantId ?? null,
         title: obs.title?.trim() ?? null,
         createdAt: obs.createdAt,

@@ -10,7 +10,7 @@ import { participantSchema, type Participant } from "@/domain/participant";
 import { projectSchema, type Project } from "@/domain/project";
 import { db } from "@/infra/db/client";
 import {
-  FULL_MANIFEST_SCHEMA,
+  assertSupportedManifestSchema,
   fullZipManifestSchema,
   type FullZipManifest,
 } from "@/infra/export/manifest";
@@ -65,11 +65,13 @@ function parseJson<T>(content: string): T {
 export async function parseFullZip(zip: JSZip): Promise<FullImportPreview> {
   try {
     const manifestRaw = parseJson<unknown>(await getRequiredText(zip, "manifest.json"));
-    const manifest = fullZipManifestSchema.parse(manifestRaw);
 
-    if (manifest.schema !== FULL_MANIFEST_SCHEMA) {
-      throw new AppError("IMPORT_SCHEMA_MISMATCH", "Unsupported manifest schema.");
-    }
+    // Validate schema string before full Zod parse so legacy versions get a
+    // descriptive error rather than a generic ZodError.
+    const rawSchema = (manifestRaw as Record<string, unknown>)["schema"];
+    assertSupportedManifestSchema(typeof rawSchema === "string" ? rawSchema : "");
+
+    const manifest = fullZipManifestSchema.parse(manifestRaw);
 
     const fields = parseJson<unknown[]>(await getRequiredText(zip, "fields.json")).map((field) =>
       fieldSchema.parse(field),

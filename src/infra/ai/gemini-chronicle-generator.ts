@@ -38,11 +38,11 @@ function buildPrompt(input: Omit<GeminiChronicleInput, "apiKey">): string {
 
             const titleLine = obs.title?.trim() ? `\n   Título: ${obs.title.trim()}` : "";
 
-            const fields = obs.fieldIds
-              .map((fieldId) => {
-                const field = fieldsById.get(fieldId);
+            const fields = obs.fields
+              .map((instance) => {
+                const field = fieldsById.get(instance.fieldId);
                 if (!field) return null;
-                const rawValue = obs.values[fieldId];
+                const rawValue = obs.values[instance.instanceId];
                 // Skip media fields — they are not sent to the AI
                 if (
                   field.type === "image" ||
@@ -52,8 +52,9 @@ function buildPrompt(input: Omit<GeminiChronicleInput, "apiKey">): string {
                 ) {
                   return null;
                 }
+                const displayLabel = instance.labelOverride?.trim() || field.label;
                 const formatted = formatObservationValueAsText(field, rawValue);
-                return `   - ${field.label}: ${formatted}`;
+                return `   - ${displayLabel}: ${formatted}`;
               })
               .filter(Boolean)
               .join("\n");

@@ -17,11 +17,11 @@ test.describe("responsive navigation - mobile (iPhone 13 size)", () => {
     const drawerHeading = page.getByRole("heading", { name: "Navegación" });
     await expect(drawerHeading).toBeVisible();
 
-    await page.getByRole("link", { name: "Campos" }).click();
+    await page.getByRole("link", { name: "Formularios" }).click();
 
-    await expect(page).toHaveURL(/\/fields$/);
+    await expect(page).toHaveURL(/\/forms$/);
     await expect(drawerHeading).toBeHidden();
-    await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
   });
 
   test("drawer closes with Escape", async ({ page }) => {
@@ -60,11 +60,13 @@ test.describe("responsive navigation - desktop (default viewport)", () => {
     await page.goto("/");
 
     // The home page itself acts as the desktop nav hub: a grid of links
-    // that point to every top-level section.
+    // that point to every top-level section. After the F11 fields-into-forms
+    // merge, "Campos" no longer exists as a top-level section.
     const hubNav = page.getByRole("navigation", { name: "Accesos directos a secciones" });
     await expect(hubNav).toBeVisible();
-    await expect(hubNav.getByRole("link", { name: "Campos" })).toBeVisible();
+    await expect(hubNav.getByRole("link", { name: "Formularios" })).toBeVisible();
     await expect(hubNav.getByRole("link", { name: "Configuración" })).toBeVisible();
+    await expect(hubNav.getByRole("link", { name: "Campos" })).toHaveCount(0);
 
     // The hamburger trigger is the single navigation surface across all
     // breakpoints (no separate inline desktop nav anymore).

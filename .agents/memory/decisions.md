@@ -665,4 +665,195 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - The encounter detail page is leaner now: no "Finalizar", no "Generar crónica", no AI key badge.
 - The Dexie schema for `groups` is dropped via Dexie's `null` syntax. Future versions must keep this drop in their version chain to avoid resurrecting the legacy table on partial upgrades.
 - The AI input hash now keys off the post-event encounter shape (`name`, `startsAt`, `endsAt`, `participantIds`, `projectName`, observation form snapshots). Pre-F9 cached hashes naturally invalidate on first regeneration, which is fine because the underlying data was wiped anyway.
-- The `Encuentro de prueba` button still navigates to the demo encounter, but the Support page is the only entry point for creating it (consistent with post-F8 polish).
+
+---
+
+## [2026-05-03] F11 — Help page consolidation: 3 tabs (Funcionamientos / Datos / IA) + Settings AI cleanup
+
+**Context:** After F6 the help feature shipped two separate routes — `/help` (data storage guide) and `/how-it-works` (post-event flow guide) — and the `/settings` page duplicated the AI explainer card right above the API key form (`AiSetupGuide showCta={false}`). That meant the same content lived in two places, the home hub had two distinct tiles for help-like content (`Cómo funciona` and `Ayuda`), and Settings mixed long-form documentation with a small configuration form. The user asked to consolidate everything inside a single tabbed `/help` route, mirroring the same `?tab=` filter-tab pattern already used on `/projects`.
+
+**Decision:**
+
+1. **`/help` becomes a single tabbed page with three tabs.** Tabs are `Funcionamientos` (default), `Datos` and `IA`, selected via a `?tab=` URL search param. Tab triggers are rendered with `Button variant="tab-active" | "outline"` inside a `role="tablist"` — exactly the same pattern as the active/archived filter on `/projects` so the visual language stays consistent.
+2. **Each tab reuses the existing guide components.** `Funcionamientos` renders `HowItWorksGuide` (with `showNextStep={false}`, since the "Antes de arrancar" card pointed to `/help` and is now redundant), `Datos` renders `DataStorageGuide`, and `IA` renders `AiSetupGuide` with its CTA pointing to `/settings` (where the API key form lives).
+3. **`/how-it-works` and `HowItWorksPage` are deleted.** The route is gone from `src/app/router.tsx`, the `Cómo funciona` entry is gone from `src/app/nav-items.ts`, and the `Cómo funciona` tile is gone from `HomePage`. Anyone landing on `/how-it-works` from a stale link gets the 404 page; the same content now lives at `/help` (Funcionamientos tab).
+4. **Settings AI section is now a thin wrapper around the API key form.** `AiSetupGuide` was removed from `SettingsPage`. The section keeps its `Generación de crónicas con IA` heading, gains a one-line description that links to `/help?tab=ia`, and renders only the `ApiKeyForm`. The full explainer (what AI does, what is sent to Google, how to obtain a free key) lives only at `/help` (IA tab) and inside the onboarding intro step 3.
+5. **Messages housekeeping.** The `dataStoragePage` and `howItWorksPage` blocks in `src/features/help/messages.ts` were replaced by a single `helpPage` block (page title, description, tab labels, tablist aria-label). The `howItWorksGuide.nextStep.cta.to` link was retargeted from `/help` to `/help?tab=datos` for completeness even though `showNextStep={false}` hides it on the new layout (it is still consumed by the onboarding dialog through `HowItWorksGuide showQuickLinks={false} showNextStep={false}`, which means the change is benign there). New `settingsMessages.aiSectionDescription` and `settingsMessages.aiSectionGuideLink` strings drive the in-page link to the IA tab.
+
+**Where:**
+
+- New: `src/features/help/HelpPage.tsx` (rewritten as a tabbed page).
+- Deleted: `src/features/help/HowItWorksPage.tsx`; `tests/unit/how-it-works.test.tsx`.
+- Updated: `src/features/help/messages.ts` (drops `dataStoragePage` and `howItWorksPage`, adds `helpPage`), `src/app/router.tsx` (drops `/how-it-works` and the `HowItWorksPage` import), `src/app/nav-items.ts` (drops the `Cómo funciona` entry), `src/features/home/HomePage.tsx` (drops the `Lightbulb`/`Cómo funciona` tile and import), `src/features/settings/pages/SettingsPage.tsx` (drops `AiSetupGuide`, adds the link to `/help?tab=ia`), `src/features/settings/lib/messages.ts` (adds `aiSectionDescription` and `aiSectionGuideLink`).
+- Tests updated: `tests/unit/help.test.tsx` (rewritten to cover the three tabs, default tab, tab switching, and link targets), `tests/e2e/settings-api-key.spec.ts` (drops AI guide assertions; asserts the new help link target instead).
+- Docs/memory: `docs/stack-and-architecture.md` (F11 row added; folder map updated; Post-F8 Polish bullet annotated for the F11 change), `.agents/memory/project-context.md` (Help bullet rewritten), `README.md` (test list updated).
+
+**Justification:**
+
+- A single tabbed page is a stronger information architecture than two separate routes that share a footer link to each other. The user always lands on `/help` and discovers all three sections from the same tablist.
+- Reusing the project-list filter-tab pattern (`Button variant="tab-active" | "outline"` + `role="tablist"` + `?tab=` query param) means the help page feels consistent with the rest of the app and adds zero new UI primitives.
+- Splitting documentation (in `/help`) from configuration (in `/settings`) keeps each surface focused on a single job. Settings becomes a fast control panel; `/help` becomes the place to learn.
+- Deep-linking via `?tab=ia`, `?tab=datos`, etc., keeps URLs shareable and lets the Settings AI section, the onboarding dialog, and any future toast or empty state point to the exact tab they need.
+
+**Consequences:**
+
+- Anyone bookmarking `/how-it-works` will hit the 404 page. The content lives at `/help?tab=funcionamientos` (or just `/help`).
+- The Settings page no longer educates users about how AI works; users who want context must follow the in-page link to `/help?tab=ia`. The onboarding intro step 3 still shows `AiSetupGuide` so first-time users still get the full explainer in-flow.
+- The `dataStoragePage` and `howItWorksPage` exports from `src/features/help/messages.ts` are gone. Anyone importing them must move to the new `helpPage` block.
+- `HelpPage` now depends on `useSearchParams`. Tests rendering it must use a router (the existing tests already do; the rewritten `help.test.tsx` follows the same pattern).
+- The `Cómo funciona` entry no longer appears in the home hub or in the mobile nav drawer. The total number of nav entries goes from 9 to 8.
+
+---
+
+## [2026-05-03] F11 — Forms + Fields merge: instances with label overrides, Dexie v8, manifest v3
+
+**Context:** F1 introduced a dedicated `Campos` route to manage Field definitions (`/fields`, `/fields/new`, `/fields/:id/edit`), and F2 wired Forms as ordered lists of `fieldIds` referencing those Fields. After F9 and F10, two recurring pain points became clear:
+
+1. The Practitioner had to context-switch between `/fields` and `/forms` to compose a form. Discovery of where to define a new field — and how to come back — was unintuitive, especially during onboarding.
+2. A field could only appear once per form. Real workflows often need the same field multiple times in a single observation (e.g. "Foto antes" / "Foto después", or two free-text observations with different prompts).
+
+**Decision:** Merge Field management into the form-builder and replace the per-form `fieldIds: string[]` with `fields: FormFieldInstance[]`, where each instance carries a stable `instanceId`, a referenced `fieldId`, and an optional `labelOverride`. Hard-reset Dexie to v8 and bump the export manifest to `chronicle-full-v3`.
+
+Specifically:
+
+1. **Domain.** `src/domain/form.ts` introduces `FormFieldInstance = { instanceId, fieldId, labelOverride? }` (plus a parallel `FormFieldInstanceInput` for form input). `ObservationFormSchema` now has `fields: FormFieldInstance[]`. `src/domain/observation.ts` mirrors the change: `Observation.fields: FormFieldInstance[]`, and `Observation.values: Record<instanceId, ObservationValue>` (was keyed by `fieldId`).
+2. **Persistence.** `src/infra/db/schema.ts` bumped to `DB_VERSION = 8`. The v8 upgrade in `src/infra/db/client.ts` is a hard reset — it clears `forms`, `observations`, `chronicles` and `media` because their stored shapes can no longer be migrated forward. `field-repository.ts` gains a `deleteForm()` helper used during the cleanup paths.
+3. **Form-builder.** `src/features/forms/components/FormBuilder.tsx` was rewritten around an `instances` list. New affordances: a **Duplicar** button per instance (creates a new instance pointing to the same `fieldId` with the same `labelOverride`), a per-instance `labelOverride` text input rendered as a small inline field, and the existing accessible reorder (↑/↓) and remove buttons. The `data-tour` attributes `forms.builder.manage-fields` (on the dialog trigger) and `forms.builder.duplicate-instance` (on the first row's Duplicar button) drive the new tour stops.
+4. **Field management embedded.** New `src/features/forms/components/ManageFieldsDialog.tsx` opens from a `Editar campos` button inside the form-builder. It hosts tabs `Activos` / `Archivados`, a `+ Nuevo campo` button, and a list backed by `useFields("active")` / `useFields("archived")` live queries. Selecting a field switches the dialog into an inline `FieldForm` (same component used by the legacy `/fields/new` page) for create/edit. `FieldListTable` was generalised so callers can pass an optional `onEdit` (renders a button instead of a link to `/fields/:id/edit`) and an optional `onDelete`. The `useFields` hook + `FieldListTable` + `FieldForm` are now reused inside the dialog rather than rendered on a dedicated route.
+5. **Routing & navigation.** `src/app/router.tsx` no longer registers `/fields`, `/fields/new` or `/fields/:id/edit`. The `Campos` entry was removed from `src/app/nav-items.ts` and the `Campos` tile (with its `Tag` icon and `hub.fields` `data-tour`) was removed from `src/features/home/HomePage.tsx`. The unused `FieldListPage.tsx` and `FieldFormPage.tsx` files were deleted.
+6. **Render path.** `ObservationForm.tsx` was rewritten to iterate `instances` and key by `instance.instanceId` (resolving the underlying `Field` via a `Map<fieldId, Field>` once); `EncounterTimeline`, `chronicle-service` and `gemini-chronicle-generator` iterate `observation.fields` and read `values[instance.instanceId]`, falling back through `instance.labelOverride ?? field.label`. `chronicle-input-hash.ts` was updated so the SHA-256 fingerprint is stable across the new shape (and incompatible with v2 hashes — but observations were wiped by the v8 reset anyway).
+7. **Export / Import.** `src/infra/export/manifest.ts` bumps `FULL_MANIFEST_SCHEMA` to `"chronicle-full-v3"` and exports a new `assertSupportedManifestSchema(schema)` helper that throws `AppError("IMPORT_SCHEMA_MISMATCH", …)` for any v1 / v2 / encounter-v1 / unknown manifest. Both `full-importer.ts` and `import-service.ts` call it before parsing. v2 → v3 migration was explicitly **rejected**: v2 stored values keyed by `fieldId`, and reconstructing `instanceId`s would require fabricating UUIDs without preserving any stable reference, which would silently misalign data.
+8. **Demo & defaults.** `src/features/defaults/lib/seed-data.ts` introduces `DEFAULT_FORM_INSTANCE_AUDIO_ID`, `DEFAULT_FORM_INSTANCE_LONGTEXT_ID` and `DEMO_FORM_INSTANCE_IDS`, and `DEFAULT_FORM_SEED` / `DEMO_FORM_SEED` use `fields: FormFieldInstance[]`. `defaults-service.ts` produces demo observation values keyed by instance id.
+9. **Onboarding tour.** `src/features/onboarding/messages.ts` drops the entire Campos block (hub-stop + 5 tour steps walking the practitioner through `/fields/new`) and adds two new steps inside the Formularios block: `forms.builder.manage-fields` (introduces the embedded `Editar campos` dialog) and `forms.builder.duplicate-instance` (showcases the new "use the same field twice" feature). The outro copy was updated to reflect the new flow ("formularios → proyectos → encuentros → observaciones → crónica"). The corresponding unit test (`tests/unit/onboarding-dialog.test.tsx`) was rewritten to remove the obsolete Campos route stubs and to assert the new "Arrancamos por Formularios" hub-stop.
+10. **Tests.** `tests/unit/home.test.tsx` no longer expects the `Campos` link in the hub and explicitly asserts its absence. `tests/unit/observation-media-list.test.tsx` was rewritten to use `instances` + `fieldsById`. The full E2E suite was retargeted off `/fields*`: `forms-compose.spec.ts` exercises the embedded `Editar campos` dialog, `field-crud.spec.ts` was rewritten to drive that dialog, and the chronicle / encounter / responsive-nav specs use the seeded default fields and form rather than creating fresh ones.
+
+**Justification:**
+
+- **Single workspace for form composition.** The Practitioner now creates, picks, reorders, duplicates and labels fields without leaving the form-builder. Onboarding is shorter (two fewer hub-stops) and discovery friction drops.
+- **Multiple instances of a field per form** is the simplest possible domain change that unlocks the "before/after" / "first/second observation" patterns observed in real workflows. Each instance is independently versioned with the form, has its own value bucket on every observation, and its own label override — so the chronicle prose can read "Foto antes: …" and "Foto después: …" instead of two ambiguous "Foto" headings.
+- **Hard reset over migration.** v2 stored `Observation.values` keyed by `fieldId`. The v3 model keys them by `instanceId`. Any deterministic migration would need to invent `instanceId`s, which would silently break the `Chronicle.inputHash` cache and the chronicle prose. The v8 reset is the same kind of trade-off F9 took for `groups`: documented up-front, surfaced via the `/support` "Importar" path before users on older builds upgrade.
+- **No third-party dependencies added.** `crypto.randomUUID()` (already a project convention) generates `instanceId`s on the fly. Zod, Dexie, and React Hook Form continue as before.
+
+**Consequences:**
+
+- Anyone bookmarking `/fields`, `/fields/new` or `/fields/:id/edit` will hit the 404 page. Field management is reachable only from inside `/forms/new` or `/forms/:id/edit` via the `Editar campos` dialog.
+- Pre-F11 IndexedDB databases will be reset on first open: forms, observations, chronicles and media are wiped (v8 hard reset). Field, project, participant, encounter and Settings preferences (theme, brand color, user name, Gemini key) are preserved.
+- Pre-F11 `chronicle-full-v2` exports cannot be imported on F11. The importer now rejects v1, v2 and encounter-v1 with `IMPORT_SCHEMA_MISMATCH`. Users who need to keep pre-F11 data should keep the v2 ZIPs as historical artefacts; they will not round-trip on F11.
+- The total number of nav entries drops from 8 to 7 (F11 removes `Campos`).
+- Future field-related UX (search, drag-and-drop reorder of instances, bulk duplicate) can extend the `FormBuilder` and `ManageFieldsDialog` without touching the router.
+- Any future feature that needs to refer to a specific field within a specific form must use `instanceId` (not `fieldId`) as the stable key — including chronicle prose, AI prompts, and any custom analytics.
+
+---
+
+## [2026-05-03] Post-F11 audit fixes — close stale `/fields` links and align language policy
+
+**Context:** F11 was implemented across two commits (the in-tree mega-commit `e611e96` and the uncommitted continuation that removes the `/fields*` routes, ships the 13/8 demo seed and bumps the manifest to `chronicle-full-v3`). An end-to-end audit surfaced several inconsistencies that survived the merge: dead `/fields` links in the help guide and the field empty-state, a tour spotlight pointing to a button that did not exist on a brand-new form, a `throw new Error` in `field-repository`, and Spanish copy thrown from `assertSupportedManifestSchema` (which violated the language policy).
+
+**Decision:**
+
+1. **Help guide.** `workflowSteps[0]` no longer links to `/fields`. The first step now describes how to start a form (with the embedded `Editar campos` dialog) and the second step covers form versioning. The `/help` route is the only remaining surface that referenced `/fields`, so this closes the last 404.
+2. **`FieldListTable.onCreate`.** The empty-state CTA (`Crear primer campo`) now accepts an `onCreate?` callback. `ManageFieldsDialog` passes one that switches the dialog to its inline `mode: "create"` view; the legacy `Link to="/fields/new"` is kept only as a no-op fallback that no live consumer hits anymore.
+3. **`forms.builder.duplicate-instance` tour stop.** The step is rerouted to `/forms/:demoFormId/edit` (the seeded demo form, which has fifteen instances) so the spotlight always finds its target. `OnboardingDialog` gains a `:demoFormId` placeholder resolver and the tutorial seed now exposes `demoFormId` as part of the `TutorialContext`.
+4. **`deleteFormCascade`.** Replaces the previous `deleteForm` call from `form-service`. It deletes every observation that snapshots the form and the media blobs they reference, in a single transaction; chronicles are intentionally preserved because they may describe other forms in the same encounter and regenerate via the input-hash mechanism. The `Form` confirm-dialog copy now mirrors `Project` / `Encounter` and explains the cascade.
+5. **`field-repository.deleteField`.** Throws `AppError("FIELD_DELETE_NOT_ARCHIVED", "...")` instead of a native `Error`, so the UI can map the code to the existing `fieldMessages.deleteNotArchived` toast.
+6. **`assertSupportedManifestSchema`.** Its messages return to English, per `.agents/rules/language-policy.md`. The UI keeps using `IMPORT_SCHEMA_MISMATCH` to map to `importMessages.schemaError`. `LEGACY_SCHEMAS` now includes `chronicle-encounter-v1` so that legacy schema gets the same descriptive branch instead of the generic "unknown manifest" one.
+
+**Where:**
+
+- `src/features/help/messages.ts` and `tests/unit/help.test.tsx`
+- `src/features/field-definitions/components/FieldListTable.tsx` and `src/features/forms/components/ManageFieldsDialog.tsx`
+- `src/features/onboarding/messages.ts`, `src/features/onboarding/components/OnboardingDialog.tsx` and `tests/unit/onboarding-dialog.test.tsx`
+- `src/infra/db/repositories/form-repository.ts` and `src/features/forms/services/form-service.ts`
+- `src/features/forms/lib/messages.ts` and `src/features/field-definitions/lib/messages.ts`
+- `src/infra/db/repositories/field-repository.ts`
+- `src/infra/export/manifest.ts`
+- `docs/stack-and-architecture.md` (stale `fieldIds[] snapshot` comment) and `src/features/defaults/lib/seed-data.ts` (stale `d2xx groups` namespace comment)
+
+**Justification:**
+
+- Every `404` reachable from in-product navigation is a regression in user trust; the audit found three of them surviving F11 and the fix-up closes them all.
+- Honouring the language policy at the service boundary keeps `messages.ts` as the single source of user-facing copy and lets future UIs (or a re-import preview) reuse the same code without inheriting a hardcoded Spanish string.
+- A cascading `deleteFormCascade` brings forms in line with the cascading semantics already in place for projects and encounters; without it, a destructive action on a form left observations dangling against a missing form id.
+
+**Consequences:**
+
+- The demo seed must always succeed before the tour reaches the duplicate-instance stop. If the seed fails (typically only in tests with a stubbed db), the placeholder route still resolves to `/` and the spotlight gracefully gives up — same fallback as the other `:demo*` placeholders.
+- Users who previously bookmarked `/help?tab=funcionamientos` and clicked through the legacy "Ir a campos" CTA will land on `/forms` instead of a 404. Anyone bookmarking `/fields*` directly still hits the 404 page; that is the intentional F11 outcome and is not changed by this fix-up.
+- `deleteFormCascade` is irreversible. The confirmation dialog now describes the cascade, so the destructive action remains explicit.
+
+---
+
+## [2026-05-03] Drop the Cursor IDE bridge
+
+**Context:** The repository historically shipped two compatibility layers — `.windsurf/rules/` for Windsurf and `.cursor/rules/` for Cursor — both pointing at the canonical `.agents/rules/`. The author of this project does not use Cursor, so the second bridge added maintenance cost (every new rule had to be copied into `.cursor/rules/<name>.mdc`) without any concrete benefit.
+
+**Decision:** Remove the Cursor bridge entirely. Concretely:
+
+- Delete `.cursor/rules/agents.mdc` and `.cursor/rules/language-policy.mdc` (and the `.cursor/rules/` directory itself).
+- Drop the `.cursor/**` entry from the ESLint ignore list in `eslint.config.js`.
+- Remove the Cursor mentions from `AGENTS.md` (Tool Interoperability), `.agents/README.md` (Tool Bridges), `.agents/rules/agents.md` (Architecture), `.agents/workflows/create-rule.md` (step 6) and `docs/stack-and-architecture.md` (Language Policy section).
+- Earlier append-only entries that historically mentioned `.cursor/rules/` are kept untouched: rewriting them would violate the append-only invariant and tell a misleading story about what the project did at the time.
+
+**Justification:**
+
+- The append-only `decisions.md` reflects history, not current state — newer agents must read the current entry plus `project-context.md` / `AGENTS.md` to know what is actually wired today.
+- One bridge is enough for portability: `AGENTS.md` already covers Claude Code, Codex CLI, Aider and any future tool that loads root-level conventions; Windsurf provides the only IDE-specific surface still in use.
+
+**Consequences:**
+
+- Cursor users who clone the repo will no longer get an automatic bridge. They can either rely on `AGENTS.md` directly or recreate `.cursor/rules/agents.mdc` locally without committing it.
+- Future rule creation runs through the slimmer `.agents/workflows/create-rule.md` (Windsurf bridge only).
+
+---
+
+## [2026-05-03] F12 — Encounter editing + stable participant identity
+
+**Context:** Two related issues surfaced together. (1) Encounters had no edit affordance — once created, the only way to fix a typo in the name, adjust the start/end, or correct the attendee list was to delete the encounter (losing observations and the chronicle). (2) The encounter detail header showed only a count of attendees, and that count was almost always wrong: editing the project regenerated every participant uuid, leaving every encounter's `participantIds` pointing to deleted records — `resolveEncounterDependencies` then filtered all of them out, so the header read "0 de los del proyecto" and the timeline labelled every observation as "Participante desconocido". The same fragility silently truncated the participants block in deterministic chronicles and the AI prompt input.
+
+**Decision:**
+
+1. **Stable participant identity across project edits.** `projectInputSchema` was switched from `participantNames: string[]` to `participants: { id?, displayName }[]` (with a dedicated `projectInputParticipantSchema`). `ProjectForm` now keeps the row id around per row, `ProjectFormPage.toFormInput` propagates ids when loading an existing project, and `getDefaultProjectInput` returns `[{ displayName: "" }]`. The repository's `updateProjectWithParticipants` was rewritten as a diff: rows that match by id get an in-place `displayName` update (no-op when unchanged), rows without an id get a fresh uuid via `crypto.randomUUID()`, and rows whose previous id is missing from the input are hard-deleted. `createProjectWithParticipants` ignores any incoming id (every row is brand new on create). The result is the same UX (`Quitar` removes a participant, the input editor keeps working) but `encounter.participantIds` survives every project edit.
+2. **Encounter editing as a dedicated route.** New `EncounterEditPage` at `/encounters/:id/edit` mirrors `EncounterNewPage`: it loads the encounter + project in parallel, drops `participantIds` whose participant no longer exists (defensive cleanup for legacy data), and reuses `EncounterForm` with `submitLabel="Guardar cambios"`. Wired through `useEncounterActions().update` (already present, previously unused). `EncounterHeader` exposes "Editar encuentro" (hidden when the encounter is archived) right before "Archivar"; `ProjectEncounterListTable` shows "Editar" in every active row between "Abrir" and "Archivar".
+3. **Encounter header lists the actual attendees.** The "X de los del proyecto · Y observaciones" copy was replaced by an explicit attendees section (chip list, mirrors the chip list on `ProjectDetailPage`) under the start/end metadata. The observation count moved into its own definition list cell.
+4. **Tests.** Added `tests/e2e/encounter-edit.spec.ts` with two scenarios — full edit flow (rename + retime + add an attendee) and project-edit identity preservation (rename project, encounter still shows the same attendee chip). Extended `tests/e2e/encounter-capture.spec.ts` with an attendee-chip assertion. Updated `tests/unit/project-schema.test.ts` for the new shape (id is optional UUID, empty displayName rejected, non-uuid id rejected).
+5. **Removed participants are intentionally hard-deleted.** When a user removes a participant row from the project edit form we delete the participant record. Their id may still appear in `encounter.participantIds` for older encounters; both `resolveEncounterDependencies` and `chronicle-service.ts` already filter unknown ids out, so this only manifests as the participant disappearing from the attendee chip list — same outcome as before this change but now bounded to "the user actually removed that person from the project". Soft-archiving removed participants to preserve historical attribution is a possible future iteration.
+
+**Justification:**
+
+- The visible bug (empty/incorrect attendee list and "Participante desconocido" everywhere) was a downstream symptom of the participant uuid churn. Fixing the root cause was strictly cheaper than papering over each consumer (`resolveEncounterDependencies`, `chronicle-service`, AI prompt builder), and it removes a class of silent data-integrity drift.
+- Adding edit as a dedicated page is the consistent choice — projects and forms already edit on a dedicated route, so users have a predictable pattern. Reusing `EncounterForm` keeps the UX identical to creation.
+- Showing the attendees as chips matches the equivalent block on `ProjectDetailPage`, removes the awkward "X de los del proyecto" copy, and lets the user verify attendance at a glance without opening the edit page.
+
+**Consequences:**
+
+- `ProjectInput` consumers must use `participants: { id?, displayName }[]` instead of `participantNames: string[]`. The defaults service was unaffected (it seeds `participants` directly with their own uuids, never goes through the input shape).
+- Older databases that already accumulated stale `encounter.participantIds` (from edits made before this change) keep working: the unknown ids are simply filtered out. Re-editing the encounter gives the user a clean slate to reselect attendees from the current project participants.
+- Export/import is unaffected: `chronicle-full-v3` already serialises the full `participants` table with their stable ids, so the import path round-trips correctly without changes.
+- The onboarding tour was not extended for this iteration; "Editar encuentro" is discoverable from the encounter header and the project's encounter list, and adding a tour stop is a follow-up if needed.
+
+---
+
+## [2026-05-03] Agent docs: switch from roadmap-phase model to generic-update model
+
+**Context:** The agent workspace was structured around the roadmap phases (`phase-planner`, `phase-implementer`, `phase-closeout`) with hard-coded `F<N>` branch names, mandatory Dexie schema bumps, and roadmap-closure entries. The roadmap phases F0–F11 are already complete and future work is post-roadmap (refactors, fixes, follow-ups, infra), so the phase-centric skills no longer fit. In addition, every session was forced to read the entire `decisions.md` file (~86 KB), which caused noticeable context overload, and `AGENTS.md` did not formally recognize Devin CLI alongside Windsurf and Cursor.
+
+**Decision:** Restructure the agent workspace around generic updates and minimize the bootstrap.
+
+- Replace the `phase-planner`, `phase-implementer`, and `phase-closeout` skills with `change-planner`, `change-implementer`, and `change-closeout`. The new skills are scope-aware (tags `domain`, `persistence`, `feature`, `routing`, `infra`, `docs`, `tests`) and reference `docs/stack-and-architecture.md` instead of duplicating its conventions. Branch names follow Conventional Commits (`<type>/<short-slug>`) instead of `feat/f<N>-<slug>`.
+- Make `change-closeout` opt-in: trigger it only when the change introduced new patterns, dependencies, domain concepts, schema changes, routes, modules, or skills. Trivial edits skip it.
+- Trim the mandatory bootstrap in `AGENTS.md` and `.agents/rules/agents.md` to three short reads (`AGENTS.md`, `language-policy.md`, `project-context.md`). Demote `decisions.md`, `glossary.md`, and `docs/stack-and-architecture.md` to on-demand reads.
+- Recognize Devin CLI explicitly in `AGENTS.md` and `.agents/README.md` (auto-discovers skills under `.agents/skills/`; session config in `.devin/`). Cursor is covered by bridges in `.cursor/rules/`. Windsurf bridges remain in `.windsurf/rules/` and `.windsurf/workflows/`.
+- Replace `.windsurf/workflows/phase-*.md` with `.windsurf/workflows/change-*.md` delegating stubs, plus matching `.agents/workflows/change-*.md` files.
+- Slim the skill template (drop the unused `## AGENTS.md Compliance` section) so future skills match what is actually written.
+- Update `update-project-docs` and `agent-workspace-manager` to remove phase-only language and emphasize "edit only documents the change actually affects".
+
+**Justification:** The phase model created two separate problems. First, it was internally inconsistent with the project's current reality: there is no next `F<N>` to plan, and forcing every change into a phase shape created friction (artificial scope, inflated commits, wrong branch names). Second, it duplicated content already documented in `docs/stack-and-architecture.md`, which is brittle — when the architecture evolves, the phase skills silently rot. The new generic model keeps the same ceremony for non-trivial work but adapts to the actual scope, references the architecture doc instead of mirroring it, and lets trivial changes skip the closeout step. Trimming the bootstrap reads addresses the most concrete cause of context overload (the 86 KB `decisions.md` loaded on every session) without losing traceability — the file remains append-only and is read on demand. Adding Devin CLI to the interoperability list aligns the docs with how the repo is actually used today.
+
+**Consequences:**
+
+- New skill set under `.agents/skills/`: `change-planner`, `change-implementer`, `change-closeout`. Old `phase-*` skills deleted.
+- New canonical workflows: `.agents/workflows/change-planner.md`, `.agents/workflows/change-implementer.md`, `.agents/workflows/change-closeout.md`. Old `.agents/workflows/phase-closeout.md` deleted.
+- New Cascade slash-command stubs: `.windsurf/workflows/change-planner.md`, `.windsurf/workflows/change-implementer.md`, `.windsurf/workflows/change-closeout.md`. Old `.windsurf/workflows/phase-*.md` deleted. Existing `phase-implementer` / `phase-closeout` skills still listed by Cascade auto-discovery will stop appearing once the agent reloads its skill registry; sessions should be restarted to pick up the new names.
+- `AGENTS.md`, `.agents/rules/agents.md`, `.agents/README.md`, `.agents/skills/agent-workspace-manager/SKILL.md`, `.agents/skills/update-project-docs/SKILL.md`, and `.agents/templates/skill.template.md` rewritten to reflect the new model.
+- `docs/stack-and-architecture.md` and `.agents/memory/project-context.md` were not edited as part of this change — they still describe the F0–F11 history accurately, which is now read on demand only.
+- Future work uses Conventional-Commit branch names (e.g., `feat/<slug>`, `fix/<slug>`) and skips closeout when nothing in `docs/`, memory, or skills is affected.

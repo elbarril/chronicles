@@ -1,3 +1,4 @@
+import { type FormFieldInstance } from "@/domain/form";
 import { observationSchema, type Observation, type ObservationValue } from "@/domain/observation";
 import { db } from "@/infra/db/client";
 
@@ -9,7 +10,7 @@ export async function createObservation(data: {
   encounterId: string;
   formId: string;
   formVersion: number;
-  fieldIds: string[];
+  fields: FormFieldInstance[];
   participantId?: string;
   title?: string;
   values: Record<string, ObservationValue>;
@@ -19,7 +20,7 @@ export async function createObservation(data: {
     encounterId: data.encounterId,
     formId: data.formId,
     formVersion: data.formVersion,
-    fieldIds: data.fieldIds,
+    fields: data.fields,
     participantId: data.participantId,
     title: data.title,
     values: data.values,
@@ -78,5 +79,5 @@ export async function listObservationsByEncounter(encounterId: string): Promise<
     .where("encounterId")
     .equals(encounterId)
     .toArray()
-    .then((rows) => [...rows].sort((left, right) => right.createdAt.localeCompare(left.createdAt)));
+    .then((rows) => [...rows].sort((left, right) => left.createdAt.localeCompare(right.createdAt)));
 }

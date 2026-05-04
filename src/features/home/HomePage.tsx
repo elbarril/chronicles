@@ -1,13 +1,4 @@
-import {
-  BookOpen,
-  CircleHelp,
-  ClipboardList,
-  FolderKanban,
-  Lightbulb,
-  Settings,
-  Tag,
-  Wrench,
-} from "lucide-react";
+import { BookOpen, CircleHelp, ClipboardList, FolderKanban, Settings, Wrench } from "lucide-react";
 import { Link } from "react-router";
 
 import { EncountersSection } from "@/features/home/components/EncountersSection";
@@ -15,12 +6,10 @@ import { homeMessages } from "@/features/home/messages";
 import { cn } from "@/lib/utils";
 
 const navSections = [
-  { to: "/fields", label: "Campos", Icon: Tag, tourId: "hub.fields" },
   { to: "/forms", label: "Formularios", Icon: ClipboardList, tourId: "hub.forms" },
   { to: "/projects", label: "Proyectos", Icon: FolderKanban, tourId: "hub.projects" },
   { to: "/chronicles", label: "Crónicas", Icon: BookOpen, tourId: "hub.chronicles" },
   { to: "/settings", label: "Configuración", Icon: Settings, tourId: "hub.settings" },
-  { to: "/how-it-works", label: "Cómo funciona", Icon: Lightbulb, tourId: undefined },
   { to: "/help", label: "Ayuda", Icon: CircleHelp, tourId: undefined },
   { to: "/support", label: "Soporte", Icon: Wrench, tourId: undefined },
 ] as const;

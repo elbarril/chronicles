@@ -5,13 +5,11 @@ import { ChronicleDetailPage } from "@/features/chronicles/pages/ChronicleDetail
 import { ChronicleListPage } from "@/features/chronicles/pages/ChronicleListPage";
 import { EncounterChroniclePage } from "@/features/chronicles/pages/EncounterChroniclePage";
 import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
+import { EncounterEditPage } from "@/features/encounters/pages/EncounterEditPage";
 import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
-import { FieldFormPage } from "@/features/field-definitions/pages/FieldFormPage";
-import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage";
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
 import { HelpPage } from "@/features/help/HelpPage";
-import { HowItWorksPage } from "@/features/help/HowItWorksPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 import { SupportPage } from "@/features/home/SupportPage";
@@ -27,18 +25,6 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: <HomePage />,
-      },
-      {
-        path: "/fields",
-        element: <FieldListPage />,
-      },
-      {
-        path: "/fields/new",
-        element: <FieldFormPage />,
-      },
-      {
-        path: "/fields/:id/edit",
-        element: <FieldFormPage />,
       },
       {
         path: "/forms",
@@ -77,6 +63,10 @@ export const router = createBrowserRouter([
         element: <EncounterDetailPage />,
       },
       {
+        path: "/encounters/:id/edit",
+        element: <EncounterEditPage />,
+      },
+      {
         path: "/encounters/:id/observations/new",
         element: <EncounterDetailPage />,
       },
@@ -99,10 +89,6 @@ export const router = createBrowserRouter([
       {
         path: "/help",
         element: <HelpPage />,
-      },
-      {
-        path: "/how-it-works",
-        element: <HowItWorksPage />,
       },
       {
         path: "/support",

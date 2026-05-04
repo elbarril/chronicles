@@ -8,25 +8,6 @@ import { ObservationMediaList } from "@/features/observations/components/Observa
 
 const MEDIA_FIELD_TYPES: ReadonlySet<Field["type"]> = new Set(["audio", "video", "image", "file"]);
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
-
-function hasAnyMedia(observations: Observation[], mediaFieldIds: Set<string>): boolean {
-  return observations.some((observation) =>
-    Object.entries(observation.values).some(([fieldId, value]) => {
-      if (!mediaFieldIds.has(fieldId)) {
-        return false;
-      }
-
-      return mediaCount(value as ObservationValue) > 0;
-    }),
-  );
-}
-
 function mediaCount(value: ObservationValue | undefined): number {
   if (value === undefined || value === null || typeof value !== "object") {
     return 0;
@@ -43,6 +24,15 @@ function mediaCount(value: ObservationValue | undefined): number {
   return 0;
 }
 
+/** Returns true if an observation has at least one media value among its instances. */
+function observationHasMedia(observation: Observation, fieldsById: Map<string, Field>): boolean {
+  return observation.fields.some((instance) => {
+    const field = fieldsById.get(instance.fieldId);
+    if (!field || !MEDIA_FIELD_TYPES.has(field.type)) return false;
+    return mediaCount(observation.values[instance.instanceId] as ObservationValue) > 0;
+  });
+}
+
 function observationLabel(
   observation: Observation,
   participantsById: Map<string, Participant>,
@@ -52,10 +42,9 @@ function observationLabel(
     ? participantsById.get(observation.participantId)
     : undefined;
 
-  const datePart = formatDate(observation.createdAt);
   const subject = participant?.displayName ?? chronicleMessages.mediaPanelObservationFallback;
 
-  return `Observación ${index + 1} · ${subject} · ${datePart}`;
+  return `Observación ${index + 1} · ${subject}`;
 }
 
 interface ChronicleMediaPanelProps {
@@ -73,15 +62,13 @@ export function ChronicleMediaPanel({ encounterId }: ChronicleMediaPanelProps): 
     participants.map((participant) => [participant.id, participant]),
   );
 
-  const mediaFieldIds = new Set(
-    fields.filter((field) => MEDIA_FIELD_TYPES.has(field.type)).map((field) => field.id),
+  const fieldsById = new Map(fields.map((f) => [f.id, f]));
+
+  const observationsWithMedia = sortedObservations.filter((obs) =>
+    observationHasMedia(obs, fieldsById),
   );
 
-  const observationsWithMedia = sortedObservations.filter((observation) =>
-    Object.entries(observation.values).some(
-      ([fieldId, value]) => mediaFieldIds.has(fieldId) && mediaCount(value as ObservationValue) > 0,
-    ),
-  );
+  const hasAnyMedia = observationsWithMedia.length > 0;
 
   return (
     <Card>
@@ -94,7 +81,7 @@ export function ChronicleMediaPanel({ encounterId }: ChronicleMediaPanelProps): 
           <p className="text-muted-foreground text-sm" aria-live="polite">
             {chronicleMessages.mediaPanelLoading}
           </p>
-        ) : !hasAnyMedia(sortedObservations, mediaFieldIds) ? (
+        ) : !hasAnyMedia ? (
           <p className="text-muted-foreground text-sm">{chronicleMessages.mediaPanelEmpty}</p>
         ) : (
           <ul className="space-y-4">
@@ -103,7 +90,11 @@ export function ChronicleMediaPanel({ encounterId }: ChronicleMediaPanelProps): 
                 <p className="text-muted-foreground text-xs font-medium">
                   {observationLabel(observation, participantsById, index)}
                 </p>
-                <ObservationMediaList fields={fields} values={observation.values} />
+                <ObservationMediaList
+                  instances={observation.fields}
+                  fieldsById={fieldsById}
+                  values={observation.values}
+                />
               </li>
             ))}
           </ul>

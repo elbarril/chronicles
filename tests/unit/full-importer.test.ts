@@ -46,6 +46,7 @@ function isoNow(): string {
 
 interface FullSampleSeed {
   fieldId: string;
+  instanceId: string;
   formId: string;
   projectId: string;
   participantId: string;
@@ -97,7 +98,7 @@ function buildFullZip(seed: FullSampleSeed): JSZip {
       {
         id: seed.formId,
         name: "Form 1",
-        fieldIds: [seed.fieldId],
+        fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -155,9 +156,9 @@ function buildFullZip(seed: FullSampleSeed): JSZip {
         encounterId: seed.encounterId,
         formId: seed.formId,
         formVersion: 1,
-        fieldIds: [seed.fieldId],
+        fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         participantId: seed.participantId,
-        values: { [seed.fieldId]: "Texto" },
+        values: { [seed.instanceId]: "Texto" },
         createdAt: now,
       },
     ]),
@@ -194,9 +195,10 @@ describe("full importer + import service dispatch", () => {
     });
   });
 
-  it("parses a chronicle-full-v2 zip and imports every table", async () => {
+  it("parses a chronicle-full-v3 zip and imports every table", async () => {
     const seed: FullSampleSeed = {
       fieldId: crypto.randomUUID(),
+      instanceId: crypto.randomUUID(),
       formId: crypto.randomUUID(),
       projectId: crypto.randomUUID(),
       participantId: crypto.randomUUID(),
@@ -247,7 +249,7 @@ describe("full importer + import service dispatch", () => {
           id: seed.observationId,
           formId: seed.formId,
           formVersion: 1,
-          fieldIds: [seed.fieldId],
+          fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         }),
       ]),
     );
@@ -257,14 +259,28 @@ describe("full importer + import service dispatch", () => {
     expect(mediaBulkPutMock).toHaveBeenCalledWith([]);
   });
 
-  it("rejects manifests using a legacy schema", async () => {
+  it("rejects manifests using the legacy chronicle-full-v1 schema", async () => {
     const zip = new JSZip();
     zip.file(
       "manifest.json",
       JSON.stringify({ schema: "chronicle-full-v1", exportedAt: isoNow() }),
     );
 
-    const file = await fileFromZip(zip, "legacy.zip");
+    const file = await fileFromZip(zip, "legacy-v1.zip");
+
+    await expect(parseZipForImport(file)).rejects.toMatchObject({
+      code: "IMPORT_SCHEMA_MISMATCH",
+    });
+  });
+
+  it("rejects manifests using the legacy chronicle-full-v2 schema", async () => {
+    const zip = new JSZip();
+    zip.file(
+      "manifest.json",
+      JSON.stringify({ schema: "chronicle-full-v2", exportedAt: isoNow() }),
+    );
+
+    const file = await fileFromZip(zip, "legacy-v2.zip");
 
     await expect(parseZipForImport(file)).rejects.toMatchObject({
       code: "IMPORT_SCHEMA_MISMATCH",

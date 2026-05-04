@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +17,10 @@ import { EncounterHeader } from "@/features/encounters/components/EncounterHeade
 import { EncounterTimeline } from "@/features/encounters/components/EncounterTimeline";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
+import { encounterMessages } from "@/features/encounters/lib/messages";
 import { ObservationForm } from "@/features/observations/components/ObservationForm";
 import { useObservationActions } from "@/features/observations/hooks/use-observation-actions";
+import { observationMessages } from "@/features/observations/lib/messages";
 
 export function EncounterDetailPage(): JSX.Element {
   const params = useParams();
@@ -32,6 +36,14 @@ export function EncounterDetailPage(): JSX.Element {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingObservation, setEditingObservation] = useState<Observation | undefined>();
+
+  // Encounter delete confirm
+  const [showDeleteEncounterConfirm, setShowDeleteEncounterConfirm] = useState(false);
+  const [isDeletingEncounter, setIsDeletingEncounter] = useState(false);
+
+  // Observation delete confirm
+  const [pendingDeleteObservationId, setPendingDeleteObservationId] = useState<string | null>(null);
+  const [isDeletingObservation, setIsDeletingObservation] = useState(false);
 
   const participantById = useMemo(
     () => new Map(participants.map((participant) => [participant.id, participant.displayName])),
@@ -54,6 +66,38 @@ export function EncounterDetailPage(): JSX.Element {
     }
 
     await encounterActions.restore(encounter.id);
+  }
+
+  async function handleDeleteEncounter(): Promise<void> {
+    if (!encounter) {
+      return;
+    }
+
+    setIsDeletingEncounter(true);
+
+    try {
+      await encounterActions.remove(encounter.id);
+      const projectId = project?.id;
+      navigate(projectId ? `/projects/${projectId}` : "/projects");
+    } finally {
+      setIsDeletingEncounter(false);
+      setShowDeleteEncounterConfirm(false);
+    }
+  }
+
+  async function handleConfirmDeleteObservation(): Promise<void> {
+    if (!pendingDeleteObservationId) {
+      return;
+    }
+
+    setIsDeletingObservation(true);
+
+    try {
+      await observationActions.remove(pendingDeleteObservationId);
+    } finally {
+      setIsDeletingObservation(false);
+      setPendingDeleteObservationId(null);
+    }
   }
 
   async function handleSubmitObservation(values: {
@@ -116,23 +160,26 @@ export function EncounterDetailPage(): JSX.Element {
   }
 
   const projectName = project?.name ?? "Proyecto";
-  const backToProjectTarget = project ? `/projects/${project.id}` : "/projects";
+
+  const breadcrumbs = [
+    { label: "Inicio", to: "/" },
+    { label: "Proyectos", to: "/projects" },
+    project ? { label: projectName, to: `/projects/${project.id}` } : { label: projectName },
+    { label: encounter.name },
+  ];
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-detail-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to={backToProjectTarget}>← Volver al proyecto</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs items={breadcrumbs} />
 
       <EncounterHeader
         encounter={encounter}
         projectName={projectName}
-        participantCount={participants.length}
+        participants={participants}
         observationCount={observations.length}
         onArchive={handleArchiveEncounter}
         onRestore={handleRestoreEncounter}
+        onRequestDelete={() => setShowDeleteEncounterConfirm(true)}
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -161,7 +208,7 @@ export function EncounterDetailPage(): JSX.Element {
             setEditingObservation(observation);
             setIsDialogOpen(true);
           }}
-          onDelete={observationActions.remove}
+          onRequestDelete={setPendingDeleteObservationId}
         />
       </div>
 
@@ -216,6 +263,24 @@ export function EncounterDetailPage(): JSX.Element {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={showDeleteEncounterConfirm}
+        title={encounterMessages.confirmDeleteTitle}
+        description={encounterMessages.confirmDeleteDescription}
+        onConfirm={handleDeleteEncounter}
+        onCancel={() => setShowDeleteEncounterConfirm(false)}
+        isLoading={isDeletingEncounter}
+      />
+
+      <ConfirmDeleteDialog
+        open={pendingDeleteObservationId !== null}
+        title={observationMessages.confirmDeleteTitle}
+        description={observationMessages.confirmDeleteDescription}
+        onConfirm={handleConfirmDeleteObservation}
+        onCancel={() => setPendingDeleteObservationId(null)}
+        isLoading={isDeletingObservation}
+      />
     </section>
   );
 }

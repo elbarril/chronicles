@@ -1,5 +1,5 @@
 import { type Field } from "@/domain/field";
-import { type ObservationForm } from "@/domain/form";
+import { type FormFieldInstance, type ObservationForm } from "@/domain/form";
 
 /**
  * Stable identifiers for the built-in default field and form definitions.
@@ -38,12 +38,19 @@ export const DEFAULT_FIELD_SEEDS: readonly DefaultFieldSeed[] = [
   },
 ] as const;
 
-type DefaultFormSeed = Pick<ObservationForm, "id" | "name" | "fieldIds">;
+/** Stable instance IDs for default form instances. */
+export const DEFAULT_FORM_INSTANCE_AUDIO_ID = "00000000-0000-4000-8000-00000000e001";
+export const DEFAULT_FORM_INSTANCE_LONGTEXT_ID = "00000000-0000-4000-8000-00000000e002";
+
+type DefaultFormSeed = Pick<ObservationForm, "id" | "name" | "fields">;
 
 export const DEFAULT_FORM_SEED: DefaultFormSeed = {
   id: DEFAULT_FORM_ID,
   name: "Observación de encuentro",
-  fieldIds: [...DEFAULT_FIELD_IDS],
+  fields: [
+    { instanceId: DEFAULT_FORM_INSTANCE_AUDIO_ID, fieldId: DEFAULT_AUDIO_FIELD_ID },
+    { instanceId: DEFAULT_FORM_INSTANCE_LONGTEXT_ID, fieldId: DEFAULT_LONG_TEXT_FIELD_ID },
+  ] satisfies FormFieldInstance[],
 };
 
 /**
@@ -55,7 +62,7 @@ export const DEFAULT_FORM_SEED: DefaultFormSeed = {
  * guarantees that calling the seed twice never duplicates rows.
  *
  * UUIDs are namespaced by entity (`d0xx` fields, `d1xx` forms,
- * `d2xx` groups, `d3xx` participants, `d4xx` encounters).
+ * `d2xx` projects, `d3xx` participants, `d4xx` encounters).
  */
 export const DEMO_FIELD_TEXT_ID = "00000000-0000-4000-8000-00000000d011";
 export const DEMO_FIELD_LONG_TEXT_ID = "00000000-0000-4000-8000-00000000d012";
@@ -217,28 +224,140 @@ export const DEMO_FIELD_IDS: readonly string[] = DEMO_FIELD_SEEDS.map((seed) => 
 
 export const DEMO_FORM_ID = "00000000-0000-4000-8000-00000000d102";
 
-export const DEMO_FORM_SEED: Pick<ObservationForm, "id" | "name" | "fieldIds"> = {
+/** Stable instance IDs for demo form instances (one per demo field, same index). */
+export const DEMO_FORM_INSTANCE_IDS: readonly string[] = DEMO_FIELD_SEEDS.map(
+  (_, i) => `00000000-0000-4000-8000-00000000f${String(i + 1).padStart(3, "0")}`,
+);
+
+export const DEMO_FORM_SEED: Pick<ObservationForm, "id" | "name" | "fields"> = {
   id: DEMO_FORM_ID,
   name: "Formulario de prueba",
-  fieldIds: [...DEMO_FIELD_IDS],
+  fields: DEMO_FIELD_SEEDS.map((seed, i) => ({
+    instanceId: DEMO_FORM_INSTANCE_IDS[i] as string,
+    fieldId: seed.id,
+  })) satisfies FormFieldInstance[],
 };
 
 export const DEMO_PROJECT_ID = "00000000-0000-4000-8000-00000000d211";
-export const DEMO_PARTICIPANT_ONE_ID = "00000000-0000-4000-8000-00000000d311";
-export const DEMO_PARTICIPANT_TWO_ID = "00000000-0000-4000-8000-00000000d312";
-export const DEMO_ENCOUNTER_ID = "00000000-0000-4000-8000-00000000d411";
 
 export const DEMO_PROJECT_SEED = {
   id: DEMO_PROJECT_ID,
   name: "Proyecto de prueba",
 } as const;
 
+/**
+ * 13 participants seeded into the demo project. The first two are
+ * reused as the participants attached to the demo observations on the
+ * primary encounter, hence the dedicated `DEMO_PARTICIPANT_ONE_ID` and
+ * `DEMO_PARTICIPANT_TWO_ID` aliases below.
+ */
 export const DEMO_PARTICIPANT_SEEDS = [
-  { id: DEMO_PARTICIPANT_ONE_ID, displayName: "Persona uno" },
-  { id: DEMO_PARTICIPANT_TWO_ID, displayName: "Persona dos" },
+  { id: "00000000-0000-4000-8000-00000000d311", displayName: "Thiago" },
+  { id: "00000000-0000-4000-8000-00000000d312", displayName: "Bautista" },
+  { id: "00000000-0000-4000-8000-00000000d313", displayName: "Solange" },
+  { id: "00000000-0000-4000-8000-00000000d314", displayName: "Ambar" },
+  { id: "00000000-0000-4000-8000-00000000d315", displayName: "Xiomara" },
+  { id: "00000000-0000-4000-8000-00000000d316", displayName: "Moises" },
+  { id: "00000000-0000-4000-8000-00000000d317", displayName: "Nicole" },
+  { id: "00000000-0000-4000-8000-00000000d318", displayName: "Celeste" },
+  { id: "00000000-0000-4000-8000-00000000d319", displayName: "Tiziano" },
+  { id: "00000000-0000-4000-8000-00000000d31a", displayName: "Florencia" },
+  { id: "00000000-0000-4000-8000-00000000d31b", displayName: "Santiago" },
+  { id: "00000000-0000-4000-8000-00000000d31c", displayName: "Leonel" },
+  { id: "00000000-0000-4000-8000-00000000d31d", displayName: "Ayelén" },
 ] as const;
 
-export const DEMO_ENCOUNTER_SEED = {
+export const DEMO_PARTICIPANT_IDS: readonly string[] = DEMO_PARTICIPANT_SEEDS.map(
+  (seed) => seed.id,
+);
+
+/** First two participants — used by the pre-loaded demo observations. */
+export const DEMO_PARTICIPANT_ONE_ID = "00000000-0000-4000-8000-00000000d311";
+export const DEMO_PARTICIPANT_TWO_ID = "00000000-0000-4000-8000-00000000d312";
+
+/**
+ * Eight Thursday encounters spanning May–July 2026, all running from
+ * 17:00 to 18:15 (interpreted in the user's local timezone, which is
+ * how the encounter form reads/writes dates).
+ *
+ * The first encounter (`DEMO_ENCOUNTER_ID`) is the "primary" one: it
+ * receives the pre-populated observations and the auto-generated
+ * chronicle so the user can see the full pipeline working out of the
+ * box. The other seven are intentionally empty — they exist to give
+ * the project a realistic shape.
+ */
+type DemoEncounterSeed = {
+  readonly id: string;
+  readonly name: string;
+  /** Local-time start: [year, monthIndex, day, hour, minute]. */
+  readonly start: readonly [number, number, number, number, number];
+  /** Local-time end: [year, monthIndex, day, hour, minute]. */
+  readonly end: readonly [number, number, number, number, number];
+};
+
+export const DEMO_ENCOUNTER_SEEDS: readonly DemoEncounterSeed[] = [
+  {
+    id: "00000000-0000-4000-8000-00000000d411",
+    name: "Encuentro 1",
+    start: [2026, 4, 21, 17, 0],
+    end: [2026, 4, 21, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d412",
+    name: "Encuentro 2",
+    start: [2026, 4, 28, 17, 0],
+    end: [2026, 4, 28, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d413",
+    name: "Encuentro 3",
+    start: [2026, 5, 4, 17, 0],
+    end: [2026, 5, 4, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d414",
+    name: "Encuentro 4",
+    start: [2026, 5, 11, 17, 0],
+    end: [2026, 5, 11, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d415",
+    name: "Encuentro 5",
+    start: [2026, 5, 18, 17, 0],
+    end: [2026, 5, 18, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d416",
+    name: "Encuentro 6",
+    start: [2026, 5, 25, 17, 0],
+    end: [2026, 5, 25, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d417",
+    name: "Encuentro 7",
+    start: [2026, 6, 2, 17, 0],
+    end: [2026, 6, 2, 18, 15],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000d418",
+    name: "Encuentro 8",
+    start: [2026, 6, 16, 17, 0],
+    end: [2026, 6, 16, 18, 15],
+  },
+] as const;
+
+export const DEMO_ENCOUNTER_IDS: readonly string[] = DEMO_ENCOUNTER_SEEDS.map((seed) => seed.id);
+
+/**
+ * Identifier of the primary demo encounter — the only one that ships
+ * with pre-loaded observations and a generated chronicle. Kept under a
+ * stable name (and as `DEMO_ENCOUNTER_SEED`) for backwards-compat with
+ * tests, the onboarding tour and any consumer that already imported it.
+ */
+export const DEMO_ENCOUNTER_ID = "00000000-0000-4000-8000-00000000d411";
+export const DEMO_ENCOUNTER_SEED: DemoEncounterSeed = {
   id: DEMO_ENCOUNTER_ID,
-  name: "Encuentro de prueba",
-} as const;
+  name: "Encuentro 1",
+  start: [2026, 4, 21, 17, 0],
+  end: [2026, 4, 21, 18, 15],
+};

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { type EncounterInput } from "@/domain/encounter";
 import { EncounterForm } from "@/features/encounters/components/EncounterForm";
@@ -88,11 +89,14 @@ export function EncounterNewPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-new-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to={`/projects/${project.id}`}>← Volver al proyecto</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", to: "/" },
+          { label: "Proyectos", to: "/projects" },
+          { label: project.name, to: `/projects/${project.id}` },
+          { label: "Nuevo encuentro" },
+        ]}
+      />
 
       <header>
         <h1 id="encounter-new-title" className="text-3xl font-bold tracking-tight">

@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
-import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { type ObservationFormInput } from "@/domain/form";
+import { useFields } from "@/features/field-definitions/hooks/use-fields";
 import { FormBuilder } from "@/features/forms/components/FormBuilder";
 import { useFormActions } from "@/features/forms/hooks/use-form-actions";
 import { getDefaultFormInput } from "@/features/forms/lib/form-defaults";
-import {
-  getObservationForm,
-  listAvailableFieldsForForm,
-} from "@/features/forms/services/form-service";
+import { getObservationForm } from "@/features/forms/services/form-service";
 
 function toFormInput(form: Awaited<ReturnType<typeof getObservationForm>>): ObservationFormInput {
   if (!form) {
@@ -18,7 +16,11 @@ function toFormInput(form: Awaited<ReturnType<typeof getObservationForm>>): Obse
 
   return {
     name: form.name,
-    fieldIds: form.fieldIds,
+    fields: form.fields.map((instance) => ({
+      instanceId: instance.instanceId,
+      fieldId: instance.fieldId,
+      labelOverride: instance.labelOverride,
+    })),
   };
 }
 
@@ -30,30 +32,12 @@ export function FormBuilderPage(): JSX.Element {
   const actions = useFormActions();
   const createInitialValues = useMemo(() => getDefaultFormInput(), []);
 
-  const [isLoadingFields, setIsLoadingFields] = useState(true);
-  const [availableFields, setAvailableFields] = useState<
-    Awaited<ReturnType<typeof listAvailableFieldsForForm>>
-  >([]);
+  // Available fields via live query (so they refresh after ManageFieldsDialog adds one)
+  const { fields: availableFields, isLoading: isLoadingFields } = useFields("active");
+
   const [editInitialValues, setEditInitialValues] = useState<ObservationFormInput | null>(
     mode === "edit" ? null : createInitialValues,
   );
-
-  useEffect(() => {
-    let isMounted = true;
-
-    void listAvailableFieldsForForm().then((fields) => {
-      if (!isMounted) {
-        return;
-      }
-
-      setAvailableFields(fields);
-      setIsLoadingFields(false);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!formId) {
@@ -108,11 +92,13 @@ export function FormBuilderPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="form-builder-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/forms">← Volver a formularios</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", to: "/" },
+          { label: "Formularios", to: "/forms" },
+          { label: title },
+        ]}
+      />
 
       <header>
         <h1 id="form-builder-title" className="text-3xl font-bold tracking-tight">
@@ -124,7 +110,7 @@ export function FormBuilderPage(): JSX.Element {
       </header>
 
       <FormBuilder
-        availableFields={availableFields}
+        availableFields={availableFields ?? []}
         initialValues={initialValues}
         isSaving={actions.isSaving}
         onSubmit={handleSubmit}

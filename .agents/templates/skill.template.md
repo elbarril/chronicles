@@ -13,24 +13,19 @@ Use this skill when:
 
 ## Prerequisites
 
-- <Prerequisite 1 (if applicable)>
+- <Prerequisite 1 (optional section — remove if none)>
 
 ## Steps
 
-1. <Step 1 — starts with a verb>
+1. <Step 1 — start with a verb>
 2. <Step 2>
 3. <Step 3>
 
 ## Outputs
 
-- <Output 1>
-- <Output 2>
+- <Output 1 (optional section — remove if none)>
 
 ## Constraints
 
 - NEVER <forbidden action 1>
 - NEVER <forbidden action 2>
-
-## AGENTS.md Compliance
-
-- <Which AGENTS.md principle this skill applies or guarantees>

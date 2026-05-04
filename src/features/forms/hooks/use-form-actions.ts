@@ -6,6 +6,7 @@ import { formMessages } from "@/features/forms/lib/messages";
 import {
   archiveObservationForm,
   createObservationForm,
+  deleteObservationForm,
   restoreObservationForm,
   updateObservationForm,
 } from "@/features/forms/services/form-service";
@@ -74,11 +75,26 @@ export function useFormActions() {
     }
   }
 
+  async function remove(id: string) {
+    try {
+      await deleteObservationForm(id);
+      toast.success(formMessages.deletedSuccess);
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "FORM_DELETE_NOT_ARCHIVED"
+          ? formMessages.deleteNotArchived
+          : formMessages.deleteError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
   return {
     isSaving,
     create,
     update,
     archive,
     restore,
+    remove,
   };
 }

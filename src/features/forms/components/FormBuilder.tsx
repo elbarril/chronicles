@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { type Field } from "@/domain/field";
-import { observationFormInputSchema, type ObservationFormInput } from "@/domain/form";
+import {
+  observationFormInputSchema,
+  type FormFieldInstanceInput,
+  type ObservationFormInput,
+} from "@/domain/form";
 import { fieldTypeLabel } from "@/features/field-definitions/lib/field-type-meta";
+import { ManageFieldsDialog } from "@/features/forms/components/ManageFieldsDialog";
 import { formMessages } from "@/features/forms/lib/messages";
 import { buildResolver } from "@/lib/zod";
 
@@ -25,7 +30,7 @@ interface FormBuilderProps {
   onCancel: () => void;
 }
 
-function moveItem(items: string[], fromIndex: number, toIndex: number): string[] {
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
   if (
     fromIndex === toIndex ||
     fromIndex < 0 ||
@@ -66,72 +71,118 @@ export function FormBuilder({
     form.reset(initialValues);
   }, [form, initialValues]);
 
-  const watchedFieldIds = useWatch({
+  const watchedFields = useWatch({
     control: form.control,
-    name: "fieldIds",
+    name: "fields",
   });
 
-  const selectedFieldIds = useMemo(() => watchedFieldIds ?? [], [watchedFieldIds]);
-
-  const selectedFields = useMemo(() => {
-    const byId = new Map(availableFields.map((field) => [field.id, field]));
-
-    return selectedFieldIds
-      .map((fieldId) => byId.get(fieldId))
-      .filter((field): field is Field => Boolean(field));
-  }, [availableFields, selectedFieldIds]);
+  const selectedInstances = useMemo(() => watchedFields ?? [], [watchedFields]);
 
   const availableById = useMemo(
     () => new Map(availableFields.map((field) => [field.id, field])),
     [availableFields],
   );
 
-  function addField(fieldId: string): void {
-    const current = form.getValues("fieldIds");
+  // Use a ref to track if it's the first render to avoid overriding initial values
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      return;
+    }
+    // When available fields change (e.g. after user creates one in the dialog),
+    // filter out any instances whose fieldId no longer exists in available fields.
+    // (Archived fields are removed from availableFields but their instanceIds in
+    //  the form remain valid from existing forms — we keep them to not lose data.)
+  }, [availableFields]);
 
-    if (current.includes(fieldId)) {
-      form.setError("fieldIds", { message: formMessages.duplicateFieldIds });
+  function addField(fieldId: string): void {
+    const current = form.getValues("fields");
+    const newInstance: FormFieldInstanceInput = {
+      instanceId: crypto.randomUUID(),
+      fieldId,
+    };
+
+    form.clearErrors("fields");
+    form.setValue("fields", [...current, newInstance], { shouldValidate: true });
+  }
+
+  function duplicateInstance(index: number): void {
+    const current = form.getValues("fields");
+    const source = current[index];
+
+    if (!source) {
       return;
     }
 
-    form.clearErrors("fieldIds");
-    form.setValue("fieldIds", [...current, fieldId], { shouldValidate: true });
+    const duplicate: FormFieldInstanceInput = {
+      instanceId: crypto.randomUUID(),
+      fieldId: source.fieldId,
+      labelOverride: source.labelOverride,
+    };
+
+    const next = [...current];
+    next.splice(index + 1, 0, duplicate);
+    form.setValue("fields", next, { shouldValidate: true });
+
+    const field = availableById.get(source.fieldId);
+    if (field) {
+      setAnnounceMessage(`Se duplicó el campo ${source.labelOverride ?? field.label}.`);
+    }
   }
 
-  function removeField(fieldId: string): void {
-    const current = form.getValues("fieldIds");
+  function removeInstance(index: number): void {
+    const current = form.getValues("fields");
     form.setValue(
-      "fieldIds",
-      current.filter((id) => id !== fieldId),
+      "fields",
+      current.filter((_, i) => i !== index),
       { shouldValidate: true },
     );
   }
 
-  function moveField(fromIndex: number, toIndex: number): void {
-    const current = form.getValues("fieldIds");
+  function moveInstance(fromIndex: number, toIndex: number): void {
+    const current = form.getValues("fields");
     const next = moveItem(current, fromIndex, toIndex);
 
     if (next === current) {
       return;
     }
 
-    form.setValue("fieldIds", next, { shouldValidate: true });
+    form.setValue("fields", next, { shouldValidate: true });
 
-    const movedFieldId = next[toIndex];
+    const movedInstance = next[toIndex];
 
-    if (!movedFieldId) {
+    if (!movedInstance) {
       return;
     }
 
-    const movedField = availableById.get(movedFieldId);
-    if (movedField) {
-      setAnnounceMessage(`Se movió ${movedField.label} a la posición ${toIndex + 1}.`);
+    const field = availableById.get(movedInstance.fieldId);
+    if (field) {
+      setAnnounceMessage(
+        `Se movió ${movedInstance.labelOverride ?? field.label} a la posición ${toIndex + 1}.`,
+      );
     }
   }
 
+  function updateLabelOverride(index: number, value: string): void {
+    const current = form.getValues("fields");
+    const instance = current[index];
+
+    if (!instance) {
+      return;
+    }
+
+    const updated = [...current];
+    updated[index] = {
+      ...instance,
+      labelOverride: value.trim() || undefined,
+    };
+    form.setValue("fields", updated, { shouldValidate: false });
+  }
+
   async function handleSubmit(values: ObservationFormInput) {
-    if (values.fieldIds.length === 0) {
-      form.setError("fieldIds", { message: formMessages.emptyFieldIds });
+    if (values.fields.length === 0) {
+      form.setError("fields", { message: formMessages.emptyFields });
       return;
     }
 
@@ -155,126 +206,144 @@ export function FormBuilder({
           )}
         />
 
-        <section
-          className="grid gap-4 lg:grid-cols-2"
-          aria-labelledby="available-fields-title"
-          data-tour="forms.new.field-picker"
-        >
-          <div className="border-border rounded-md border p-4">
-            <h2 id="available-fields-title" className="text-base font-semibold">
-              Campos disponibles
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Agregá campos activos al formulario.
-            </p>
-
-            <ul className="mt-4 space-y-2">
-              {availableFields.length === 0 ? (
-                <li className="text-muted-foreground text-sm">
-                  No hay campos activos para agregar.
-                </li>
-              ) : (
-                availableFields.map((field) => {
-                  const isSelected = selectedFieldIds.includes(field.id);
-
-                  return (
-                    <li
-                      key={field.id}
-                      className="border-border flex items-center justify-between gap-2 rounded border p-2"
-                    >
-                      <div>
-                        <p className="font-medium">{field.label}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {fieldTypeLabel[field.type]}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={isSelected}
-                        onClick={() => addField(field.id)}
-                      >
-                        {isSelected ? "Agregado" : "Agregar"}
-                      </Button>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
+        <section aria-labelledby="field-picker-title" data-tour="forms.new.field-picker">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div>
+              <h2 id="field-picker-title" className="text-base font-semibold">
+                Campos del formulario
+              </h2>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                Agregá campos, reordená con ↑↓, duplicalos o quitálos. El mismo campo puede aparecer
+                más de una vez con etiquetas distintas.
+              </p>
+            </div>
+            <ManageFieldsDialog />
           </div>
 
+          {/* Available fields picker */}
           <div
-            className="border-border rounded-md border p-4"
-            aria-labelledby="selected-fields-title"
+            className="border-border mb-4 rounded-md border p-4"
+            aria-labelledby="available-fields-title"
           >
-            <h2 id="selected-fields-title" className="text-base font-semibold">
-              Campos del formulario
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Reordená con subir y bajar. El orden define cómo se mostrará en observaciones.
-            </p>
-
-            {selectedFields.length === 0 ? (
-              <p className="text-muted-foreground mt-4 text-sm" role="status">
-                Agregá al menos un campo para guardar el formulario.
+            <h3 id="available-fields-title" className="mb-3 text-sm font-medium">
+              Campos disponibles
+            </h3>
+            {availableFields.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No hay campos activos. Usá &quot;Editar campos&quot; para crear uno.
               </p>
             ) : (
-              <ol className="mt-4 space-y-2">
-                {selectedFields.map((field, index) => (
+              <ul className="flex flex-wrap gap-2">
+                {availableFields.map((field) => (
+                  <li key={field.id}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => addField(field.id)}
+                    >
+                      + {field.label}{" "}
+                      <span className="text-muted-foreground ml-1 text-xs">
+                        ({fieldTypeLabel[field.type]})
+                      </span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Selected instances */}
+          {selectedInstances.length === 0 ? (
+            <p className="text-muted-foreground rounded-md border border-dashed p-4 text-sm">
+              Agregá al menos un campo usando los botones de arriba.
+            </p>
+          ) : (
+            <ol className="space-y-3" aria-label="Campos seleccionados del formulario">
+              {selectedInstances.map((instance, index) => {
+                const field = availableById.get(instance.fieldId);
+                const displayLabel = instance.labelOverride ?? field?.label ?? instance.fieldId;
+                const typeLabel = field ? fieldTypeLabel[field.type] : "campo desconocido";
+
+                return (
                   <li
-                    key={field.id}
-                    className="border-border flex items-center justify-between gap-2 rounded border p-2"
+                    key={instance.instanceId ?? index}
+                    className="border-border flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-start"
                   >
-                    <div>
-                      <p className="font-medium">{field.label}</p>
-                      <p className="text-muted-foreground text-xs">{fieldTypeLabel[field.type]}</p>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <p className="text-sm font-medium">{displayLabel}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {typeLabel}
+                          {field && instance.labelOverride ? ` · base: ${field.label}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          placeholder={field?.label ?? "Etiqueta personalizada"}
+                          value={instance.labelOverride ?? ""}
+                          onChange={(e) => updateLabelOverride(index, e.target.value)}
+                          className="h-7 text-xs"
+                          aria-label={`Etiqueta personalizada para el campo ${field?.label ?? ""} (posición ${index + 1})`}
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap gap-1 sm:flex-nowrap">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         disabled={index === 0}
-                        aria-label={`Subir campo ${field.label}`}
-                        onClick={() => moveField(index, index - 1)}
+                        aria-label={`Subir ${displayLabel}`}
+                        onClick={() => moveInstance(index, index - 1)}
                       >
-                        ↑ Subir
+                        ↑
                       </Button>
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        disabled={index === selectedFields.length - 1}
-                        aria-label={`Bajar campo ${field.label}`}
-                        onClick={() => moveField(index, index + 1)}
+                        disabled={index === selectedInstances.length - 1}
+                        aria-label={`Bajar ${displayLabel}`}
+                        onClick={() => moveInstance(index, index + 1)}
                       >
-                        ↓ Bajar
+                        ↓
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        aria-label={`Duplicar ${displayLabel}`}
+                        data-tour={index === 0 ? "forms.builder.duplicate-instance" : undefined}
+                        onClick={() => duplicateInstance(index)}
+                      >
+                        Duplicar
                       </Button>
                       <Button
                         type="button"
                         size="sm"
                         variant="secondary"
-                        aria-label={`Quitar campo ${field.label}`}
-                        onClick={() => removeField(field.id)}
+                        aria-label={`Quitar ${displayLabel}`}
+                        onClick={() => removeInstance(index)}
                       >
                         Quitar
                       </Button>
                     </div>
                   </li>
-                ))}
-              </ol>
-            )}
+                );
+              })}
+            </ol>
+          )}
 
-            <div className="sr-only" aria-live="polite" aria-atomic="true">
-              {announceMessage}
-            </div>
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {announceMessage}
           </div>
         </section>
 
         <FormField
           control={form.control}
-          name="fieldIds"
+          name="fields"
           render={() => (
             <FormItem>
               <FormMessage />

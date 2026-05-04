@@ -14,6 +14,7 @@ function makeInput() {
   const start = new Date("2026-05-02T10:00:00.000Z").toISOString();
   const end = new Date("2026-05-02T11:00:00.000Z").toISOString();
   const fieldId = crypto.randomUUID();
+  const instanceId = crypto.randomUUID();
   const participantId = crypto.randomUUID();
   const encounterId = crypto.randomUUID();
   const projectId = crypto.randomUUID();
@@ -55,10 +56,11 @@ function makeInput() {
         encounterId,
         formId: crypto.randomUUID(),
         formVersion: 1,
-        fieldIds: [fieldId],
+        fields: [{ instanceId, fieldId }],
         participantId,
-        values: { [fieldId]: "Participó activamente" },
+        values: { [instanceId]: "Participó activamente" },
         createdAt: start,
+        updatedAt: start,
       },
     ],
   };
@@ -92,12 +94,16 @@ describe("gemini-chronicle-generator", () => {
 
     const input = makeInput();
     const imageFieldId = crypto.randomUUID();
+    const imageInstanceId = crypto.randomUUID();
 
     const firstObs = input.observations[0];
     if (firstObs) {
-      firstObs.fieldIds = [...firstObs.fieldIds, imageFieldId];
+      firstObs.fields = [
+        ...firstObs.fields,
+        { instanceId: imageInstanceId, fieldId: imageFieldId },
+      ];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (firstObs.values as any)[imageFieldId] = { mediaId: crypto.randomUUID() };
+      (firstObs.values as any)[imageInstanceId] = { mediaId: crypto.randomUUID() };
     }
 
     input.fieldsById.set(imageFieldId, {

@@ -12,6 +12,7 @@ const INTRO_STEPS = onboardingMessages.introSteps.length;
 const DEMO_PROJECT_ID = "00000000-0000-4000-8000-00000000d211";
 const DEMO_ENCOUNTER_ID = "00000000-0000-4000-8000-00000000d411";
 const DEMO_CHRONICLE_ID = "00000000-0000-4000-8000-00000000c111";
+const DEMO_FORM_ID = "00000000-0000-4000-8000-00000000d102";
 
 const seedDemoEncounterMock = vi.fn();
 const removeDemoEncounterMock = vi.fn();
@@ -49,9 +50,6 @@ function HomeStub(): JSX.Element {
           Nuevo encuentro
         </button>
       </section>
-      <a href="/fields" data-tour="hub.fields">
-        Campos
-      </a>
       <a href="/forms" data-tour="hub.forms">
         Formularios
       </a>
@@ -77,29 +75,6 @@ function renderApp() {
           <Route element={<RootLayout />}>
             <Route index element={<HomeStub />} />
             <Route
-              path="fields"
-              element={
-                <div>
-                  <p>Fields</p>
-                  <a href="/fields/new" data-tour="fields.new-button">
-                    Nuevo campo
-                  </a>
-                  <div data-tour="fields.list-region">List</div>
-                </div>
-              }
-            />
-            <Route
-              path="fields/new"
-              element={
-                <div>
-                  <p>New field</p>
-                  <div data-tour="fields.type-selector">Type</div>
-                  <div data-tour="fields.new.name-input">Name</div>
-                  <button data-tour="fields.save-button">Guardar campo</button>
-                </div>
-              }
-            />
-            <Route
               path="forms"
               element={
                 <div>
@@ -117,8 +92,17 @@ function renderApp() {
                 <div>
                   <p>New form</p>
                   <div data-tour="forms.new.name-input">Name</div>
-                  <div data-tour="forms.new.field-picker">Picker</div>
+                  <button data-tour="forms.builder.manage-fields">Gestionar campos</button>
                   <button data-tour="forms.new.save-button">Guardar formulario</button>
+                </div>
+              }
+            />
+            <Route
+              path="forms/:formId/edit"
+              element={
+                <div>
+                  <p>Edit form</p>
+                  <button data-tour="forms.builder.duplicate-instance">Duplicar</button>
                 </div>
               }
             />
@@ -291,6 +275,7 @@ describe("OnboardingDialog", () => {
   beforeEach(() => {
     window.localStorage.removeItem(onboardingStorageKey);
     seedDemoEncounterMock.mockReset().mockResolvedValue({
+      projectId: DEMO_PROJECT_ID,
       encounterId: DEMO_ENCOUNTER_ID,
       created: true,
     });
@@ -350,12 +335,12 @@ describe("OnboardingDialog", () => {
     expect(within(hubStop).queryByText(/paso \d+ de \d+/i)).toBeNull();
   });
 
-  it("walks through the Campos creation flow and lands on Formularios hub", async () => {
+  it("lands on the Formularios hub-stop after the encounters intro steps", async () => {
     const user = userEvent.setup();
     renderApp();
     await advanceThroughIntro(user);
 
-    await advanceTo(user, /ahora vamos a formularios/i);
+    await advanceTo(user, /arrancamos por formularios/i);
     expect(getPathname()).toBe("/");
     await waitFor(() => {
       expect(
@@ -400,6 +385,31 @@ describe("OnboardingDialog", () => {
     );
   });
 
+  it("highlights the duplicate-instance button on the seeded demo form", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await advanceThroughIntro(user);
+
+    await waitFor(() => {
+      expect(seedDemoEncounterMock).toHaveBeenCalled();
+    });
+
+    await advanceTo(user, /usar el mismo campo dos veces/i);
+    await waitFor(
+      () => {
+        expect(getPathname()).toBe(`/forms/${DEMO_FORM_ID}/edit`);
+      },
+      { timeout: 3000 },
+    );
+    await waitFor(() => {
+      expect(
+        document
+          .querySelector('[data-tour="forms.builder.duplicate-instance"]')
+          ?.getAttribute("data-tour-spotlight"),
+      ).toBe("active");
+    });
+  });
+
   it("walks through to the chronicle detail page using the seeded chronicle id", async () => {
     const user = userEvent.setup();
     renderApp();
@@ -435,7 +445,11 @@ describe("OnboardingDialog", () => {
   });
 
   it("does not remove demo data on dismiss when the tutorial did NOT create it", async () => {
-    seedDemoEncounterMock.mockResolvedValue({ encounterId: DEMO_ENCOUNTER_ID, created: false });
+    seedDemoEncounterMock.mockResolvedValue({
+      projectId: DEMO_PROJECT_ID,
+      encounterId: DEMO_ENCOUNTER_ID,
+      created: false,
+    });
 
     const user = userEvent.setup();
     renderApp();

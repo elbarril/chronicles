@@ -1,7 +1,13 @@
-export const dataStoragePage = {
-  pageTitle: "Cómo se guardan tus datos",
+export const helpPage = {
+  pageTitle: "Ayuda",
   pageDescription:
-    "Antes de arrancar a observar, leé esto: Chronicle guarda todo en tu propio dispositivo. Conocer cómo funciona te evita perder información sin querer.",
+    "Una guía rápida con todo lo que necesitás saber: cómo funciona la app, cómo se guardan tus datos en tu dispositivo, y cómo activar la generación de crónicas con IA.",
+  tabs: {
+    funcionamientos: "Funcionamientos",
+    datos: "Datos",
+    ia: "IA",
+  },
+  tabsAriaLabel: "Secciones de ayuda",
 } as const;
 
 export const dataStorageGuide = {
@@ -101,12 +107,6 @@ export const aiSetupGuide = {
   },
 } as const;
 
-export const howItWorksPage = {
-  pageTitle: "Cómo funciona Chronicle",
-  pageDescription:
-    "Una recorrida rápida por la lógica de la app: para qué sirve, qué pasos seguís y cómo encajan las distintas secciones.",
-} as const;
-
 type WorkflowStep = {
   title: string;
   description: string;
@@ -115,15 +115,15 @@ type WorkflowStep = {
 
 const workflowSteps: readonly WorkflowStep[] = [
   {
-    title: "1. Definí los campos",
+    title: "1. Armá uno o más formularios de observación",
     description:
-      "Los campos son los datos que querés capturar: una nota corta, un puntaje, una foto, un audio, una fecha, una elección. Los creás una vez y los reutilizás en distintos formularios.",
-    cta: { label: "Ir a campos", to: "/fields" },
+      'Un formulario es un conjunto ordenado de campos: notas, puntajes, fotos, audios, fechas, elecciones. Desde el formulario tenés un botón "Editar campos" que abre un panel para crear, editar o archivar campos sin salirte del flujo. El mismo campo puede aparecer más de una vez en un formulario, cada instancia con su propia etiqueta.',
+    cta: { label: "Ir a formularios", to: "/forms" },
   },
   {
-    title: "2. Armá uno o más formularios de observación",
+    title: "2. Versioná tus formularios sin perder lo viejo",
     description:
-      "Un formulario es un conjunto ordenado de campos. Es la plantilla que vas a completar al cargar cada observación. Si más adelante editás un formulario se guarda una versión nueva, así las observaciones viejas siguen mostrando exactamente la versión que usaron.",
+      "Si más adelante editás un formulario se guarda como una versión nueva, así las observaciones viejas siguen mostrando exactamente la versión con la que se cargaron.",
     cta: { label: "Ir a formularios", to: "/forms" },
   },
   {
@@ -188,6 +188,6 @@ export const howItWorksGuide = {
     title: "Antes de arrancar",
     description:
       "Como todo se guarda en tu dispositivo, te conviene leer también cómo funciona el guardado de datos para no perder trabajo importante.",
-    cta: { label: "Cómo se guardan tus datos", to: "/help" },
+    cta: { label: "Cómo se guardan tus datos", to: "/help?tab=datos" },
   },
 } as const;

@@ -6,7 +6,11 @@ import {
   type FullImportData,
   type FullImportPreview,
 } from "@/infra/export/full-importer";
-import { anyManifestSchema, FULL_MANIFEST_SCHEMA } from "@/infra/export/manifest";
+import {
+  anyManifestSchema,
+  assertSupportedManifestSchema,
+  FULL_MANIFEST_SCHEMA,
+} from "@/infra/export/manifest";
 import { AppError } from "@/lib/error";
 
 export type ImportPreview = { kind: "full"; preview: FullImportPreview };
@@ -37,10 +41,14 @@ export async function parseZipForImport(file: File): Promise<ImportPreview> {
 
   const schema = await readManifestSchema(zip);
 
+  // Throws with a descriptive message for legacy (v1, v2) and unknown schemas.
+  assertSupportedManifestSchema(schema);
+
   if (schema === FULL_MANIFEST_SCHEMA) {
     return { kind: "full", preview: await parseFullZip(zip) };
   }
 
+  // Unreachable after assertSupportedManifestSchema, kept as a type-safety net.
   throw new AppError("IMPORT_SCHEMA_MISMATCH", "Unsupported manifest schema.");
 }
 

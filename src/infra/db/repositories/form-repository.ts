@@ -1,9 +1,12 @@
 import {
   observationFormSchema,
+  type FormFieldInstance,
   type ObservationForm,
   type ObservationFormInput,
 } from "@/domain/form";
+import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { db } from "@/infra/db/client";
+import { deleteMediaBlob } from "@/infra/media/store";
 
 function nowIsoString(): string {
   return new Date().toISOString();
@@ -13,13 +16,23 @@ function normalizeName(name: string): string {
   return name.trim();
 }
 
+/** Resolve field instances from input, assigning new instanceIds to entries
+ *  that arrive without one (freshly added rows in the builder). */
+function resolveInstances(inputFields: ObservationFormInput["fields"]): FormFieldInstance[] {
+  return inputFields.map((entry) => ({
+    instanceId: entry.instanceId ?? crypto.randomUUID(),
+    fieldId: entry.fieldId,
+    ...(entry.labelOverride !== undefined ? { labelOverride: entry.labelOverride } : {}),
+  }));
+}
+
 export async function createForm(data: ObservationFormInput): Promise<ObservationForm> {
   const now = nowIsoString();
 
   const form: ObservationForm = observationFormSchema.parse({
     id: crypto.randomUUID(),
     name: normalizeName(data.name),
-    fieldIds: data.fieldIds,
+    fields: resolveInstances(data.fields),
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -44,7 +57,7 @@ export async function updateForm(
   const next = observationFormSchema.parse({
     ...previous,
     name: normalizeName(data.name),
-    fieldIds: data.fieldIds,
+    fields: resolveInstances(data.fields),
     version: previous.version + 1,
     updatedAt: nowIsoString(),
   });
@@ -97,6 +110,41 @@ export async function listArchivedForms(): Promise<ObservationForm[]> {
         (right.archivedAt ?? "").localeCompare(left.archivedAt ?? ""),
       ),
     );
+}
+
+/**
+ * Permanently deletes a form and every observation that snapshots it,
+ * plus the media blobs those observations reference. The chronicles
+ * attached to the affected encounters are intentionally preserved:
+ * they may still describe observations from other forms in the same
+ * encounter, and the input-hash mechanism makes them regenerate on
+ * the next "Generar crónica" click anyway.
+ */
+export async function deleteFormCascade(id: string): Promise<boolean> {
+  const form = await db.forms.get(id);
+
+  if (!form) {
+    return false;
+  }
+
+  // Collect observations and media ids before deleting
+  const observations = await db.observations.where("formId").equals(id).toArray();
+  const allMediaIds = observations.flatMap((observation) =>
+    collectObservationMediaIds(observation),
+  );
+
+  await db.transaction("rw", [db.forms, db.observations], async () => {
+    if (observations.length > 0) {
+      await db.observations.bulkDelete(observations.map((observation) => observation.id));
+    }
+
+    await db.forms.delete(id);
+  });
+
+  // Delete media blobs outside the transaction
+  await Promise.all(allMediaIds.map((mediaId) => deleteMediaBlob(mediaId)));
+
+  return true;
 }
 
 export async function isFormNameUnique(name: string, excludeId?: string): Promise<boolean> {

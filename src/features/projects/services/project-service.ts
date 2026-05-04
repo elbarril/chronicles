@@ -8,6 +8,7 @@ import {
 import {
   archiveProject,
   createProjectWithParticipants,
+  deleteProjectCascade,
   getProjectById,
   isProjectNameUnique,
   listActiveProjects,
@@ -31,9 +32,9 @@ export interface ProjectWithParticipants {
 function normalizeInput(input: ProjectInput): ProjectInput {
   return projectInputSchema.parse({
     name: input.name.trim(),
-    participantNames: input.participantNames
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0),
+    participants: input.participants
+      .map((row) => ({ id: row.id, displayName: row.displayName.trim() }))
+      .filter((row) => row.displayName.length > 0),
   });
 }
 
@@ -51,7 +52,7 @@ export async function createProjectDefinition(
   const parsed = normalizeInput(input);
   await ensureUniqueName(parsed.name);
 
-  if (parsed.participantNames.length === 0) {
+  if (parsed.participants.length === 0) {
     throw new AppError("PROJECT_EMPTY_PARTICIPANTS", "Project requires at least one participant.");
   }
 
@@ -70,7 +71,7 @@ export async function updateProjectDefinition(
   const parsed = normalizeInput(input);
   await ensureUniqueName(parsed.name, id);
 
-  if (parsed.participantNames.length === 0) {
+  if (parsed.participants.length === 0) {
     throw new AppError("PROJECT_EMPTY_PARTICIPANTS", "Project requires at least one participant.");
   }
 
@@ -99,6 +100,27 @@ export async function restoreProjectDefinition(id: string): Promise<void> {
 
   if (!restored) {
     throw new AppError("PROJECT_RESTORE_FAILED", "Failed to restore project.");
+  }
+}
+
+export async function deleteProjectDefinition(id: string): Promise<void> {
+  const project = await getProjectById(id);
+
+  if (!project) {
+    throw new AppError("PROJECT_NOT_FOUND", "Project not found for delete.");
+  }
+
+  if (!project.archivedAt || project.archivedAt === "") {
+    throw new AppError(
+      "PROJECT_DELETE_NOT_ARCHIVED",
+      "Project must be archived before it can be deleted.",
+    );
+  }
+
+  const deleted = await deleteProjectCascade(id);
+
+  if (!deleted) {
+    throw new AppError("PROJECT_DELETE_FAILED", "Failed to delete project.");
   }
 }
 

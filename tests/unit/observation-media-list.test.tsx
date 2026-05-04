@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type Field } from "@/domain/field";
+import { type FormFieldInstance } from "@/domain/form";
 import { ObservationMediaList } from "@/features/observations/components/ObservationMediaList";
 
 const { createMediaObjectUrlMock } = vi.hoisted(() => ({
@@ -53,6 +54,15 @@ const imageField: Field = {
   archivedAt: "",
 };
 
+// Stable instance IDs used across tests
+const audioInstanceId = "00000000-0000-4000-8000-000000000a02";
+const textInstanceId = "00000000-0000-4000-8000-000000000b02";
+const imageInstanceId = "00000000-0000-4000-8000-000000000c02";
+
+const audioInstance: FormFieldInstance = { instanceId: audioInstanceId, fieldId: audioField.id };
+const textInstance: FormFieldInstance = { instanceId: textInstanceId, fieldId: textField.id };
+const imageInstance: FormFieldInstance = { instanceId: imageInstanceId, fieldId: imageField.id };
+
 describe("<ObservationMediaList />", () => {
   beforeEach(() => {
     createMediaObjectUrlMock.mockReset();
@@ -66,10 +76,16 @@ describe("<ObservationMediaList />", () => {
 
     render(
       <ObservationMediaList
-        fields={[textField, audioField]}
+        instances={[textInstance, audioInstance]}
+        fieldsById={
+          new Map<string, Field>([
+            [textField.id, textField],
+            [audioField.id, audioField],
+          ])
+        }
         values={{
-          [textField.id]: "Una nota",
-          [audioField.id]: { mediaId: "media-audio-1" },
+          [textInstanceId]: "Una nota",
+          [audioInstanceId]: { mediaId: "media-audio-1" },
         }}
       />,
     );
@@ -84,8 +100,9 @@ describe("<ObservationMediaList />", () => {
   it("returns null when no media-typed field has a mediaId", () => {
     const { container } = render(
       <ObservationMediaList
-        fields={[textField]}
-        values={{ [textField.id]: "Una nota sin adjunto" }}
+        instances={[textInstance]}
+        fieldsById={new Map([[textField.id, textField]])}
+        values={{ [textInstanceId]: "Una nota sin adjunto" }}
       />,
     );
 
@@ -104,9 +121,10 @@ describe("<ObservationMediaList />", () => {
 
     render(
       <ObservationMediaList
-        fields={[multiImageField]}
+        instances={[imageInstance]}
+        fieldsById={new Map([[imageField.id, multiImageField]])}
         values={{
-          [multiImageField.id]: { mediaIds: ["media-img-1", "media-img-2"] },
+          [imageInstanceId]: { mediaIds: ["media-img-1", "media-img-2"] },
         }}
       />,
     );

@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-05-03 (F10: home encounters section + recent-encounters paginator with project-selector modal)
+Last updated: 2026-05-03 (F12: encounter editing — new `/encounters/:id/edit` route mirrors the post-event create flow; "Editar encuentro" button on the encounter header and "Editar" on every active row of the project's encounter list. Project participant identity is now stable across edits: `projectInputSchema` carries `participants: { id?, displayName }[]` and the repository performs a diff (update existing rows, add new ones, delete removed ones) instead of regenerating every uuid; this keeps `encounter.participantIds` valid across project edits and unblocks the encounter detail header showing the actual list of attendees as chips.)
 
 ---
 
@@ -11,9 +11,9 @@ Last updated: 2026-05-03 (F10: home encounters section + recent-encounters pagin
 
 - **Delivery format:** **Local-first** web app, 100% client-side. No custom backend, no accounts, no mandatory network.
 - **Persistence:** All data is saved in the user's browser.
-- **Core flow (post-event since F9):**
-  1. The Practitioner **defines fields** to observe (text, number, choice, boolean, date, image, video, audio, file).
-  2. With these fields, one or more reusable **Observation Forms** are composed.
+- **Core flow (post-event since F9; field management embedded in forms since F11):**
+  1. The Practitioner **builds reusable Observation Forms**, defining the fields to capture inline (text, number, choice, boolean, date, image, video, audio, file). The same field can appear more than once in a form — each occurrence is a `FormFieldInstance` with its own optional `labelOverride`. There is no separate `/fields` route since F11; the `Editar campos` dialog inside the form-builder hosts every field operation.
+  2. (Removed in F11; folded into step 1.)
   3. The Practitioner creates a **Project** with its participants.
   4. After an encounter happens, the Practitioner registers it inside the project (name, start/end time, who attended) and loads observations for it. Each observation picks the form that best fits what was seen (forms can be mixed within an encounter).
   5. From `/encounters/:id/chronicle` the Practitioner generates a chronicle — deterministic by default, with Gemini AI prose if the user provides a BYOK key.
@@ -56,7 +56,7 @@ Translated to technology:
 | PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
-| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v2`). Legacy `chronicle-full-v1` and `chronicle-encounter-v1` are no longer importable since F9 (the underlying record shapes changed). |
+| ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v3` since F11). Legacy `chronicle-full-v1`, `chronicle-full-v2` and `chronicle-encounter-v1` are no longer importable (the underlying record shapes changed across F9 and F11). |
 | Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
 | Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
@@ -88,7 +88,7 @@ F8 reshapes how data leaves Chronicle so a backup is one click away regardless o
 
 Released alongside F8 to consolidate the information architecture and tighten the AI integration:
 
-- **Home is a pure nav hub.** `src/features/home/HomePage.tsx` was rewritten as an icon grid of every top-level section (`Campos`, `Formularios`, `Grupos`, `Encuentros`, `Crónicas`, `Configuración`, `Cómo funciona`, `Ayuda`, `Soporte`) *(F9 replaced `Grupos`/`Encuentros` tiles with `Proyectos`; F10 added `EncountersSection` above the hub grid)*. Each tile carries a `data-tour` attribute used by the onboarding tour to point to the correct hub stop. The data-aware welcome card, demo encounter toggle, "quick check" card, and the data-status summary moved to a new `/support` page (`SupportPage`).
+- **Home is a pure nav hub.** `src/features/home/HomePage.tsx` was rewritten as an icon grid of every top-level section (`Campos`, `Formularios`, `Grupos`, `Encuentros`, `Crónicas`, `Configuración`, `Cómo funciona`, `Ayuda`, `Soporte`) *(F9 replaced `Grupos`/`Encuentros` tiles with `Proyectos`; F10 added `EncountersSection` above the hub grid; F11 dropped the `Cómo funciona` tile after consolidating the help routes into a single tabbed `/help` page)*. Each tile carries a `data-tour` attribute used by the onboarding tour to point to the correct hub stop. The data-aware welcome card, demo encounter toggle, "quick check" card, and the data-status summary moved to a new `/support` page (`SupportPage`).
 - **`/import` removed from the router.** Importing happens inside `/settings` via `ImportSection`. The legacy `ImportPage` route was dropped from `src/app/router.tsx` and the `Importar` entry was removed from `src/app/nav-items.ts`.
 - **AI integration polish.** See the F7 section above for the input-hash cache, the no-fallback-on-Gemini-error policy, and the `AiKeyStatusBadge`. These three additions happened after F8 was already in place but logically extend F7's AI layer rather than F8's export work.
 
@@ -118,10 +118,11 @@ Core entities (canonical names, see `.agents/memory/glossary.md`):
 - **Institution**: organizational context.
 - **Project**: set of Participants that take part in a sequence of Encounters. Replaces the F0–F8 `Group` concept since F9.
 - **Participant**: observed individual (`projectId`).
-- **Field**: definition of data to capture. Type + metadata + validations.
-- **Form (Observation Form)**: ordered set of Fields. Each Observation snapshots the form (`formId`/`formVersion`/`fieldIds[]`) it was created with, so a single Encounter can mix observations from different forms.
+- **Field**: definition of data to capture. Type + metadata + validations. Since F11 there is no dedicated route — Fields are managed from inside the form-builder.
+- **FormFieldInstance** *(new in F11)*: a single occurrence of a Field inside a Form, carrying a stable `instanceId`, the referenced `fieldId`, and an optional `labelOverride`. Multiple instances of the same Field are allowed inside a single Form.
+- **Form (Observation Form)**: ordered list of `FormFieldInstance`s. Each Observation snapshots the form (`formId`/`formVersion`/`fields: FormFieldInstance[]`) it was created with, so a single Encounter can mix observations from different forms.
 - **Encounter**: post-event record of a session that already happened, scoped to a Project (`name`, `startsAt`, `endsAt`, `participantIds[]`, `archivedAt?`). No "in progress / finished" lifecycle: archive/restore only.
-- **Observation**: instance of captured values for a specific Form within an Encounter.
+- **Observation**: instance of captured values for a specific Form within an Encounter. `values` is keyed by `instanceId`, not `fieldId`, so duplicate instances of the same field hold independent values.
 - **Chronicle**: narrative derived from the Observations of an Encounter, generated only at `/encounters/:id/chronicle`.
 
 ### Field Types Supported in v1
@@ -184,9 +185,9 @@ chronicle/
 │  │  ├─ MobileNavDrawer.tsx            # responsive nav drawer (Sheet)
 │  │  └─ nav-items.ts                   # canonical navigation list
 │  ├─ features/
-│  │  ├─ field-definitions/             # Field CRUD
+│  │  ├─ field-definitions/             # Field domain assets (FieldForm, FieldListTable, hooks, repo) — reused by ManageFieldsDialog inside forms/. No dedicated route since F11.
 │  │  ├─ home/                          # icon-grid hub + /support helper page + 404
-│  │  ├─ forms/                         # Observation Form assembly
+│  │  ├─ forms/                         # Observation Form assembly with embedded ManageFieldsDialog (since F11)
 │  │  ├─ projects/                      # Project + Participant management (since F9)
 │  │  ├─ encounters/                    # post-event encounter form + detail
 │  │  ├─ observations/                  # data capture with per-observation form selector
@@ -195,14 +196,14 @@ chronicle/
 │  │  ├─ defaults/                      # first-run seed + demo encounter management
 │  │  ├─ onboarding/                    # first-run welcome dialog (3 steps: what/storage/AI)
 │  │  ├─ settings/                      # /settings: brand color, user name, export/import, Gemini API key (BYOK)
-│  │  └─ help/                          # /help, /how-it-works, AiSetupGuide component
+│  │  └─ help/                          # /help with 3 tabs (Funcionamientos / Datos / IA), HowItWorksGuide + DataStorageGuide + AiSetupGuide components
 │  ├─ domain/
 │  │  ├─ field.ts                       # types + Zod schema
 │  │  ├─ form.ts
 │  │  ├─ project.ts                     # set of participants (since F9, replaces group.ts)
 │  │  ├─ participant.ts                 # participant tied to a project
 │  │  ├─ encounter.ts                   # post-event record inside a project
-│  │  ├─ observation.ts                 # carries its own formId + formVersion + fieldIds[] snapshot
+│  │  ├─ observation.ts                 # carries its own formId + formVersion + fields: FormFieldInstance[] snapshot (since F11)
 │  │  └─ chronicle.ts
 │  ├─ infra/
 │  │  ├─ ai/
@@ -211,14 +212,14 @@ chronicle/
 │  │  │  └─ chronicle-input-hash.ts     # SHA-256 fingerprint over the AI prompt input (cache key)
 │  │  ├─ db/
 │  │  │  ├─ schema.ts                   # Dexie tables + versioning
-│  │  │  ├─ client.ts                   # singleton instance + migrations up to v7
+│  │  │  ├─ client.ts                   # singleton instance + migrations up to v8 (F11 hard reset of forms/observations/chronicles/media)
 │  │  │  └─ repositories/               # one file per entity
 │  │  ├─ media/
 │  │  │  ├─ store.ts                    # store/read Blobs
 │  │  │  ├─ recorder.ts                 # MediaRecorder / useAudioRecorder hook
 │  │  │  └─ use-media-object-url.ts     # mediaId → managed object URL hook
 │  │  ├─ export/
-│  │  │  ├─ manifest.ts                 # `chronicle-full-v2` schema + discriminator (legacy v1 / encounter-v1 are no longer importable)
+│  │  │  ├─ manifest.ts                 # `chronicle-full-v3` schema + `assertSupportedManifestSchema` (rejects v1/v2/encounter-v1 with `IMPORT_SCHEMA_MISMATCH`)
 │  │  │  ├─ full-exporter.ts            # Global ZIP generation + download (every table + media + brand/name)
 │  │  │  └─ full-importer.ts            # Global ZIP parse + transactional upsert
 │  │  └─ pwa/
@@ -253,13 +254,13 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | `projects` | `id`, `institutionId`, `name`, `archivedAt`, `createdAt` | replaces the legacy `groups` store since F9; the `groups` store is dropped via `groups: null` in the v7 upgrade |
 | `participants` | `id`, `projectId`, `displayName`, `archivedAt`, `createdAt` | indexed by `projectId` |
 | `fields` | `id`, `key`, `label`, `type`, `config`, `createdAt`, `updatedAt`, `archivedAt` | `config` is typed JSON; `archivedAt` uses empty string for active |
-| `forms` | `id`, `name`, `fieldIds[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fieldIds` preserves order and uniqueness; version auto-increments on update |
+| `forms` | `id`, `name`, `fields: FormFieldInstance[]`, `version`, `createdAt`, `updatedAt`, `archivedAt` | `fields` preserves order; the same `fieldId` may appear more than once with different `instanceId`s and `labelOverride`s; version auto-increments on update. *(Renamed from `fieldIds[]` in F11.)* |
 | `encounters` | `id`, `projectId`, `name`, `startsAt`, `endsAt`, `participantIds[]`, `archivedAt?`, `createdAt`, `updatedAt` | post-event record. `participantIds` is the subset of project participants that attended; `archivedAt` uses empty string for active |
-| `observations` | `id`, `encounterId`, `formId`, `formVersion`, `fieldIds[]`, `participantId?`, `title?`, `values`, `createdAt` | each observation snapshots its own form; `values` maps `fieldId → value` or `fieldId → mediaId`; `title` is optional, trimmed, non-empty |
+| `observations` | `id`, `encounterId`, `formId`, `formVersion`, `fields: FormFieldInstance[]`, `participantId?`, `title?`, `values`, `createdAt` | each observation snapshots its own form (including instances and label overrides); `values` is keyed by `instanceId` (not `fieldId`) so duplicate instances of the same field hold independent values; `title` is optional, trimmed, non-empty. *(Renamed from `fieldIds[]` and re-keyed from `fieldId` in F11.)* |
 | `media` | `id`, `mime`, `blob`, `size`, `createdAt` | separate table for binaries |
 | `chronicles` | `id`, `encounterId`, `title`, `body`, `generatedAt`, `createdAt`, `generatedWith?`, `inputHash?` | one chronicle per encounter (upsert by `encounterId`); `generatedWith?: "deterministic" \| "gemini"` and `inputHash?` (SHA-256 fingerprint, only set when `generatedWith === "gemini"`) |
 
-**Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`. Current version is **v7** (F9), with a hard-reset upgrade that wipes `participants`, `encounters`, `observations` and `chronicles` and drops the legacy `groups` store. Field, form, media and Settings preferences (theme, brand color, user name, Gemini key) are preserved.
+**Schema versioning:** each change increments the Dexie version and registers migration. Also recorded in `decisions.md`. Current version is **v8** (F11), with a hard-reset upgrade that wipes `forms`, `observations`, `chronicles` and `media` (their record shapes changed when forms moved from `fieldIds: string[]` to `fields: FormFieldInstance[]` and observation values were re-keyed by `instanceId`). Field, project, participant, encounter and Settings preferences (theme, brand color, user name, Gemini key) are preserved. The legacy `groups` store remains dropped (since v7).
 
 **Live queries:** use `dexie-react-hooks` (`useLiveQuery`) for reactivity without a global state manager.
 
@@ -319,8 +320,11 @@ Suggested tables (all with v4 UUID `id` generated in client):
 | **Post-F8 polish** | **Home as nav hub, support page consolidation, AI cache and AI key status** | **Completed 2026-05-01: `HomePage` rewritten as a pure icon-grid nav hub; new `/support` route hosts the demo encounter toggle, the data-aware status panel, and the quick-check helper; `/import` route removed (Settings is the canonical importer); `Chronicle.inputHash` SHA-256 cache short-circuits redundant Gemini calls; `AiKeyStatusBadge` always visible next to "Generar crónica"; tests updated to match the new layout** |
 | **F9** | **Projects refactor + post-event chronicles + per-observation form snapshot + Dexie v7 hard reset** | **Completed 2026-05-02: `Project` replaces `Group`; encounters are post-event records inside a project (`name`, `startsAt`, `endsAt`, `participantIds[]`); each observation snapshots its own `formId`/`formVersion`/`fieldIds[]`; chronicle generation gated to `/encounters/:id/chronicle`; hub swap (Proyectos in/Grupos+Encuentros out); Dexie v7 hard-reset migration; `chronicle-full-v2` export schema (legacy v1 / encounter-v1 no longer importable); demo encounter rebuilt with two observations using two different forms; onboarding tour rewritten end-to-end. All unit tests green; E2E suite adapted.** |
 | **F10** | **Home encounters section + project-selector modal** | **Completed 2026-05-03: `EncountersSection` component above the hub nav grid (newest-first, max 4 per page, Previous/Next paginator); `listAllActiveEncounters()` added to encounter-repository (all active encounters across every project sorted by `startsAt` descending); `encounters-home-service` + `useAllEncounters` hook (useLiveQuery) for reactive updates; project-selector Dialog on "Nuevo encuentro" CTA navigates to `/projects/:id/encounters/new`; empty state with inline CTA when no encounters exist; two new onboarding tour stops before the hub; unit tests updated.** |
+| **F11 (help)** | **Help page consolidation: 3 tabs (Funcionamientos / Datos / IA) + Settings cleanup** | **Completed 2026-05-03: `/help` rewritten as a single tabbed page (Funcionamientos / Datos / IA) following the same `?tab=` filter-tab pattern used in `/projects`; `HowItWorksPage` and the `/how-it-works` route deleted (its content lives in the Funcionamientos tab); `Cómo funciona` tile removed from `HomePage` and `nav-items.ts`; `AiSetupGuide` removed from `SettingsPage` (its content lives in the IA tab) — the Settings AI section now only shows the section title, a link to `/help?tab=ia`, and the API key form; `helpPage` messages added; `howItWorksPage` messages dropped; `how-it-works.test.tsx` removed; `help.test.tsx` rewritten to cover all three tabs; `settings-api-key.spec.ts` updated to match the slimmer Settings AI section.** |
+| **F11 (forms+fields)** | **Forms + Fields merge: `FormFieldInstance` model, embedded `Editar campos` dialog, Dexie v8, manifest v3** | **Completed 2026-05-03: `/fields*` routes deleted (`FieldListPage` and `FieldFormPage` files removed); `Campos` removed from hub tile, mobile drawer and nav-items; `FormFieldInstance = { instanceId, fieldId, labelOverride? }` introduced in `domain/form.ts`; `ObservationForm.fields: FormFieldInstance[]` (was `fieldIds[]`); `Observation.fields` mirrors the change and `Observation.values` is keyed by `instanceId`; `FormBuilder` rewritten with a duplicate-instance button and per-instance `labelOverride` input; new `ManageFieldsDialog` opens from inside the form-builder, hosting tabs Activos/Archivados and an inline `FieldForm` for create/edit (reuses `useFields`, `FieldListTable`, `FieldForm`); Dexie schema bumped to v8 with hard reset of `forms`/`observations`/`chronicles`/`media`; export manifest bumped to `chronicle-full-v3` with `assertSupportedManifestSchema(schema)` rejecting v1/v2/encounter-v1; demo seed updated to use instance ids; onboarding tour drops the Campos block and adds two new steps (`forms.builder.manage-fields`, `forms.builder.duplicate-instance`); chronicle and AI prompts now read `instance.labelOverride ?? field.label`; full unit + E2E test suites updated.** |
+| **F12** | **Encounter editing + stable participant identity** | **Completed 2026-05-03: new `EncounterEditPage` at `/encounters/:id/edit` (mirrors the post-event create flow, drops stale ids before submit); "Editar encuentro" button on `EncounterHeader` (hidden when archived) and "Editar" link in every active row of `ProjectEncounterListTable`; `EncounterHeader` now lists the actual attendees as a chip list (replacing the meaningless "X de los del proyecto" copy); `projectInputSchema` switched from `participantNames: string[]` to `participants: { id?, displayName }[]` with `projectInputParticipantSchema`; `updateProjectWithParticipants` rewritten to diff by id (update by stable id, create only for new rows, hard-delete removed rows) instead of dropping and recreating every participant — this is what was breaking `encounter.participantIds` after every project edit and silently emptying the encounter attendee list; `encounter-edit.spec.ts` covers both the edit flow and the project-edit identity-preservation case; `pnpm check` green end-to-end.** |
 
-Each phase closes by executing the `.agents/skills/phase-closeout/SKILL.md` skill, which records decisions, creates new skills, and updates all documentation.
+The roadmap above is historical. Future work no longer follows the `F<N>` phase model: changes are planned and implemented through the generic-update skills (`change-planner`, `change-implementer`, `change-closeout`) under `.agents/skills/`. Past phases were closed by the legacy `phase-closeout` skill, which has been replaced by `change-closeout`.
 
 ---
 
@@ -345,7 +349,7 @@ This repository follows a strict bilingual split: internal artifacts are in Engl
 - Code comments, JSDoc/TSDoc
 - All thrown `Error` and `AppError` messages in `src/domain`, `src/infra`, `src/features/**`, `src/lib/**`, `src/app/**`
 - Unit, integration, and E2E test names, descriptions, and assertion messages (except when asserting on specific Spanish UI strings)
-- All files under `.agents/`, `.windsurf/`, `.cursor/`
+- All files under `.agents/`, `.windsurf/`
 - `AGENTS.md`, `README.md`, `docs/**`
 - Git commit messages and branch names
 - Route paths and URL query parameter names/values

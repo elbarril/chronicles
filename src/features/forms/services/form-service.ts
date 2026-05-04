@@ -7,6 +7,7 @@ import { listActiveFields } from "@/infra/db/repositories/field-repository";
 import {
   archiveForm,
   createForm,
+  deleteFormCascade,
   getFormById,
   isFormNameUnique,
   listActiveForms,
@@ -31,7 +32,7 @@ async function ensureUniqueName(name: string, excludeId?: string): Promise<void>
 function parseInput(input: ObservationFormInput): ObservationFormInput {
   return observationFormInputSchema.parse({
     name: normalizeName(input.name),
-    fieldIds: input.fieldIds,
+    fields: input.fields,
   });
 }
 
@@ -73,6 +74,27 @@ export async function restoreObservationForm(id: string): Promise<void> {
 
   if (!restored) {
     throw new AppError("FORM_RESTORE_FAILED", "Failed to restore form.");
+  }
+}
+
+export async function deleteObservationForm(id: string): Promise<void> {
+  const form = await getFormById(id);
+
+  if (!form) {
+    throw new AppError("FORM_NOT_FOUND", "Form not found for delete.");
+  }
+
+  if (!form.archivedAt || form.archivedAt === "") {
+    throw new AppError(
+      "FORM_DELETE_NOT_ARCHIVED",
+      "Form must be archived before it can be deleted.",
+    );
+  }
+
+  const deleted = await deleteFormCascade(id);
+
+  if (!deleted) {
+    throw new AppError("FORM_DELETE_FAILED", "Failed to delete form.");
   }
 }
 

@@ -41,10 +41,11 @@ describe("full exporter", () => {
     vi.clearAllMocks();
   });
 
-  it("packages all entities + appearance settings into a chronicle-full-v2 ZIP", async () => {
+  it("packages all entities + appearance settings into a chronicle-full-v3 ZIP", async () => {
     const projectId = crypto.randomUUID();
     const formId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
+    const instanceId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
     const encounterId = crypto.randomUUID();
     const observationId = crypto.randomUUID();
@@ -69,7 +70,7 @@ describe("full exporter", () => {
       {
         id: formId,
         name: "Formulario",
-        fieldIds: [fieldId],
+        fields: [{ instanceId, fieldId }],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -115,10 +116,10 @@ describe("full exporter", () => {
         encounterId,
         formId,
         formVersion: 1,
-        fieldIds: [fieldId],
+        fields: [{ instanceId, fieldId }],
         participantId,
         title: "Observación",
-        values: { [fieldId]: "Hola" },
+        values: { [instanceId]: "Hola" },
         createdAt: now,
       },
     ]);
@@ -181,7 +182,7 @@ describe("full exporter", () => {
     );
 
     const manifestText = await zip.file("manifest.json")?.async("string");
-    expect(manifestText).toContain("chronicle-full-v2");
+    expect(manifestText).toContain("chronicle-full-v3");
     expect(manifestText).toContain("Emiliano");
     expect(manifestText).toContain("indigo");
 
@@ -231,7 +232,7 @@ describe("full exporter", () => {
     const zip = await JSZip.loadAsync(zipBlob);
 
     const manifestText = await zip.file("manifest.json")?.async("string");
-    expect(manifestText).toContain("chronicle-full-v2");
+    expect(manifestText).toContain("chronicle-full-v3");
 
     Object.defineProperty(URL, "createObjectURL", {
       writable: true,

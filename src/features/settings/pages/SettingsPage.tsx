@@ -1,4 +1,6 @@
-import { AiSetupGuide } from "@/features/help/components/AiSetupGuide";
+import { Link } from "react-router";
+
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { ImportSection } from "@/features/import/components/ImportSection";
 import { ApiKeyForm } from "@/features/settings/components/ApiKeyForm";
 import { BrandColorPicker } from "@/features/settings/components/BrandColorPicker";
@@ -9,6 +11,8 @@ import { settingsMessages } from "@/features/settings/lib/messages";
 export function SettingsPage(): JSX.Element {
   return (
     <section className="space-y-8" aria-labelledby="settings-title">
+      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: settingsMessages.pageTitle }]} />
+
       <div>
         <h1 id="settings-title" className="text-3xl font-bold tracking-tight">
           {settingsMessages.pageTitle}
@@ -57,15 +61,17 @@ export function SettingsPage(): JSX.Element {
       </div>
 
       <div className="border-t pt-6">
-        <div className="mb-6">
+        <div className="mb-4">
           <h2 className="mb-1 text-xl font-semibold">{settingsMessages.aiSectionTitle}</h2>
+          <p className="text-muted-foreground text-sm">
+            {settingsMessages.aiSectionDescription}{" "}
+            <Link to="/help?tab=ia" className="text-primary underline-offset-4 hover:underline">
+              {settingsMessages.aiSectionGuideLink}
+            </Link>
+            .
+          </p>
         </div>
-
-        <AiSetupGuide showCta={false} />
-
-        <div className="border-t pt-6">
-          <ApiKeyForm />
-        </div>
+        <ApiKeyForm />
       </div>
     </section>
   );

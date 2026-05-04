@@ -1,5 +1,6 @@
 import { fieldSchema, type Field, type FieldFormInput } from "@/domain/field";
 import { db } from "@/infra/db/client";
+import { AppError } from "@/lib/error";
 
 function nowIsoString(): string {
   return new Date().toISOString();
@@ -102,4 +103,28 @@ export async function isFieldKeyUnique(key: string, excludeId?: string): Promise
   const sameKey = await db.fields.where("key").equals(normalizedKey).toArray();
 
   return sameKey.every((field) => field.id === excludeId || field.archivedAt !== "");
+}
+
+/**
+ * Permanently deletes a field. Only allowed if the field is archived.
+ * Returns false when the field does not exist.
+ * Throws when the field is not archived.
+ */
+export async function deleteField(id: string): Promise<boolean> {
+  const field = await db.fields.get(id);
+
+  if (!field) {
+    return false;
+  }
+
+  if (!field.archivedAt || field.archivedAt === "") {
+    throw new AppError(
+      "FIELD_DELETE_NOT_ARCHIVED",
+      "Field must be archived before it can be deleted.",
+    );
+  }
+
+  await db.fields.delete(id);
+
+  return true;
 }

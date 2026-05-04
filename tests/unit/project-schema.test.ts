@@ -45,18 +45,41 @@ describe("project domain schemas", () => {
     expect(projectSchema.safeParse({ ...base, archivedAt: "no-date" }).success).toBe(false);
   });
 
-  it("normalises participantNames as required field in input schema", () => {
+  it("accepts a participants array with optional ids", () => {
+    // Brand-new row (no id) is valid.
     expect(
-      projectInputSchema.safeParse({ name: "Sala", participantNames: ["Sofía"] }).success,
+      projectInputSchema.safeParse({
+        name: "Sala",
+        participants: [{ displayName: "Sofía" }],
+      }).success,
+    ).toBe(true);
+
+    // Existing row carrying its stable id is valid.
+    expect(
+      projectInputSchema.safeParse({
+        name: "Sala",
+        participants: [{ id: crypto.randomUUID(), displayName: "Sofía" }],
+      }).success,
     ).toBe(true);
 
     // Empty list is allowed at the schema level (the service rejects it
     // separately so empty-participants gets a dedicated error code).
-    expect(projectInputSchema.safeParse({ name: "Sala", participantNames: [] }).success).toBe(true);
+    expect(projectInputSchema.safeParse({ name: "Sala", participants: [] }).success).toBe(true);
 
-    // Empty string participants are rejected.
-    expect(projectInputSchema.safeParse({ name: "Sala", participantNames: [""] }).success).toBe(
-      false,
-    );
+    // Empty string display name is rejected.
+    expect(
+      projectInputSchema.safeParse({
+        name: "Sala",
+        participants: [{ displayName: "" }],
+      }).success,
+    ).toBe(false);
+
+    // Non-uuid id is rejected.
+    expect(
+      projectInputSchema.safeParse({
+        name: "Sala",
+        participants: [{ id: "not-a-uuid", displayName: "Sofía" }],
+      }).success,
+    ).toBe(false);
   });
 });

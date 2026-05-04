@@ -24,8 +24,7 @@ export default tseslint.config(
       "vitest.config.ts",
       "playwright.config.ts",
       ".agents/**",
-      ".windsurf/**",
-      ".cursor/**",
+      ".windsurf/**"
     ],
   },
   js.configs.recommended,

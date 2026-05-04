@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
-import { Button } from "@/components/ui/button";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { type ProjectInput } from "@/domain/project";
 import { ProjectForm } from "@/features/projects/components/ProjectForm";
 import { useProjectActions } from "@/features/projects/hooks/use-project-actions";
@@ -15,7 +15,10 @@ function toFormInput(project: Awaited<ReturnType<typeof getProjectDefinition>>):
 
   return {
     name: project.name,
-    participantNames: project.participants.map((participant) => participant.displayName),
+    participants: project.participants.map((participant) => ({
+      id: participant.id,
+      displayName: participant.displayName,
+    })),
   };
 }
 
@@ -81,13 +84,26 @@ export function ProjectFormPage(): JSX.Element {
 
   const cancelTarget = mode === "edit" && projectId ? `/projects/${projectId}` : "/projects";
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Inicio", to: "/" },
+    { label: "Proyectos", to: "/projects" },
+  ];
+
+  if (mode === "edit" && projectId) {
+    breadcrumbs.push(
+      {
+        label: editInitialValues?.name || "Proyecto",
+        to: `/projects/${projectId}`,
+      },
+      { label: "Editar" },
+    );
+  } else {
+    breadcrumbs.push({ label: "Nuevo proyecto" });
+  }
+
   return (
     <section className="space-y-6" aria-labelledby="project-form-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to={cancelTarget}>← Volver</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs items={breadcrumbs} />
 
       <header>
         <h1 id="project-form-title" className="text-3xl font-bold tracking-tight">

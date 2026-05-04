@@ -1,25 +1,18 @@
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { useEncounterActions } from "@/features/encounters/hooks/use-encounter-actions";
 import { ProjectEncounterListTable } from "@/features/projects/components/ProjectEncounterListTable";
 import { useProject } from "@/features/projects/hooks/use-project";
 import { useProjectActions } from "@/features/projects/hooks/use-project-actions";
+import { projectMessages } from "@/features/projects/lib/messages";
 import { type ProjectEncounterFilter } from "@/features/projects/services/project-service";
 
 function parseEncounterStatus(value: string | null): ProjectEncounterFilter {
   return value === "archived" ? "archived" : "active";
-}
-
-function formatDate(value: string): string {
-  if (!value) {
-    return "-";
-  }
-
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
 }
 
 export function ProjectDetailPage(): JSX.Element {
@@ -31,6 +24,14 @@ export function ProjectDetailPage(): JSX.Element {
   const { project, encounters, isLoading } = useProject(projectId, status);
   const projectActions = useProjectActions();
   const encounterActions = useEncounterActions();
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const validParticipantIds = useMemo(
+    () => project?.participants.map((participant) => participant.id) ?? [],
+    [project],
+  );
 
   if (!projectId) {
     return <p className="text-muted-foreground text-sm">Proyecto inválido.</p>;
@@ -66,13 +67,32 @@ export function ProjectDetailPage(): JSX.Element {
     await encounterActions.restore(encounterId);
   }
 
+  async function handleDeleteEncounter(encounterId: string): Promise<void> {
+    await encounterActions.remove(encounterId);
+  }
+
+  async function handleDeleteProject(): Promise<void> {
+    setIsDeleting(true);
+
+    try {
+      // project is guaranteed to be defined at this point (guard at render time)
+      await projectActions.remove(project!.id);
+      navigate("/projects");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
+
   return (
     <section className="space-y-6" aria-labelledby="project-detail-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/projects">← Volver a proyectos</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", to: "/" },
+          { label: "Proyectos", to: "/projects" },
+          { label: project.name },
+        ]}
+      />
 
       <header
         className="border-border bg-card flex flex-col gap-4 rounded-md border p-4"
@@ -84,8 +104,7 @@ export function ProjectDetailPage(): JSX.Element {
           </h1>
           <p className="text-muted-foreground text-sm">
             {project.participants.length} participante
-            {project.participants.length === 1 ? "" : "s"} · creado el{" "}
-            {formatDate(project.createdAt)}
+            {project.participants.length === 1 ? "" : "s"}
           </p>
           {isArchived ? <p className="text-muted-foreground text-xs">Archivado</p> : null}
         </div>
@@ -110,16 +129,26 @@ export function ProjectDetailPage(): JSX.Element {
             <Link to={`/projects/${project.id}/edit`}>Editar proyecto</Link>
           </Button>
           {isArchived ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                void projectActions.restore(project.id);
-              }}
-            >
-              Restaurar proyecto
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  void projectActions.restore(project.id);
+                }}
+              >
+                Restaurar proyecto
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full sm:w-auto"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Eliminar proyecto
+              </Button>
+            </>
           ) : (
             <Button
               type="button"
@@ -171,10 +200,21 @@ export function ProjectDetailPage(): JSX.Element {
           encounters={encounters}
           status={status}
           projectId={project.id}
+          validParticipantIds={validParticipantIds}
           onArchive={handleArchiveEncounter}
           onRestore={handleRestoreEncounter}
+          onDelete={handleDeleteEncounter}
         />
       </section>
+
+      <ConfirmDeleteDialog
+        open={showDeleteConfirm}
+        title={projectMessages.confirmDeleteTitle}
+        description={projectMessages.confirmDeleteDescription}
+        onConfirm={handleDeleteProject}
+        onCancel={() => setShowDeleteConfirm(false)}
+        isLoading={isDeleting}
+      />
     </section>
   );
 }

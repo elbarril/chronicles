@@ -11,7 +11,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { projectInputSchema, type ProjectInput } from "@/domain/project";
+import {
+  projectInputSchema,
+  type ProjectInput,
+  type ProjectInputParticipant,
+} from "@/domain/project";
 import { buildResolver } from "@/lib/zod";
 
 interface ProjectFormProps {
@@ -36,26 +40,29 @@ export function ProjectForm({
     form.reset(initialValues);
   }, [form, initialValues]);
 
-  function addParticipant(currentParticipants: string[]): void {
-    form.setValue("participantNames", [...currentParticipants, ""], { shouldValidate: true });
+  function addParticipant(currentParticipants: ProjectInputParticipant[]): void {
+    form.setValue("participants", [...currentParticipants, { displayName: "" }], {
+      shouldValidate: true,
+    });
   }
 
-  function removeParticipant(currentParticipants: string[], index: number): void {
+  function removeParticipant(currentParticipants: ProjectInputParticipant[], index: number): void {
     form.setValue(
-      "participantNames",
+      "participants",
       currentParticipants.filter((_, currentIndex) => currentIndex !== index),
       { shouldValidate: true },
     );
   }
 
   function updateParticipantName(
-    currentParticipants: string[],
+    currentParticipants: ProjectInputParticipant[],
     index: number,
     value: string,
   ): void {
     const next = [...currentParticipants];
-    next[index] = value;
-    form.setValue("participantNames", next, { shouldValidate: true });
+    const previous = next[index] ?? { displayName: "" };
+    next[index] = { ...previous, displayName: value };
+    form.setValue("participants", next, { shouldValidate: true });
   }
 
   async function handleSubmit(values: ProjectInput): Promise<void> {
@@ -81,9 +88,9 @@ export function ProjectForm({
 
         <FormField
           control={form.control}
-          name="participantNames"
+          name="participants"
           render={({ field }) => {
-            const participantNames = field.value ?? [];
+            const participants = (field.value ?? []) as ProjectInputParticipant[];
 
             return (
               <section
@@ -99,32 +106,35 @@ export function ProjectForm({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => addParticipant(participantNames)}
+                    onClick={() => addParticipant(participants)}
                   >
                     Agregar participante
                   </Button>
                 </header>
 
-                {participantNames.length === 0 ? (
+                {participants.length === 0 ? (
                   <p className="text-muted-foreground text-sm" role="status">
                     Agregá al menos un participante.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {participantNames.map((participantName: string, index: number) => (
-                      <div key={`participant-${index}`} className="flex items-center gap-2">
+                    {participants.map((participant, index) => (
+                      <div
+                        key={participant.id ?? `new-${index}`}
+                        className="flex items-center gap-2"
+                      >
                         <Input
                           placeholder={`Participante ${index + 1}`}
-                          value={participantName}
+                          value={participant.displayName}
                           onChange={(event) =>
-                            updateParticipantName(participantNames, index, event.target.value)
+                            updateParticipantName(participants, index, event.target.value)
                           }
                         />
                         <Button
                           type="button"
                           size="sm"
                           variant="secondary"
-                          onClick={() => removeParticipant(participantNames, index)}
+                          onClick={() => removeParticipant(participants, index)}
                           aria-label={`Eliminar participante ${index + 1}`}
                         >
                           Quitar
@@ -134,9 +144,9 @@ export function ProjectForm({
                   </div>
                 )}
 
-                {form.formState.errors.participantNames?.message ? (
+                {form.formState.errors.participants?.message ? (
                   <p className="text-destructive text-sm">
-                    {form.formState.errors.participantNames.message}
+                    {form.formState.errors.participants.message}
                   </p>
                 ) : null}
               </section>

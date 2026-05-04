@@ -1,13 +1,14 @@
 import { encounterInputSchema, type Encounter, type EncounterInput } from "@/domain/encounter";
 import { type Field } from "@/domain/field";
-import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
 import {
   archiveEncounter,
   createEncounter,
+  deleteEncounterCascade,
   getEncounterById,
   restoreEncounter,
   updateEncounter,
 } from "@/infra/db/repositories/encounter-repository";
+import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
 import { listObservationsByEncounter } from "@/infra/db/repositories/observation-repository";
 import {
   getProjectById,
@@ -118,6 +119,27 @@ export async function getEncounterDefinition(id: string): Promise<Encounter | un
   return getEncounterById(id);
 }
 
+export async function deleteEncounterDefinition(id: string): Promise<void> {
+  const encounter = await getEncounterById(id);
+
+  if (!encounter) {
+    throw new AppError("ENCOUNTER_NOT_FOUND", "Encounter not found for delete.");
+  }
+
+  if (!encounter.archivedAt || encounter.archivedAt === "") {
+    throw new AppError(
+      "ENCOUNTER_DELETE_NOT_ARCHIVED",
+      "Encounter must be archived before it can be deleted.",
+    );
+  }
+
+  const deleted = await deleteEncounterCascade(id);
+
+  if (!deleted) {
+    throw new AppError("ENCOUNTER_DELETE_FAILED", "Failed to delete encounter.");
+  }
+}
+
 export interface EncounterDependencies {
   encounter: Encounter;
   project: Awaited<ReturnType<typeof getProjectById>>;
@@ -143,7 +165,7 @@ export async function resolveEncounterDependencies(
 
   const allFieldIds = new Set<string>();
   observations.forEach((observation) => {
-    observation.fieldIds.forEach((fieldId) => allFieldIds.add(fieldId));
+    observation.fields.forEach((instance) => allFieldIds.add(instance.fieldId));
   });
 
   const fields = allFieldIds.size > 0 ? await listFieldsByIds([...allFieldIds]) : [];

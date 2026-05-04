@@ -1,25 +1,24 @@
+import { useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { type Field } from "@/domain/field";
 import { fieldTypeLabel } from "@/features/field-definitions/lib/field-type-meta";
+import { fieldMessages } from "@/features/field-definitions/lib/messages";
 
 interface FieldListTableProps {
   fields: Field[];
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
-}
-
-function formatDate(value: string): string {
-  if (!value) {
-    return "-";
-  }
-
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  onDelete?: (id: string) => Promise<void>;
+  /** When provided, "Editar" calls this instead of navigating to /fields/:id/edit */
+  onEdit?: (field: Field) => void;
+  /** When provided, the empty-state "Crear primer campo" CTA calls this instead
+   *  of navigating to /fields/new. F11 removed the dedicated /fields routes,
+   *  so consumers (e.g. ManageFieldsDialog) must pass this callback. */
+  onCreate?: () => void;
 }
 
 function FieldActions({
@@ -27,18 +26,28 @@ function FieldActions({
   status,
   onArchive,
   onRestore,
+  onEdit,
+  onRequestDelete,
 }: {
   field: Field;
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
+  onEdit?: (field: Field) => void;
+  onRequestDelete: (id: string) => void;
 }): JSX.Element {
   if (status === "active") {
     return (
       <>
-        <Button asChild size="sm" variant="outline">
-          <Link to={`/fields/${field.id}/edit`}>Editar</Link>
-        </Button>
+        {onEdit ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => onEdit(field)}>
+            Editar
+          </Button>
+        ) : (
+          <Button asChild size="sm" variant="outline">
+            <Link to={`/fields/${field.id}/edit`}>Editar</Link>
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"
@@ -54,16 +63,28 @@ function FieldActions({
   }
 
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      onClick={() => {
-        void onRestore(field.id);
-      }}
-    >
-      Restaurar
-    </Button>
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          void onRestore(field.id);
+        }}
+      >
+        Restaurar
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="destructive"
+        onClick={() => {
+          onRequestDelete(field.id);
+        }}
+      >
+        Eliminar
+      </Button>
+    </>
   );
 }
 
@@ -72,7 +93,28 @@ export function FieldListTable({
   status,
   onArchive,
   onRestore,
+  onDelete,
+  onEdit,
+  onCreate,
 }: FieldListTableProps): JSX.Element {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirmDelete(): Promise<void> {
+    if (!pendingDeleteId || !onDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await onDelete(pendingDeleteId);
+    } finally {
+      setIsDeleting(false);
+      setPendingDeleteId(null);
+    }
+  }
+
   if (fields.length === 0) {
     return (
       <div className="bg-muted/40 rounded-3xl p-6 text-center">
@@ -82,9 +124,15 @@ export function FieldListTable({
             : "No hay campos archivados para mostrar."}
         </p>
         {status === "active" ? (
-          <Button asChild>
-            <Link to="/fields/new">Crear primer campo</Link>
-          </Button>
+          onCreate ? (
+            <Button type="button" onClick={onCreate}>
+              Crear primer campo
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link to="/fields/new">Crear primer campo</Link>
+            </Button>
+          )
         ) : null}
       </div>
     );
@@ -105,18 +153,11 @@ export function FieldListTable({
                   {field.label}
                 </Link>
               </p>
-              <p className="text-muted-foreground text-xs">
-                {field.archivedAt ? "Archivado" : "Activo"} · {formatDate(field.createdAt)}
-              </p>
               {field.helpText ? (
                 <p className="text-muted-foreground text-xs">{field.helpText}</p>
               ) : null}
             </div>
             <dl className="space-y-1 text-sm">
-              <div className="flex gap-2">
-                <dt className="text-muted-foreground">Clave:</dt>
-                <dd className="truncate font-mono text-xs">{field.key}</dd>
-              </div>
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Tipo:</dt>
                 <dd>{fieldTypeLabel[field.type]}</dd>
@@ -132,6 +173,8 @@ export function FieldListTable({
                 status={status}
                 onArchive={onArchive}
                 onRestore={onRestore}
+                onEdit={onEdit}
+                onRequestDelete={setPendingDeleteId}
               />
             </div>
           </li>
@@ -145,11 +188,8 @@ export function FieldListTable({
           <thead>
             <tr className="text-muted-foreground text-xs tracking-wide uppercase">
               <th className="px-3 py-2 text-left font-medium">Nombre</th>
-              <th className="px-3 py-2 text-left font-medium">Clave</th>
               <th className="px-3 py-2 text-left font-medium">Tipo</th>
               <th className="px-3 py-2 text-left font-medium">Obligatorio</th>
-              <th className="px-3 py-2 text-left font-medium">Creado</th>
-              <th className="px-3 py-2 text-left font-medium">Estado</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
@@ -158,26 +198,29 @@ export function FieldListTable({
               <tr key={field.id} className="border-border/60 border-t">
                 <td className="px-3 py-3 align-top">
                   <div className="font-medium">
-                    <Link
-                      to={`/fields/${field.id}/edit`}
-                      className="hover:underline focus-visible:underline focus-visible:outline-none"
-                    >
-                      {field.label}
-                    </Link>
+                    {onEdit ? (
+                      <button
+                        type="button"
+                        className="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+                        onClick={() => onEdit(field)}
+                      >
+                        {field.label}
+                      </button>
+                    ) : (
+                      <Link
+                        to={`/fields/${field.id}/edit`}
+                        className="hover:underline focus-visible:underline focus-visible:outline-none"
+                      >
+                        {field.label}
+                      </Link>
+                    )}
                   </div>
                   {field.helpText ? (
                     <p className="text-muted-foreground mt-1 text-xs">{field.helpText}</p>
                   ) : null}
                 </td>
-                <td className="text-muted-foreground px-3 py-3 align-top font-mono text-xs">
-                  {field.key}
-                </td>
                 <td className="px-3 py-3 align-top">{fieldTypeLabel[field.type]}</td>
                 <td className="px-3 py-3 align-top">{field.required ? "Sí" : "No"}</td>
-                <td className="text-muted-foreground px-3 py-3 align-top">
-                  {formatDate(field.createdAt)}
-                </td>
-                <td className="px-3 py-3 align-top">{field.archivedAt ? "Archivado" : "Activo"}</td>
                 <td className="px-3 py-3 align-top">
                   <div className="flex justify-end gap-2">
                     <FieldActions
@@ -185,6 +228,8 @@ export function FieldListTable({
                       status={status}
                       onArchive={onArchive}
                       onRestore={onRestore}
+                      onEdit={onEdit}
+                      onRequestDelete={setPendingDeleteId}
                     />
                   </div>
                 </td>
@@ -193,6 +238,15 @@ export function FieldListTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDeleteDialog
+        open={pendingDeleteId !== null}
+        title={fieldMessages.confirmDeleteTitle}
+        description={fieldMessages.confirmDeleteDescription}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+        isLoading={isDeleting}
+      />
     </>
   );
 }

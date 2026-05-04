@@ -99,7 +99,10 @@ describe("defaults service", () => {
 
       const formArg = formsAddMock.mock.calls[0]?.[0];
       expect(formArg.id).toBe(DEFAULT_FORM_ID);
-      expect(formArg.fieldIds).toEqual([DEFAULT_AUDIO_FIELD_ID, DEFAULT_LONG_TEXT_FIELD_ID]);
+      expect(formArg.fields.map((f: { fieldId: string }) => f.fieldId)).toEqual([
+        DEFAULT_AUDIO_FIELD_ID,
+        DEFAULT_LONG_TEXT_FIELD_ID,
+      ]);
     });
 
     it("does nothing when all defaults already exist (even archived)", async () => {
@@ -201,10 +204,9 @@ describe("defaults service", () => {
       expect(outcome.created).toBe(1);
       expect(outcome.fields.created).toBe(2);
       expect(formsAddMock).toHaveBeenCalledTimes(1);
-      expect(formsAddMock.mock.calls[0]?.[0].fieldIds).toEqual([
-        DEFAULT_AUDIO_FIELD_ID,
-        DEFAULT_LONG_TEXT_FIELD_ID,
-      ]);
+      expect(
+        formsAddMock.mock.calls[0]?.[0].fields.map((f: { fieldId: string }) => f.fieldId),
+      ).toEqual([DEFAULT_AUDIO_FIELD_ID, DEFAULT_LONG_TEXT_FIELD_ID]);
     });
   });
 });

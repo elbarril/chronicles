@@ -6,6 +6,7 @@ import { encounterMessages } from "@/features/encounters/lib/messages";
 import {
   archiveEncounterDefinition,
   createEncounterDefinition,
+  deleteEncounterDefinition,
   restoreEncounterDefinition,
   updateEncounterDefinition,
 } from "@/features/encounters/services/encounter-service";
@@ -85,11 +86,26 @@ export function useEncounterActions() {
     }
   }
 
+  async function remove(id: string) {
+    try {
+      await deleteEncounterDefinition(id);
+      toast.success(encounterMessages.deletedSuccess);
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "ENCOUNTER_DELETE_NOT_ARCHIVED"
+          ? encounterMessages.deleteNotArchived
+          : encounterMessages.deleteError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
   return {
     isSaving,
     create,
     update,
     archive,
     restore,
+    remove,
   };
 }

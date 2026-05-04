@@ -1,9 +1,0 @@
----
-description: Bootstrap bridge for the Chronicle repository
-alwaysApply: true
----
-
-# Bootstrap Bridge
-
-Follow exactly the instructions defined in `.agents/rules/agents.md`.
-Do not duplicate the logic in this file: this is a compatibility bridge for Cursor.

@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getChronicleForEncounter } from "@/features/chronicles/services/chronicle-service";
-import { DEMO_PROJECT_SEED } from "@/features/defaults/lib/seed-data";
+import { DEMO_FORM_ID, DEMO_PROJECT_SEED } from "@/features/defaults/lib/seed-data";
 import {
   removeDemoEncounter,
   seedDemoEncounter,
@@ -37,6 +37,11 @@ type TutorialContext = {
   demoEncounterId?: string;
   /** Demo chronicle id, looked up after the demo seed runs. */
   demoChronicleId?: string;
+  /** Demo form id (fixed UUID). Used by the tour step that highlights the
+   *  duplicate-instance button on the form-builder, since that button only
+   *  exists once the form has at least one field instance — and the demo
+   *  form already has fifteen. */
+  demoFormId?: string;
   /**
    * Whether this tutorial run is the one that created the demo data.
    * If false (the demo already existed), we leave it alone on cleanup.
@@ -226,9 +231,9 @@ function pickCardPosition(element: HTMLElement): CardPosition {
   return rect.bottom > bottomBandStart ? "top" : "bottom";
 }
 
-/** Replaces `:demoProjectId`, `:demoEncounterId` and `:demoChronicleId`
- *  placeholders in the route template with the actual ids the tutorial
- *  obtained when it seeded the demo data. */
+/** Replaces `:demoProjectId`, `:demoEncounterId`, `:demoChronicleId` and
+ *  `:demoFormId` placeholders in the route template with the actual ids
+ *  the tutorial obtained when it seeded the demo data. */
 function resolveRoute(template: string, ctx: TutorialContext): string {
   let resolved = template;
   if (ctx.demoProjectId) {
@@ -239,6 +244,9 @@ function resolveRoute(template: string, ctx: TutorialContext): string {
   }
   if (ctx.demoChronicleId) {
     resolved = resolved.replace(/:demoChronicleId/g, ctx.demoChronicleId);
+  }
+  if (ctx.demoFormId) {
+    resolved = resolved.replace(/:demoFormId/g, ctx.demoFormId);
   }
   return resolved;
 }
@@ -321,6 +329,7 @@ function useTutorialDemoData(stepIndex: number): TutorialContext {
           demoProjectId: DEMO_PROJECT_SEED.id,
           demoEncounterId: outcome.encounterId,
           demoChronicleId: chronicle?.id,
+          demoFormId: DEMO_FORM_ID,
           ownsDemoData: outcome.created,
         });
       } catch (error) {

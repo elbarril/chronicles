@@ -51,10 +51,13 @@ describe("form service", () => {
 
   it("creates form when name is unique", async () => {
     const now = new Date().toISOString();
+    const instanceId = crypto.randomUUID();
+    const fieldId = crypto.randomUUID();
+
     const createdForm = {
       id: crypto.randomUUID(),
       name: "Sesión inicial",
-      fieldIds: [crypto.randomUUID()],
+      fields: [{ instanceId, fieldId }],
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -66,14 +69,14 @@ describe("form service", () => {
 
     const result = await createObservationForm({
       name: " Sesión inicial ",
-      fieldIds: createdForm.fieldIds,
+      fields: [{ fieldId }],
     });
 
     expect(result).toEqual(createdForm);
     expect(isFormNameUniqueMock).toHaveBeenCalledWith("Sesión inicial", undefined);
     expect(createFormMock).toHaveBeenCalledWith({
       name: "Sesión inicial",
-      fieldIds: createdForm.fieldIds,
+      fields: [{ fieldId }],
     });
   });
 
@@ -83,7 +86,7 @@ describe("form service", () => {
     await expect(
       createObservationForm({
         name: "Sesión inicial",
-        fieldIds: [crypto.randomUUID()],
+        fields: [{ fieldId: crypto.randomUUID() }],
       }),
     ).rejects.toMatchObject({
       name: "AppError",
@@ -99,7 +102,7 @@ describe("form service", () => {
     updateFormMock.mockResolvedValue({
       id: existingId,
       name: "Sesión editada",
-      fieldIds: [crypto.randomUUID()],
+      fields: [{ instanceId: crypto.randomUUID(), fieldId: crypto.randomUUID() }],
       version: 2,
       createdAt: now,
       updatedAt: now,
@@ -108,7 +111,7 @@ describe("form service", () => {
 
     const result = await updateObservationForm(existingId, {
       name: "Sesión editada",
-      fieldIds: [crypto.randomUUID()],
+      fields: [{ fieldId: crypto.randomUUID() }],
     });
 
     expect(result.version).toBe(2);
@@ -122,7 +125,7 @@ describe("form service", () => {
     await expect(
       updateObservationForm(crypto.randomUUID(), {
         name: "Sesión",
-        fieldIds: [crypto.randomUUID()],
+        fields: [{ fieldId: crypto.randomUUID() }],
       }),
     ).rejects.toMatchObject({
       name: "AppError",

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
@@ -19,6 +20,8 @@ export function SupportPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="support-title">
+      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: "Soporte" }]} />
+
       <header className="space-y-2">
         <h1 id="support-title" className="text-3xl font-bold tracking-tight">
           {supportMessages.title}
@@ -52,8 +55,8 @@ export function SupportPage(): JSX.Element {
         </CardHeader>
         <CardContent>
           <DemoEncounterButton
-            onLoaded={(encounterId) => {
-              navigate(`/encounters/${encounterId}`);
+            onLoaded={({ projectId }) => {
+              navigate(`/projects/${projectId}`);
             }}
           />
         </CardContent>

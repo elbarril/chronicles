@@ -6,11 +6,12 @@ import { defaultsMessages } from "@/features/defaults/lib/messages";
 interface DemoEncounterButtonProps {
   /**
    * Optional callback fired after the demo content has been freshly
-   * created. Most consumers use it to navigate to the encounter detail.
+   * created. Receives the demo project id and the primary (populated)
+   * demo encounter id, so the consumer can decide where to navigate.
    * Has no effect when `removeOnly` is set since the create button is
    * never rendered.
    */
-  onLoaded?: (encounterId: string) => void;
+  onLoaded?: (ids: { projectId: string; encounterId: string }) => void;
   /**
    * Optional callback fired after the demo content has been wiped.
    * Pages that show demo data (e.g. encounter detail) can use it to
@@ -19,7 +20,7 @@ interface DemoEncounterButtonProps {
   onRemoved?: () => void;
   /**
    * When `true`, the component only renders the destructive twin and
-   * stays hidden while no demo content is loaded. The "Cargar encuentro
+   * stays hidden while no demo content is loaded. The "Crear proyecto
    * de prueba" entry point lives exclusively in the home page; list
    * pages just need a way to clear demo content when it shows up there.
    */
@@ -28,9 +29,9 @@ interface DemoEncounterButtonProps {
 }
 
 /**
- * Toggle button that flips between "Cargar encuentro de prueba" and
- * "Eliminar contenido de prueba" based on the live presence of the
- * demo encounter. The state is reactive: clicking either action keeps
+ * Toggle button that flips between "Crear proyecto de prueba" and
+ * "Eliminar proyecto de prueba" based on the live presence of the
+ * demo project. The state is reactive: clicking either action keeps
  * the rest of the page in sync without any manual refresh.
  *
  * Pages that should never invite users to create the demo (i.e. every
@@ -85,7 +86,10 @@ export function DemoEncounterButton({
       onClick={async () => {
         try {
           const outcome = await actions.loadDemoEncounter();
-          onLoaded?.(outcome.encounterId);
+          onLoaded?.({
+            projectId: outcome.projectId,
+            encounterId: outcome.encounterId,
+          });
         } catch {
           // Error already surfaced via toast inside the hook.
         }
