@@ -780,3 +780,26 @@ Specifically:
 - The demo seed must always succeed before the tour reaches the duplicate-instance stop. If the seed fails (typically only in tests with a stubbed db), the placeholder route still resolves to `/` and the spotlight gracefully gives up — same fallback as the other `:demo*` placeholders.
 - Users who previously bookmarked `/help?tab=funcionamientos` and clicked through the legacy "Ir a campos" CTA will land on `/forms` instead of a 404. Anyone bookmarking `/fields*` directly still hits the 404 page; that is the intentional F11 outcome and is not changed by this fix-up.
 - `deleteFormCascade` is irreversible. The confirmation dialog now describes the cascade, so the destructive action remains explicit.
+
+---
+
+## [2026-05-03] Drop the Cursor IDE bridge
+
+**Context:** The repository historically shipped two compatibility layers — `.windsurf/rules/` for Windsurf and `.cursor/rules/` for Cursor — both pointing at the canonical `.agents/rules/`. The author of this project does not use Cursor, so the second bridge added maintenance cost (every new rule had to be copied into `.cursor/rules/<name>.mdc`) without any concrete benefit.
+
+**Decision:** Remove the Cursor bridge entirely. Concretely:
+
+- Delete `.cursor/rules/agents.mdc` and `.cursor/rules/language-policy.mdc` (and the `.cursor/rules/` directory itself).
+- Drop the `.cursor/**` entry from the ESLint ignore list in `eslint.config.js`.
+- Remove the Cursor mentions from `AGENTS.md` (Tool Interoperability), `.agents/README.md` (Tool Bridges), `.agents/rules/agents.md` (Architecture), `.agents/workflows/create-rule.md` (step 6) and `docs/stack-and-architecture.md` (Language Policy section).
+- Earlier append-only entries that historically mentioned `.cursor/rules/` are kept untouched: rewriting them would violate the append-only invariant and tell a misleading story about what the project did at the time.
+
+**Justification:**
+
+- The append-only `decisions.md` reflects history, not current state — newer agents must read the current entry plus `project-context.md` / `AGENTS.md` to know what is actually wired today.
+- One bridge is enough for portability: `AGENTS.md` already covers Claude Code, Codex CLI, Aider and any future tool that loads root-level conventions; Windsurf provides the only IDE-specific surface still in use.
+
+**Consequences:**
+
+- Cursor users who clone the repo will no longer get an automatic bridge. They can either rely on `AGENTS.md` directly or recreate `.cursor/rules/agents.mdc` locally without committing it.
+- Future rule creation runs through the slimmer `.agents/workflows/create-rule.md` (Windsurf bridge only).
