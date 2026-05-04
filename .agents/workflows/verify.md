@@ -15,7 +15,7 @@ description: Run project verification efficiently with a single command and opti
    - If this fails with lockfile drift, run `pnpm install` to regenerate `pnpm-lock.yaml`.
    - Commit both `package.json` and `pnpm-lock.yaml` together when dependency metadata changes.
 
-2. Run full verification in a single command before committing or closing a phase:
+2. Run full verification in a single command before committing or running closeout:
 
    ```bash
    pnpm check

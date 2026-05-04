@@ -830,3 +830,30 @@ Specifically:
 - Older databases that already accumulated stale `encounter.participantIds` (from edits made before this change) keep working: the unknown ids are simply filtered out. Re-editing the encounter gives the user a clean slate to reselect attendees from the current project participants.
 - Export/import is unaffected: `chronicle-full-v3` already serialises the full `participants` table with their stable ids, so the import path round-trips correctly without changes.
 - The onboarding tour was not extended for this iteration; "Editar encuentro" is discoverable from the encounter header and the project's encounter list, and adding a tour stop is a follow-up if needed.
+
+---
+
+## [2026-05-03] Agent docs: switch from roadmap-phase model to generic-update model
+
+**Context:** The agent workspace was structured around the roadmap phases (`phase-planner`, `phase-implementer`, `phase-closeout`) with hard-coded `F<N>` branch names, mandatory Dexie schema bumps, and roadmap-closure entries. The roadmap phases F0–F11 are already complete and future work is post-roadmap (refactors, fixes, follow-ups, infra), so the phase-centric skills no longer fit. In addition, every session was forced to read the entire `decisions.md` file (~86 KB), which caused noticeable context overload, and `AGENTS.md` did not formally recognize Devin CLI alongside Windsurf and Cursor.
+
+**Decision:** Restructure the agent workspace around generic updates and minimize the bootstrap.
+
+- Replace the `phase-planner`, `phase-implementer`, and `phase-closeout` skills with `change-planner`, `change-implementer`, and `change-closeout`. The new skills are scope-aware (tags `domain`, `persistence`, `feature`, `routing`, `infra`, `docs`, `tests`) and reference `docs/stack-and-architecture.md` instead of duplicating its conventions. Branch names follow Conventional Commits (`<type>/<short-slug>`) instead of `feat/f<N>-<slug>`.
+- Make `change-closeout` opt-in: trigger it only when the change introduced new patterns, dependencies, domain concepts, schema changes, routes, modules, or skills. Trivial edits skip it.
+- Trim the mandatory bootstrap in `AGENTS.md` and `.agents/rules/agents.md` to three short reads (`AGENTS.md`, `language-policy.md`, `project-context.md`). Demote `decisions.md`, `glossary.md`, and `docs/stack-and-architecture.md` to on-demand reads.
+- Recognize Devin CLI explicitly in `AGENTS.md` and `.agents/README.md` (auto-discovers skills under `.agents/skills/`; session config in `.devin/`). Cursor is covered by bridges in `.cursor/rules/`. Windsurf bridges remain in `.windsurf/rules/` and `.windsurf/workflows/`.
+- Replace `.windsurf/workflows/phase-*.md` with `.windsurf/workflows/change-*.md` delegating stubs, plus matching `.agents/workflows/change-*.md` files.
+- Slim the skill template (drop the unused `## AGENTS.md Compliance` section) so future skills match what is actually written.
+- Update `update-project-docs` and `agent-workspace-manager` to remove phase-only language and emphasize "edit only documents the change actually affects".
+
+**Justification:** The phase model created two separate problems. First, it was internally inconsistent with the project's current reality: there is no next `F<N>` to plan, and forcing every change into a phase shape created friction (artificial scope, inflated commits, wrong branch names). Second, it duplicated content already documented in `docs/stack-and-architecture.md`, which is brittle — when the architecture evolves, the phase skills silently rot. The new generic model keeps the same ceremony for non-trivial work but adapts to the actual scope, references the architecture doc instead of mirroring it, and lets trivial changes skip the closeout step. Trimming the bootstrap reads addresses the most concrete cause of context overload (the 86 KB `decisions.md` loaded on every session) without losing traceability — the file remains append-only and is read on demand. Adding Devin CLI to the interoperability list aligns the docs with how the repo is actually used today.
+
+**Consequences:**
+
+- New skill set under `.agents/skills/`: `change-planner`, `change-implementer`, `change-closeout`. Old `phase-*` skills deleted.
+- New canonical workflows: `.agents/workflows/change-planner.md`, `.agents/workflows/change-implementer.md`, `.agents/workflows/change-closeout.md`. Old `.agents/workflows/phase-closeout.md` deleted.
+- New Cascade slash-command stubs: `.windsurf/workflows/change-planner.md`, `.windsurf/workflows/change-implementer.md`, `.windsurf/workflows/change-closeout.md`. Old `.windsurf/workflows/phase-*.md` deleted. Existing `phase-implementer` / `phase-closeout` skills still listed by Cascade auto-discovery will stop appearing once the agent reloads its skill registry; sessions should be restarted to pick up the new names.
+- `AGENTS.md`, `.agents/rules/agents.md`, `.agents/README.md`, `.agents/skills/agent-workspace-manager/SKILL.md`, `.agents/skills/update-project-docs/SKILL.md`, and `.agents/templates/skill.template.md` rewritten to reflect the new model.
+- `docs/stack-and-architecture.md` and `.agents/memory/project-context.md` were not edited as part of this change — they still describe the F0–F11 history accurately, which is now read on demand only.
+- Future work uses Conventional-Commit branch names (e.g., `feat/<slug>`, `fix/<slug>`) and skips closeout when nothing in `docs/`, memory, or skills is affected.

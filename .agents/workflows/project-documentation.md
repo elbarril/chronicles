@@ -4,8 +4,15 @@ description: Create or update Chronicle project documentation from the current c
 
 # Project Documentation (Chronicle)
 
-Analyze the Chronicle repository and create or update project documentation incrementally.
-This workflow is for this codebase architecture (local-first React + TypeScript app).
+Analyze the Chronicle repository and create or update project documentation
+incrementally. This workflow is for this codebase architecture (local-first
+React + TypeScript app).
+
+For closeout of a generic update, prefer
+`.agents/skills/change-closeout/SKILL.md`, which delegates to
+`.agents/skills/update-project-docs/SKILL.md`. Use this workflow for
+standalone documentation passes (e.g., a docs-only change or a periodic
+sync).
 
 ## Operation Mode
 
@@ -73,7 +80,7 @@ Update or create the following files as needed.
 
 Update only what changed:
 
-- Project description and current roadmap phase.
+- Project description and current functional baseline.
 - Main module references and key routes.
 - Local development requirements and commands.
 - Links to canonical technical documentation.
@@ -87,14 +94,14 @@ Follow its maintenance protocol (section 8) and update:
 - Domain model entities and typed contracts.
 - Folder structure at high level.
 - Persistence model (Dexie/IndexedDB tables and schema versioning).
-- Testing strategy and roadmap status.
+- Testing strategy and historical roadmap (the F0–F11 table is preserved as history; future work is generic-update driven).
 - Last update date.
 
 ### C) `.agents/memory/project-context.md`
 
 Keep concise and current:
 
-- Current project state/phase.
+- Current project state.
 - Active stack summary.
 - Functional baseline implemented.
 - Main active flows.
@@ -136,7 +143,7 @@ Before finalizing:
 
 - [ ] Changes in docs match actual code.
 - [ ] `docs/stack-and-architecture.md` reflects current stack/domain/structure.
-- [ ] `project-context.md` and roadmap state are current.
+- [ ] `project-context.md` reflects the current functional baseline.
 - [ ] Significant changes are registered in `decisions.md` (append-only).
 - [ ] No contradictory statements across docs.
 - [ ] No duplicated ownership of information.
