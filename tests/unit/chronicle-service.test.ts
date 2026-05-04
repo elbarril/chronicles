@@ -78,6 +78,7 @@ vi.mock("@/infra/ai/gemini-chronicle-generator", () => ({
 function stubEncounterData(encounterId: string, fieldId: string, participantId: string) {
   const now = new Date().toISOString();
   const projectId = crypto.randomUUID();
+  const instanceId = crypto.randomUUID();
 
   getEncounterByIdMock.mockResolvedValue({
     id: encounterId,
@@ -127,9 +128,9 @@ function stubEncounterData(encounterId: string, fieldId: string, participantId: 
       encounterId,
       formId: crypto.randomUUID(),
       formVersion: 1,
-      fieldIds: [fieldId],
+      fields: [{ instanceId, fieldId }],
       participantId,
-      values: { [fieldId]: "Observación clave" },
+      values: { [instanceId]: "Observación clave" },
       createdAt: now,
     },
   ]);

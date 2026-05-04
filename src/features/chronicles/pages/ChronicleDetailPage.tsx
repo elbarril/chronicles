@@ -1,6 +1,7 @@
 import { Share2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ChronicleMediaPanel } from "@/features/chronicles/components/ChronicleMediaPanel";
 import { ChronicleViewer } from "@/features/chronicles/components/ChronicleViewer";
@@ -8,13 +9,6 @@ import { useChronicle } from "@/features/chronicles/hooks/use-chronicle";
 import { useChronicleActions } from "@/features/chronicles/hooks/use-chronicle-actions";
 import { useShareChronicle } from "@/features/chronicles/hooks/use-share-chronicle";
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
 
 export function ChronicleDetailPage(): JSX.Element {
   const params = useParams();
@@ -45,22 +39,20 @@ export function ChronicleDetailPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="chronicle-detail-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/chronicles">← Volver a crónicas</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", to: "/" },
+          { label: "Crónicas", to: "/chronicles" },
+          { label: detail.chronicle.title },
+        ]}
+      />
 
       <header className="space-y-3">
         <h1 id="chronicle-detail-title" className="text-3xl font-bold tracking-tight break-words">
           {detail.chronicle.title}
         </h1>
 
-        <dl className="text-muted-foreground grid gap-2 text-sm md:grid-cols-2">
-          <div>
-            <dt className="font-medium">{chronicleMessages.generatedAtLabel}</dt>
-            <dd>{formatDate(detail.chronicle.generatedAt)}</dd>
-          </div>
+        <dl className="text-muted-foreground grid gap-2 text-sm">
           <div>
             <dt className="font-medium">{chronicleMessages.encounterLabel}</dt>
             <dd>{detail.encounter?.name ?? "No disponible"}</dd>

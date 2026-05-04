@@ -45,6 +45,7 @@ describe("full exporter", () => {
     const projectId = crypto.randomUUID();
     const formId = crypto.randomUUID();
     const fieldId = crypto.randomUUID();
+    const instanceId = crypto.randomUUID();
     const participantId = crypto.randomUUID();
     const encounterId = crypto.randomUUID();
     const observationId = crypto.randomUUID();
@@ -69,7 +70,7 @@ describe("full exporter", () => {
       {
         id: formId,
         name: "Formulario",
-        fieldIds: [fieldId],
+        fields: [{ instanceId, fieldId }],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -115,10 +116,10 @@ describe("full exporter", () => {
         encounterId,
         formId,
         formVersion: 1,
-        fieldIds: [fieldId],
+        fields: [{ instanceId, fieldId }],
         participantId,
         title: "Observación",
-        values: { [fieldId]: "Hola" },
+        values: { [instanceId]: "Hola" },
         createdAt: now,
       },
     ]);

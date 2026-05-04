@@ -1,5 +1,6 @@
 import { type MediaKind, MediaItem } from "@/components/media/MediaItem";
 import { type Field } from "@/domain/field";
+import { type FormFieldInstance } from "@/domain/form";
 import { type Observation, type ObservationValue } from "@/domain/observation";
 
 const MEDIA_FIELD_TYPES: ReadonlySet<Field["type"]> = new Set(["audio", "video", "image", "file"]);
@@ -29,37 +30,44 @@ function extractMediaIds(value: ObservationValue | undefined): string[] {
 }
 
 interface ObservationMediaListProps {
-  fields: Field[];
+  instances: FormFieldInstance[];
+  fieldsById: Map<string, Field>;
   values: Observation["values"];
   emptyLabel?: string;
 }
 
 /**
  * Renders all media attachments found across an observation's values
- * (one entry per media id, grouped by field). Returns `null` when the
+ * (one entry per media id, grouped by instance). Returns `null` when the
  * observation has no media, unless an `emptyLabel` is provided.
  */
 export function ObservationMediaList({
-  fields,
+  instances,
+  fieldsById,
   values,
   emptyLabel,
 }: ObservationMediaListProps): JSX.Element | null {
-  const mediaFields = fields.filter((field) => MEDIA_FIELD_TYPES.has(field.type));
+  const items = instances.flatMap((instance) => {
+    const field = fieldsById.get(instance.fieldId);
 
-  const items = mediaFields.flatMap((field) => {
+    if (!field || !MEDIA_FIELD_TYPES.has(field.type)) {
+      return [];
+    }
+
     const kind = fieldKind(field.type);
 
     if (!kind) {
       return [];
     }
 
-    const mediaIds = extractMediaIds(values[field.id]);
+    const mediaIds = extractMediaIds(values[instance.instanceId]);
+    const label = instance.labelOverride?.trim() || field.label;
 
     return mediaIds.map((mediaId) => ({
-      key: `${field.id}-${mediaId}`,
-      field,
+      key: `${instance.instanceId}-${mediaId}`,
       kind,
       mediaId,
+      label,
     }));
   });
 
@@ -75,8 +83,8 @@ export function ObservationMediaList({
     <ul className="space-y-3">
       {items.map((item) => (
         <li key={item.key} className="space-y-1">
-          <p className="text-muted-foreground text-xs">{item.field.label}</p>
-          <MediaItem mediaId={item.mediaId} kind={item.kind} label={item.field.label} />
+          <p className="text-muted-foreground text-xs">{item.label}</p>
+          <MediaItem mediaId={item.mediaId} kind={item.kind} label={item.label} />
         </li>
       ))}
     </ul>

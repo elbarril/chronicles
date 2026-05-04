@@ -8,7 +8,10 @@ describe("form domain schemas", () => {
     const result = observationFormSchema.safeParse({
       id: crypto.randomUUID(),
       name: "Sesión grupal",
-      fieldIds: [crypto.randomUUID(), crypto.randomUUID()],
+      fields: [
+        { instanceId: crypto.randomUUID(), fieldId: crypto.randomUUID() },
+        { instanceId: crypto.randomUUID(), fieldId: crypto.randomUUID() },
+      ],
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -21,17 +24,16 @@ describe("form domain schemas", () => {
   it("rejects input without fields", () => {
     const result = observationFormInputSchema.safeParse({
       name: "Sesión grupal",
-      fieldIds: [],
+      fields: [],
     });
 
     expect(result.success).toBe(false);
   });
 
-  it("rejects duplicated field ids", () => {
-    const repeatedId = crypto.randomUUID();
+  it("rejects input with invalid fieldId", () => {
     const result = observationFormInputSchema.safeParse({
       name: "Sesión grupal",
-      fieldIds: [repeatedId, repeatedId],
+      fields: [{ fieldId: "not-a-uuid" }],
     });
 
     expect(result.success).toBe(false);
@@ -40,7 +42,7 @@ describe("form domain schemas", () => {
   it("rejects empty name", () => {
     const result = observationFormInputSchema.safeParse({
       name: "   ",
-      fieldIds: [crypto.randomUUID()],
+      fields: [{ fieldId: crypto.randomUUID() }],
     });
 
     expect(result.success).toBe(false);
@@ -51,7 +53,7 @@ describe("form domain schemas", () => {
     const result = observationFormSchema.safeParse({
       id: crypto.randomUUID(),
       name: "Sesión grupal",
-      fieldIds: [crypto.randomUUID()],
+      fields: [{ instanceId: crypto.randomUUID(), fieldId: crypto.randomUUID() }],
       version: 2,
       createdAt: now,
       updatedAt: now,

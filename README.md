@@ -55,7 +55,7 @@ Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`]
 - Export/Import: `src/infra/export/full-exporter.ts` and `full-importer.ts` round-trip the new schema `chronicle-full-v2` (covers every table including `projects` + media + brand color + author name). Legacy v1 / encounter-v1 are no longer importable.
 - Demo data: `seedDemoEncounter` produces a demo project, demo encounter and **two** observations using two different forms; `removeDemoEncounter` cleans the demo project (no longer the legacy demo group).
 - Main tests:
-  - Unit: `tests/unit/project-schema.test.ts`, refreshed `participant-schema.test.ts`, `encounter-schema.test.ts`, `observation-schema.test.ts`, `chronicle-service.test.ts`, `seed-demo-encounter.test.ts`, `remove-demo-encounter.test.ts`, `full-exporter.test.ts`, `full-importer.test.ts`, `gemini-chronicle-generator.test.ts`, `home.test.tsx`, `how-it-works.test.tsx`, `onboarding-dialog.test.tsx`.
+  - Unit: `tests/unit/project-schema.test.ts`, refreshed `participant-schema.test.ts`, `encounter-schema.test.ts`, `observation-schema.test.ts`, `chronicle-service.test.ts`, `seed-demo-encounter.test.ts`, `remove-demo-encounter.test.ts`, `full-exporter.test.ts`, `full-importer.test.ts`, `gemini-chronicle-generator.test.ts`, `home.test.tsx`, `help.test.tsx` (covers the three tabs of `/help`), `onboarding-dialog.test.tsx`.
   - E2E: `tests/e2e/projects-crud.spec.ts`, `tests/e2e/encounter-capture.spec.ts`, `tests/e2e/encounter-export-import.spec.ts`, `tests/e2e/chronicle-generation.spec.ts`, `tests/e2e/chronicle-ai-generation.spec.ts`, `tests/e2e/demo-encounter-media.spec.ts`, `tests/e2e/responsive-nav.spec.ts`.
 
 ## F4 Module: Export / Import (post-F9 layout)

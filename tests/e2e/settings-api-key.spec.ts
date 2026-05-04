@@ -9,13 +9,21 @@ test("settings page is accessible from navigation", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
 });
 
-test("settings page shows AI setup guide and API key form", async ({ page }) => {
+test("settings page shows the AI section title, the link to the help guide, and the API key form", async ({
+  page,
+}) => {
   await page.goto("/settings");
 
-  await expect(page.getByText("Generación de crónicas con IA")).toBeVisible();
-  await expect(page.getByText("Qué hace la generación con IA")).toBeVisible();
-  await expect(page.getByText("Privacidad y datos enviados")).toBeVisible();
-  await expect(page.getByText("Cómo obtener tu clave gratuita")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Generación de crónicas con IA" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "la guía de IA en Ayuda" })).toHaveAttribute(
+    "href",
+    "/help?tab=ia",
+  );
+
+  // The setup guide content is no longer rendered on /settings — it lives in /help (IA tab).
+  await expect(page.getByText("Qué hace la generación con IA")).toHaveCount(0);
+  await expect(page.getByText("Privacidad y datos enviados")).toHaveCount(0);
+  await expect(page.getByText("Cómo obtener tu clave gratuita")).toHaveCount(0);
 
   await expect(page.getByLabel("Clave de API de Gemini")).toBeVisible();
   await expect(page.getByRole("button", { name: "Guardar clave" })).toBeVisible();

@@ -1,5 +1,6 @@
 import {
   observationFormSchema,
+  type FormFieldInstance,
   type ObservationForm,
   type ObservationFormInput,
 } from "@/domain/form";
@@ -13,13 +14,23 @@ function normalizeName(name: string): string {
   return name.trim();
 }
 
+/** Resolve field instances from input, assigning new instanceIds to entries
+ *  that arrive without one (freshly added rows in the builder). */
+function resolveInstances(inputFields: ObservationFormInput["fields"]): FormFieldInstance[] {
+  return inputFields.map((entry) => ({
+    instanceId: entry.instanceId ?? crypto.randomUUID(),
+    fieldId: entry.fieldId,
+    ...(entry.labelOverride !== undefined ? { labelOverride: entry.labelOverride } : {}),
+  }));
+}
+
 export async function createForm(data: ObservationFormInput): Promise<ObservationForm> {
   const now = nowIsoString();
 
   const form: ObservationForm = observationFormSchema.parse({
     id: crypto.randomUUID(),
     name: normalizeName(data.name),
-    fieldIds: data.fieldIds,
+    fields: resolveInstances(data.fields),
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -44,7 +55,7 @@ export async function updateForm(
   const next = observationFormSchema.parse({
     ...previous,
     name: normalizeName(data.name),
-    fieldIds: data.fieldIds,
+    fields: resolveInstances(data.fields),
     version: previous.version + 1,
     updatedAt: nowIsoString(),
   });
@@ -97,6 +108,18 @@ export async function listArchivedForms(): Promise<ObservationForm[]> {
         (right.archivedAt ?? "").localeCompare(left.archivedAt ?? ""),
       ),
     );
+}
+
+export async function deleteForm(id: string): Promise<boolean> {
+  const form = await db.forms.get(id);
+
+  if (!form) {
+    return false;
+  }
+
+  await db.forms.delete(id);
+
+  return true;
 }
 
 export async function isFormNameUnique(name: string, excludeId?: string): Promise<boolean> {

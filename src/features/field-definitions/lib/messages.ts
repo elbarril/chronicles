@@ -7,7 +7,12 @@ export const fieldMessages = {
   archiveError: "No se pudo archivar el campo.",
   restoredSuccess: "Campo restaurado.",
   restoreError: "No se pudo restaurar el campo.",
+  deletedSuccess: "Campo eliminado.",
+  deleteError: "No se pudo eliminar el campo.",
+  deleteNotArchived: "Solo podés eliminar campos archivados.",
   keyAlreadyTaken: "Ya existe un campo activo con esa clave.",
   notFound: "No encontramos el campo a editar.",
   defaultChoiceOption: "Opción 1",
+  confirmDeleteTitle: "¿Eliminar campo?",
+  confirmDeleteDescription: "Esta acción es permanente y no se puede deshacer.",
 } as const;

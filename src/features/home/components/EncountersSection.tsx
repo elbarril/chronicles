@@ -140,13 +140,16 @@ export function EncountersSection(): JSX.Element {
         </div>
       ) : (
         <>
-          <ul className="flex flex-col gap-3" aria-label="Lista de encuentros recientes">
+          <ul
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Lista de encuentros recientes"
+          >
             {pageEncounters.map(({ encounter, projectName }) => (
               <li
                 key={encounter.id}
-                className="bg-card flex flex-col gap-1 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                className="bg-card flex flex-col gap-3 rounded-2xl border p-4"
               >
-                <div className="min-w-0 space-y-0.5">
+                <div className="min-w-0 flex-1 space-y-0.5">
                   <Link
                     to={`/encounters/${encounter.id}`}
                     className="hover:underline focus-visible:underline focus-visible:outline-none"
@@ -158,7 +161,7 @@ export function EncountersSection(): JSX.Element {
                     {formatDateTime(encounter.startsAt)}
                   </p>
                 </div>
-                <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Button asChild size="sm" variant="outline" className="w-full">
                   <Link to={`/encounters/${encounter.id}`}>Abrir</Link>
                 </Button>
               </li>

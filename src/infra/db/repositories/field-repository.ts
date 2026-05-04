@@ -103,3 +103,24 @@ export async function isFieldKeyUnique(key: string, excludeId?: string): Promise
 
   return sameKey.every((field) => field.id === excludeId || field.archivedAt !== "");
 }
+
+/**
+ * Permanently deletes a field. Only allowed if the field is archived.
+ * Returns false when the field does not exist.
+ * Throws when the field is not archived.
+ */
+export async function deleteField(id: string): Promise<boolean> {
+  const field = await db.fields.get(id);
+
+  if (!field) {
+    return false;
+  }
+
+  if (!field.archivedAt || field.archivedAt === "") {
+    throw new Error("FIELD_DELETE_NOT_ARCHIVED");
+  }
+
+  await db.fields.delete(id);
+
+  return true;
+}

@@ -1,6 +1,7 @@
 import { Share2 } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ChronicleMediaPanel } from "@/features/chronicles/components/ChronicleMediaPanel";
 import { ChronicleViewer } from "@/features/chronicles/components/ChronicleViewer";
@@ -10,13 +11,6 @@ import { useShareChronicle } from "@/features/chronicles/hooks/use-share-chronic
 import { chronicleMessages } from "@/features/chronicles/lib/messages";
 import { useEncounter } from "@/features/encounters/hooks/use-encounter";
 import { AiKeyStatusBadge } from "@/features/settings/components/AiKeyStatusBadge";
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
 
 export function EncounterChroniclePage(): JSX.Element {
   const params = useParams();
@@ -51,8 +45,6 @@ export function EncounterChroniclePage(): JSX.Element {
     );
   }
 
-  const backToEncounterTarget = `/encounters/${encounter.id}`;
-
   async function handleGenerate(): Promise<void> {
     await actions.generate(encounter!.id);
   }
@@ -66,11 +58,15 @@ export function EncounterChroniclePage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="encounter-chronicle-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to={backToEncounterTarget}>← {chronicleMessages.backToEncounter}</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", to: "/" },
+          { label: "Proyectos", to: "/projects" },
+          project ? { label: project.name, to: `/projects/${project.id}` } : { label: "Proyecto" },
+          { label: encounter.name, to: `/encounters/${encounter.id}` },
+          { label: "Crónica" },
+        ]}
+      />
 
       <header className="space-y-2">
         <h1 id="encounter-chronicle-title" className="text-3xl font-bold tracking-tight">
@@ -143,10 +139,6 @@ export function EncounterChroniclePage(): JSX.Element {
 
       {chronicle ? (
         <>
-          <p className="text-muted-foreground text-sm">
-            {chronicleMessages.generatedAtLabel}: {formatDate(chronicle.generatedAt)}
-          </p>
-
           <div data-tour="chronicle.detail.content">
             <ChronicleViewer body={chronicle.body} generatedWith={chronicle.generatedWith} />
           </div>

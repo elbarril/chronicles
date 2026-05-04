@@ -6,6 +6,7 @@ import { fieldMessages } from "@/features/field-definitions/lib/messages";
 import {
   archiveFieldDefinition,
   createFieldDefinition,
+  deleteFieldDefinition,
   restoreFieldDefinition,
   updateFieldDefinition,
 } from "@/features/field-definitions/services/field-service";
@@ -74,11 +75,26 @@ export function useFieldActions() {
     }
   }
 
+  async function remove(id: string) {
+    try {
+      await deleteFieldDefinition(id);
+      toast.success(fieldMessages.deletedSuccess);
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "FIELD_DELETE_NOT_ARCHIVED"
+          ? fieldMessages.deleteNotArchived
+          : fieldMessages.deleteError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
   return {
     isSaving,
     create,
     update,
     archive,
     restore,
+    remove,
   };
 }

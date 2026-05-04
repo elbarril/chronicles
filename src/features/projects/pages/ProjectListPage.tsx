@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
 import { ProjectListTable } from "@/features/projects/components/ProjectListTable";
@@ -14,6 +15,8 @@ export function ProjectListPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="project-list-title">
+      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: "Proyectos" }]} />
+
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 id="project-list-title" className="text-3xl font-bold tracking-tight">
@@ -62,6 +65,7 @@ export function ProjectListPage(): JSX.Element {
           status={status}
           onArchive={actions.archive}
           onRestore={actions.restore}
+          onDelete={actions.remove}
         />
       )}
     </section>

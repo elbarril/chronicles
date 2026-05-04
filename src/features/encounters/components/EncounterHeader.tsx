@@ -11,6 +11,7 @@ interface EncounterHeaderProps {
   observationCount: number;
   onArchive: () => Promise<void>;
   onRestore: () => Promise<void>;
+  onRequestDelete: () => void;
 }
 
 function formatDate(value: string): string {
@@ -31,6 +32,7 @@ export function EncounterHeader({
   observationCount,
   onArchive,
   onRestore,
+  onRequestDelete,
 }: EncounterHeaderProps): JSX.Element {
   const isArchived = Boolean(encounter.archivedAt && encounter.archivedAt !== "");
 
@@ -76,16 +78,26 @@ export function EncounterHeader({
         </Button>
 
         {isArchived ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              void onRestore();
-            }}
-          >
-            Restaurar encuentro
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                void onRestore();
+              }}
+            >
+              Restaurar encuentro
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full sm:w-auto"
+              onClick={onRequestDelete}
+            >
+              Eliminar encuentro
+            </Button>
+          </>
         ) : (
           <Button
             type="button"

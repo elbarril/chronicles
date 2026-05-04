@@ -11,7 +11,6 @@ import { FieldListPage } from "@/features/field-definitions/pages/FieldListPage"
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
 import { HelpPage } from "@/features/help/HelpPage";
-import { HowItWorksPage } from "@/features/help/HowItWorksPage";
 import { HomePage } from "@/features/home/HomePage";
 import { NotFoundPage } from "@/features/home/NotFoundPage";
 import { SupportPage } from "@/features/home/SupportPage";
@@ -99,10 +98,6 @@ export const router = createBrowserRouter([
       {
         path: "/help",
         element: <HelpPage />,
-      },
-      {
-        path: "/how-it-works",
-        element: <HowItWorksPage />,
       },
       {
         path: "/support",

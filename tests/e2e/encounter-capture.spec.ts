@@ -8,9 +8,6 @@ test("can register a post-event encounter and capture observations with media", 
   const textFieldName = `Nota ${suffix}`;
   const imageFieldName = `Foto ${suffix}`;
   const audioFieldName = `Audio ${suffix}`;
-  const textFieldKey = `nota_${suffix}`;
-  const imageFieldKey = `foto_${suffix}`;
-  const audioFieldKey = `audio_${suffix}`;
   const formName = `Formulario Encuentro ${suffix}`;
   const encounterName = `Sesión ${suffix}`;
 
@@ -22,14 +19,13 @@ test("can register a post-event encounter and capture observations with media", 
   await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
 
   // Create three fields
-  for (const [fieldName, fieldKey, fieldType] of [
-    [textFieldName, textFieldKey, "text"],
-    [imageFieldName, imageFieldKey, "image"],
-    [audioFieldName, audioFieldKey, "audio"],
+  for (const [fieldName, fieldType] of [
+    [textFieldName, "text"],
+    [imageFieldName, "image"],
+    [audioFieldName, "audio"],
   ] as const) {
     await page.goto("/fields/new");
     await page.getByLabel("Nombre del campo").fill(fieldName);
-    await page.getByLabel("Clave técnica").fill(fieldKey);
     await page.getByLabel("Tipo").selectOption(fieldType);
     await page.getByRole("button", { name: "Guardar campo" }).click();
     await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
@@ -42,7 +38,7 @@ test("can register a post-event encounter and capture observations with media", 
   for (const fieldName of [textFieldName, imageFieldName, audioFieldName]) {
     await availableFieldsPanel
       .locator("li", { hasText: fieldName })
-      .getByRole("button", { name: "Agregar" })
+      .locator("button").first()
       .click();
   }
   await page.getByRole("button", { name: "Guardar formulario" }).click();
@@ -61,7 +57,7 @@ test("can register a post-event encounter and capture observations with media", 
 
   // Create observation with form selector
   await page.getByRole("button", { name: "Nueva observación" }).click();
-  await page.getByLabel("Formulario").selectOption({ label: `${formName} (v1)` });
+  await page.getByLabel("Formulario").selectOption({ label: formName });
   await page.getByLabel(new RegExp(textFieldName)).fill("Primera observación");
 
   const fileInputs = page.locator('input[type="file"]');

@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { projectMessages } from "@/features/projects/lib/messages";
 import { type ProjectWithParticipants } from "@/features/projects/services/project-service";
 
 interface ProjectListTableProps {
@@ -8,17 +11,7 @@ interface ProjectListTableProps {
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
-}
-
-function formatDate(value: string): string {
-  if (!value) {
-    return "-";
-  }
-
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  onDelete: (id: string) => Promise<void>;
 }
 
 function ProjectActions({
@@ -26,11 +19,13 @@ function ProjectActions({
   status,
   onArchive,
   onRestore,
+  onRequestDelete,
 }: {
   project: ProjectWithParticipants;
   status: "active" | "archived";
   onArchive: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
+  onRequestDelete: (id: string) => void;
 }): JSX.Element {
   if (status === "active") {
     return (
@@ -70,6 +65,16 @@ function ProjectActions({
       >
         Restaurar
       </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="destructive"
+        onClick={() => {
+          onRequestDelete(project.id);
+        }}
+      >
+        Eliminar
+      </Button>
     </>
   );
 }
@@ -79,7 +84,26 @@ export function ProjectListTable({
   status,
   onArchive,
   onRestore,
+  onDelete,
 }: ProjectListTableProps): JSX.Element {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirmDelete(): Promise<void> {
+    if (!pendingDeleteId) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await onDelete(pendingDeleteId);
+    } finally {
+      setIsDeleting(false);
+      setPendingDeleteId(null);
+    }
+  }
+
   if (projects.length === 0) {
     return (
       <div className="bg-muted/40 rounded-3xl p-6 text-center">
@@ -112,9 +136,6 @@ export function ProjectListTable({
                   {project.name}
                 </Link>
               </p>
-              <p className="text-muted-foreground text-xs">
-                {project.archivedAt ? "Archivado" : "Activo"} · {formatDate(project.createdAt)}
-              </p>
             </div>
             <dl className="space-y-1 text-sm">
               <div className="flex gap-2">
@@ -128,6 +149,7 @@ export function ProjectListTable({
                 status={status}
                 onArchive={onArchive}
                 onRestore={onRestore}
+                onRequestDelete={setPendingDeleteId}
               />
             </div>
           </li>
@@ -142,8 +164,6 @@ export function ProjectListTable({
             <tr className="text-muted-foreground text-xs tracking-wide uppercase">
               <th className="px-3 py-2 text-left font-medium">Nombre</th>
               <th className="px-3 py-2 text-left font-medium">Participantes</th>
-              <th className="px-3 py-2 text-left font-medium">Creado</th>
-              <th className="px-3 py-2 text-left font-medium">Estado</th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
@@ -159,12 +179,6 @@ export function ProjectListTable({
                   </Link>
                 </td>
                 <td className="px-3 py-3 align-middle">{project.participants.length}</td>
-                <td className="text-muted-foreground px-3 py-3 align-middle">
-                  {formatDate(project.createdAt)}
-                </td>
-                <td className="px-3 py-3 align-middle">
-                  {project.archivedAt ? "Archivado" : "Activo"}
-                </td>
                 <td className="px-3 py-3 align-middle">
                   <div className="flex justify-end gap-2">
                     <ProjectActions
@@ -172,6 +186,7 @@ export function ProjectListTable({
                       status={status}
                       onArchive={onArchive}
                       onRestore={onRestore}
+                      onRequestDelete={setPendingDeleteId}
                     />
                   </div>
                 </td>
@@ -180,6 +195,15 @@ export function ProjectListTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDeleteDialog
+        open={pendingDeleteId !== null}
+        title={projectMessages.confirmDeleteTitle}
+        description={projectMessages.confirmDeleteDescription}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+        isLoading={isDeleting}
+      />
     </>
   );
 }

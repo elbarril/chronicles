@@ -11,4 +11,6 @@ export const observationMessages = {
   formRequired: "Elegí un formulario para registrar la observación.",
   recorderDenied: "No pudimos acceder al micrófono. Podés subir un archivo de audio.",
   recorderUnsupported: "Este navegador no soporta grabación de audio. Subí un archivo en su lugar.",
+  confirmDeleteTitle: "¿Eliminar observación?",
+  confirmDeleteDescription: "Esta acción es permanente y no se puede deshacer.",
 } as const;

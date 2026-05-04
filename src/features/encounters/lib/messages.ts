@@ -7,9 +7,15 @@ export const encounterMessages = {
   archiveError: "No pudimos archivar el encuentro.",
   restoredSuccess: "Encuentro restaurado.",
   restoreError: "No pudimos restaurar el encuentro.",
+  deletedSuccess: "Encuentro eliminado.",
+  deleteError: "No pudimos eliminar el encuentro.",
+  deleteNotArchived: "Solo podés eliminar encuentros archivados.",
   viewChronicleButton: "Ver crónica",
   notFound: "No encontramos el encuentro.",
   projectNotFound: "No encontramos el proyecto del encuentro.",
   participantsInvalid: "Tenés que seleccionar al menos un participante del proyecto.",
   timeInvalid: "La hora de cierre tiene que ser igual o posterior a la de inicio.",
+  confirmDeleteTitle: "¿Eliminar encuentro?",
+  confirmDeleteDescription:
+    "Esta acción es permanente. Se eliminarán también todas las observaciones y la crónica del encuentro.",
 } as const;

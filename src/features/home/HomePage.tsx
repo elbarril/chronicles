@@ -3,7 +3,6 @@ import {
   CircleHelp,
   ClipboardList,
   FolderKanban,
-  Lightbulb,
   Settings,
   Tag,
   Wrench,
@@ -20,7 +19,6 @@ const navSections = [
   { to: "/projects", label: "Proyectos", Icon: FolderKanban, tourId: "hub.projects" },
   { to: "/chronicles", label: "Crónicas", Icon: BookOpen, tourId: "hub.chronicles" },
   { to: "/settings", label: "Configuración", Icon: Settings, tourId: "hub.settings" },
-  { to: "/how-it-works", label: "Cómo funciona", Icon: Lightbulb, tourId: undefined },
   { to: "/help", label: "Ayuda", Icon: CircleHelp, tourId: undefined },
   { to: "/support", label: "Soporte", Icon: Wrench, tourId: undefined },
 ] as const;

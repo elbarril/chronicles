@@ -665,4 +665,40 @@ Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 - The encounter detail page is leaner now: no "Finalizar", no "Generar crónica", no AI key badge.
 - The Dexie schema for `groups` is dropped via Dexie's `null` syntax. Future versions must keep this drop in their version chain to avoid resurrecting the legacy table on partial upgrades.
 - The AI input hash now keys off the post-event encounter shape (`name`, `startsAt`, `endsAt`, `participantIds`, `projectName`, observation form snapshots). Pre-F9 cached hashes naturally invalidate on first regeneration, which is fine because the underlying data was wiped anyway.
-- The `Encuentro de prueba` button still navigates to the demo encounter, but the Support page is the only entry point for creating it (consistent with post-F8 polish).
+
+---
+
+## [2026-05-03] F11 — Help page consolidation: 3 tabs (Funcionamientos / Datos / IA) + Settings AI cleanup
+
+**Context:** After F6 the help feature shipped two separate routes — `/help` (data storage guide) and `/how-it-works` (post-event flow guide) — and the `/settings` page duplicated the AI explainer card right above the API key form (`AiSetupGuide showCta={false}`). That meant the same content lived in two places, the home hub had two distinct tiles for help-like content (`Cómo funciona` and `Ayuda`), and Settings mixed long-form documentation with a small configuration form. The user asked to consolidate everything inside a single tabbed `/help` route, mirroring the same `?tab=` filter-tab pattern already used on `/projects`.
+
+**Decision:**
+
+1. **`/help` becomes a single tabbed page with three tabs.** Tabs are `Funcionamientos` (default), `Datos` and `IA`, selected via a `?tab=` URL search param. Tab triggers are rendered with `Button variant="tab-active" | "outline"` inside a `role="tablist"` — exactly the same pattern as the active/archived filter on `/projects` so the visual language stays consistent.
+2. **Each tab reuses the existing guide components.** `Funcionamientos` renders `HowItWorksGuide` (with `showNextStep={false}`, since the "Antes de arrancar" card pointed to `/help` and is now redundant), `Datos` renders `DataStorageGuide`, and `IA` renders `AiSetupGuide` with its CTA pointing to `/settings` (where the API key form lives).
+3. **`/how-it-works` and `HowItWorksPage` are deleted.** The route is gone from `src/app/router.tsx`, the `Cómo funciona` entry is gone from `src/app/nav-items.ts`, and the `Cómo funciona` tile is gone from `HomePage`. Anyone landing on `/how-it-works` from a stale link gets the 404 page; the same content now lives at `/help` (Funcionamientos tab).
+4. **Settings AI section is now a thin wrapper around the API key form.** `AiSetupGuide` was removed from `SettingsPage`. The section keeps its `Generación de crónicas con IA` heading, gains a one-line description that links to `/help?tab=ia`, and renders only the `ApiKeyForm`. The full explainer (what AI does, what is sent to Google, how to obtain a free key) lives only at `/help` (IA tab) and inside the onboarding intro step 3.
+5. **Messages housekeeping.** The `dataStoragePage` and `howItWorksPage` blocks in `src/features/help/messages.ts` were replaced by a single `helpPage` block (page title, description, tab labels, tablist aria-label). The `howItWorksGuide.nextStep.cta.to` link was retargeted from `/help` to `/help?tab=datos` for completeness even though `showNextStep={false}` hides it on the new layout (it is still consumed by the onboarding dialog through `HowItWorksGuide showQuickLinks={false} showNextStep={false}`, which means the change is benign there). New `settingsMessages.aiSectionDescription` and `settingsMessages.aiSectionGuideLink` strings drive the in-page link to the IA tab.
+
+**Where:**
+
+- New: `src/features/help/HelpPage.tsx` (rewritten as a tabbed page).
+- Deleted: `src/features/help/HowItWorksPage.tsx`; `tests/unit/how-it-works.test.tsx`.
+- Updated: `src/features/help/messages.ts` (drops `dataStoragePage` and `howItWorksPage`, adds `helpPage`), `src/app/router.tsx` (drops `/how-it-works` and the `HowItWorksPage` import), `src/app/nav-items.ts` (drops the `Cómo funciona` entry), `src/features/home/HomePage.tsx` (drops the `Lightbulb`/`Cómo funciona` tile and import), `src/features/settings/pages/SettingsPage.tsx` (drops `AiSetupGuide`, adds the link to `/help?tab=ia`), `src/features/settings/lib/messages.ts` (adds `aiSectionDescription` and `aiSectionGuideLink`).
+- Tests updated: `tests/unit/help.test.tsx` (rewritten to cover the three tabs, default tab, tab switching, and link targets), `tests/e2e/settings-api-key.spec.ts` (drops AI guide assertions; asserts the new help link target instead).
+- Docs/memory: `docs/stack-and-architecture.md` (F11 row added; folder map updated; Post-F8 Polish bullet annotated for the F11 change), `.agents/memory/project-context.md` (Help bullet rewritten), `README.md` (test list updated).
+
+**Justification:**
+
+- A single tabbed page is a stronger information architecture than two separate routes that share a footer link to each other. The user always lands on `/help` and discovers all three sections from the same tablist.
+- Reusing the project-list filter-tab pattern (`Button variant="tab-active" | "outline"` + `role="tablist"` + `?tab=` query param) means the help page feels consistent with the rest of the app and adds zero new UI primitives.
+- Splitting documentation (in `/help`) from configuration (in `/settings`) keeps each surface focused on a single job. Settings becomes a fast control panel; `/help` becomes the place to learn.
+- Deep-linking via `?tab=ia`, `?tab=datos`, etc., keeps URLs shareable and lets the Settings AI section, the onboarding dialog, and any future toast or empty state point to the exact tab they need.
+
+**Consequences:**
+
+- Anyone bookmarking `/how-it-works` will hit the 404 page. The content lives at `/help?tab=funcionamientos` (or just `/help`).
+- The Settings page no longer educates users about how AI works; users who want context must follow the in-page link to `/help?tab=ia`. The onboarding intro step 3 still shows `AiSetupGuide` so first-time users still get the full explainer in-flow.
+- The `dataStoragePage` and `howItWorksPage` exports from `src/features/help/messages.ts` are gone. Anyone importing them must move to the new `helpPage` block.
+- `HelpPage` now depends on `useSearchParams`. Tests rendering it must use a router (the existing tests already do; the rewritten `help.test.tsx` follows the same pattern).
+- The `Cómo funciona` entry no longer appears in the home hub or in the mobile nav drawer. The total number of nav entries goes from 9 to 8.

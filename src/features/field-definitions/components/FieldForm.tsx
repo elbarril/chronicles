@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,6 @@ export function FieldForm({
   onSubmit,
   onCancel,
 }: FieldFormProps): JSX.Element {
-  const [isKeyTouched, setIsKeyTouched] = useState(false);
-
   const form = useForm<FieldFormInput>({
     resolver: buildResolver(fieldFormSchema),
     defaultValues: initialValues,
@@ -57,11 +55,11 @@ export function FieldForm({
     form.reset(initialValues);
   }, [form, initialValues]);
 
+  // The technical key is no longer surfaced in the UI: derive it from the
+  // label so form composition and uniqueness checks keep working transparently.
   useEffect(() => {
-    if (!isKeyTouched) {
-      form.setValue("key", createFieldKeyFromLabel(currentLabel), { shouldValidate: true });
-    }
-  }, [currentLabel, form, isKeyTouched]);
+    form.setValue("key", createFieldKeyFromLabel(currentLabel), { shouldValidate: true });
+  }, [currentLabel, form]);
 
   useEffect(() => {
     const existingType = form.getValues("type");
@@ -98,30 +96,6 @@ export function FieldForm({
                 <FormLabel>Nombre del campo</FormLabel>
                 <FormControl>
                   <Input placeholder="Ej: Nivel de participación" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="key"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clave técnica</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="nivel_de_participacion"
-                    {...field}
-                    onChange={(event) => {
-                      if (!isKeyTouched) {
-                        setIsKeyTouched(true);
-                      }
-
-                      field.onChange(event);
-                    }}
-                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

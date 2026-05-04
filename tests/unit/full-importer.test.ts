@@ -46,6 +46,7 @@ function isoNow(): string {
 
 interface FullSampleSeed {
   fieldId: string;
+  instanceId: string;
   formId: string;
   projectId: string;
   participantId: string;
@@ -97,7 +98,7 @@ function buildFullZip(seed: FullSampleSeed): JSZip {
       {
         id: seed.formId,
         name: "Form 1",
-        fieldIds: [seed.fieldId],
+        fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -155,9 +156,9 @@ function buildFullZip(seed: FullSampleSeed): JSZip {
         encounterId: seed.encounterId,
         formId: seed.formId,
         formVersion: 1,
-        fieldIds: [seed.fieldId],
+        fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         participantId: seed.participantId,
-        values: { [seed.fieldId]: "Texto" },
+        values: { [seed.instanceId]: "Texto" },
         createdAt: now,
       },
     ]),
@@ -197,6 +198,7 @@ describe("full importer + import service dispatch", () => {
   it("parses a chronicle-full-v2 zip and imports every table", async () => {
     const seed: FullSampleSeed = {
       fieldId: crypto.randomUUID(),
+      instanceId: crypto.randomUUID(),
       formId: crypto.randomUUID(),
       projectId: crypto.randomUUID(),
       participantId: crypto.randomUUID(),
@@ -247,7 +249,7 @@ describe("full importer + import service dispatch", () => {
           id: seed.observationId,
           formId: seed.formId,
           formVersion: 1,
-          fieldIds: [seed.fieldId],
+          fields: [{ instanceId: seed.instanceId, fieldId: seed.fieldId }],
         }),
       ]),
     );

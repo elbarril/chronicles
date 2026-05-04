@@ -21,6 +21,7 @@ import {
   DEMO_FIELD_TIME_ID,
   DEMO_FIELD_VIDEO_ID,
   DEMO_FORM_ID,
+  DEMO_FORM_INSTANCE_IDS,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_TWO_ID,
   DEMO_PROJECT_ID,
@@ -126,7 +127,10 @@ function activeDemoForm() {
   return {
     id: DEMO_FORM_ID,
     name: "Formulario de prueba",
-    fieldIds: [...DEMO_FIELD_IDS],
+    fields: DEMO_FIELD_IDS.map((fieldId, i) => ({
+      instanceId: DEMO_FORM_INSTANCE_IDS[i] as string,
+      fieldId,
+    })),
     version: 1,
     archivedAt: "",
     createdAt: isoDate,
@@ -179,7 +183,10 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
       return {
         id: DEFAULT_FORM_ID,
         name: "Observación de encuentro",
-        fieldIds: ["00000000-0000-4000-8000-00000000d001", "00000000-0000-4000-8000-00000000d002"],
+        fields: [
+          { instanceId: "00000000-0000-4000-8000-00000000e001", fieldId: "00000000-0000-4000-8000-00000000d001" },
+          { instanceId: "00000000-0000-4000-8000-00000000e002", fieldId: "00000000-0000-4000-8000-00000000d002" },
+        ],
         version: 1,
         archivedAt: "",
         createdAt: isoDate,
@@ -230,22 +237,32 @@ describe("seedDemoEncounter (comprehensive demo)", () => {
     expect(firstObs?.formId).toBe(DEMO_FORM_ID);
     expect(firstObs?.participantId).toBe(DEMO_PARTICIPANT_ONE_ID);
 
+    // Values are keyed by instanceId (DEMO_FORM_INSTANCE_IDS), not by fieldId.
+    // DEMO_FORM_INSTANCE_IDS index order mirrors DEMO_FIELD_SEEDS:
+    //   0→text, 1→longText, 2→number, 3→boolean, 4→singleChoice,
+    //   5→multiChoice, 6→date, 7→time, 8→datetime, 9→image,
+    //   10→video, 11→audio, 12→file, 13→rating, 14→location
     const values = firstObs?.values as Record<string, unknown>;
-    expect(values[DEMO_FIELD_TEXT_ID]).toBe("Texto corto de ejemplo.");
-    expect(typeof values[DEMO_FIELD_LONG_TEXT_ID]).toBe("string");
-    expect(values[DEMO_FIELD_NUMBER_ID]).toBe(42);
-    expect(values[DEMO_FIELD_BOOLEAN_ID]).toBe(true);
-    expect(values[DEMO_FIELD_SINGLE_CHOICE_ID]).toBe("Opción A");
-    expect(values[DEMO_FIELD_MULTI_CHOICE_ID]).toEqual(["Verde", "Azul"]);
-    expect(values[DEMO_FIELD_DATE_ID]).toBe("2026-04-30");
-    expect(values[DEMO_FIELD_TIME_ID]).toBe("10:30");
-    expect(values[DEMO_FIELD_DATETIME_ID]).toBe("2026-04-30T10:30");
-    expect(values[DEMO_FIELD_IMAGE_ID]).toBeInstanceOf(Blob);
-    expect(values[DEMO_FIELD_VIDEO_ID]).toBeInstanceOf(Blob);
-    expect(values[DEMO_FIELD_AUDIO_ID]).toBeInstanceOf(Blob);
-    expect(values[DEMO_FIELD_FILE_ID]).toBeInstanceOf(Blob);
-    expect(values[DEMO_FIELD_RATING_ID]).toBe(4);
-    expect(values[DEMO_FIELD_LOCATION_ID]).toBe("Ciudad Autónoma de Buenos Aires");
+    const instanceOf = (fieldId: string) => {
+      const idx = DEMO_FIELD_IDS.indexOf(fieldId);
+      return DEMO_FORM_INSTANCE_IDS[idx] as string;
+    };
+
+    expect(values[instanceOf(DEMO_FIELD_TEXT_ID)]).toBe("Texto corto de ejemplo.");
+    expect(typeof values[instanceOf(DEMO_FIELD_LONG_TEXT_ID)]).toBe("string");
+    expect(values[instanceOf(DEMO_FIELD_NUMBER_ID)]).toBe(42);
+    expect(values[instanceOf(DEMO_FIELD_BOOLEAN_ID)]).toBe(true);
+    expect(values[instanceOf(DEMO_FIELD_SINGLE_CHOICE_ID)]).toBe("Opción A");
+    expect(values[instanceOf(DEMO_FIELD_MULTI_CHOICE_ID)]).toEqual(["Verde", "Azul"]);
+    expect(values[instanceOf(DEMO_FIELD_DATE_ID)]).toBe("2026-04-30");
+    expect(values[instanceOf(DEMO_FIELD_TIME_ID)]).toBe("10:30");
+    expect(values[instanceOf(DEMO_FIELD_DATETIME_ID)]).toBe("2026-04-30T10:30");
+    expect(values[instanceOf(DEMO_FIELD_IMAGE_ID)]).toBeInstanceOf(Blob);
+    expect(values[instanceOf(DEMO_FIELD_VIDEO_ID)]).toBeInstanceOf(Blob);
+    expect(values[instanceOf(DEMO_FIELD_AUDIO_ID)]).toBeInstanceOf(Blob);
+    expect(values[instanceOf(DEMO_FIELD_FILE_ID)]).toBeInstanceOf(Blob);
+    expect(values[instanceOf(DEMO_FIELD_RATING_ID)]).toBe(4);
+    expect(values[instanceOf(DEMO_FIELD_LOCATION_ID)]).toBe("Ciudad Autónoma de Buenos Aires");
 
     expect(secondObs?.formId).toBe(DEFAULT_FORM_ID);
     expect(secondObs?.participantId).toBe(DEMO_PARTICIPANT_TWO_ID);

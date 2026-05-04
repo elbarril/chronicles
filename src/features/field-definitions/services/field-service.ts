@@ -9,6 +9,7 @@ import { getDefaultConfig } from "@/features/field-definitions/lib/field-default
 import {
   archiveField,
   createField,
+  deleteField,
   getFieldById,
   isFieldKeyUnique,
   listActiveFields,
@@ -72,6 +73,27 @@ export async function restoreFieldDefinition(id: string): Promise<void> {
 
   if (!restored) {
     throw new AppError("FIELD_RESTORE_FAILED", "Failed to restore field.");
+  }
+}
+
+export async function deleteFieldDefinition(id: string): Promise<void> {
+  const field = await getFieldById(id);
+
+  if (!field) {
+    throw new AppError("FIELD_NOT_FOUND", "Field not found for delete.");
+  }
+
+  if (!field.archivedAt || field.archivedAt === "") {
+    throw new AppError(
+      "FIELD_DELETE_NOT_ARCHIVED",
+      "Field must be archived before it can be deleted.",
+    );
+  }
+
+  const deleted = await deleteField(id);
+
+  if (!deleted) {
+    throw new AppError("FIELD_DELETE_FAILED", "Failed to delete field.");
   }
 }
 

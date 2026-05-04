@@ -14,7 +14,6 @@ async function createEncounterWithObservation(
 ): Promise<EncounterFixture> {
   const projectName = `Proyecto IA ${suffix}`;
   const fieldName = `Nota IA ${suffix}`;
-  const fieldKey = `nota_ia_${suffix}`;
   const formName = `Formulario IA ${suffix}`;
   const encounterName = `Encuentro IA ${suffix}`;
 
@@ -26,7 +25,6 @@ async function createEncounterWithObservation(
 
   await page.goto("/fields/new");
   await page.getByLabel("Nombre del campo").fill(fieldName);
-  await page.getByLabel("Clave técnica").fill(fieldKey);
   await page.getByLabel("Tipo").selectOption("text");
   await page.getByRole("button", { name: "Guardar campo" }).click();
   await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
@@ -36,7 +34,7 @@ async function createEncounterWithObservation(
   const availableFieldsPanel = page.locator("div", { hasText: "Campos disponibles" }).first();
   await availableFieldsPanel
     .locator("li", { hasText: fieldName })
-    .getByRole("button", { name: "Agregar" })
+    .locator("button").first()
     .click();
   await page.getByRole("button", { name: "Guardar formulario" }).click();
   await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
@@ -50,7 +48,7 @@ async function createEncounterWithObservation(
   await expect(page.getByRole("heading", { name: encounterName })).toBeVisible();
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
-  await page.getByLabel("Formulario").selectOption({ label: `${formName} (v1)` });
+  await page.getByLabel("Formulario").selectOption({ label: formName });
   await page.getByLabel(new RegExp(fieldName)).fill("Texto de observación para IA");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 

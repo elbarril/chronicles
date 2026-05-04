@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { DemoEncounterButton } from "@/features/defaults/components/DemoEncounterButton";
 import { useDefaultsActions } from "@/features/defaults/hooks/use-defaults-actions";
@@ -17,13 +18,15 @@ export function FormListPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="form-list-title">
+      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: "Formularios" }]} />
+
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 id="form-list-title" className="text-3xl font-bold tracking-tight">
             Formularios
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Armá y versioná formularios de observación usando campos existentes.
+            Armá formularios de observación combinando campos existentes.
           </p>
         </div>
 
@@ -75,6 +78,7 @@ export function FormListPage(): JSX.Element {
           status={status}
           onArchive={actions.archive}
           onRestore={actions.restore}
+          onDelete={actions.remove}
         />
       )}
     </section>

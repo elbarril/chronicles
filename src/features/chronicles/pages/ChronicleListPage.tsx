@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ChronicleListTable } from "@/features/chronicles/components/ChronicleListTable";
 import { useChronicles } from "@/features/chronicles/hooks/use-chronicles";
@@ -11,6 +12,8 @@ export function ChronicleListPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="chronicles-list-title">
+      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: "Crónicas" }]} />
+
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <h1 id="chronicles-list-title" className="text-3xl font-bold tracking-tight">

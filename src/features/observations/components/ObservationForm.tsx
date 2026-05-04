@@ -16,11 +16,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { type Field } from "@/domain/field";
+import { type FormFieldInstance } from "@/domain/form";
 import { type Observation } from "@/domain/observation";
 import { fieldTypeLabel } from "@/features/field-definitions/lib/field-type-meta";
 import { useObservationForms } from "@/features/forms/hooks/use-forms";
 import { observationMessages } from "@/features/observations/lib/messages";
-import { listObservationFormFields } from "@/features/observations/services/observation-service";
+import { listObservationFormInstances } from "@/features/observations/services/observation-service";
 import { useAudioRecorder } from "@/infra/media/recorder";
 import { buildResolver } from "@/lib/zod";
 
@@ -197,7 +198,11 @@ export function ObservationForm({
   });
 
   const selectedFormId = form.watch("formId");
-  const [fields, setFields] = useState<Field[]>([]);
+
+  // Each entry pairs a form-field instance with its resolved Field definition.
+  const [instancesWithFields, setInstancesWithFields] = useState<
+    Array<{ instance: FormFieldInstance; field: Field }>
+  >([]);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
 
   const formOptions = useMemo(() => {
@@ -215,58 +220,74 @@ export function ObservationForm({
 
   useEffect(() => {
     if (!selectedFormId) {
-      setFields([]);
+      setInstancesWithFields([]);
       return;
     }
 
     let isMounted = true;
     setIsLoadingFields(true);
 
-    void listObservationFormFields(selectedFormId)
-      .then((resolvedFields) => {
-        if (!isMounted) {
-          return;
-        }
+    // When editing, re-use the snapshot stored on the observation itself so
+    // that adding/removing fields from the live form doesn't change what the
+    // user sees while editing an existing observation.
+    const resolvePromise: Promise<{
+      instances: FormFieldInstance[];
+      fieldsById: Map<string, Field>;
+    }> =
+      isEditing && initialObservation
+        ? (async () => {
+            const { listFieldsByIds } = await import("@/infra/db/repositories/field-repository");
+            const allFieldIds = [...new Set(initialObservation.fields.map((inst) => inst.fieldId))];
+            const fields = await listFieldsByIds(allFieldIds);
+            const fieldsById = new Map(fields.map((f) => [f.id, f]));
+            return { instances: initialObservation.fields, fieldsById };
+          })()
+        : listObservationFormInstances(selectedFormId);
 
-        setFields(resolvedFields);
+    void resolvePromise
+      .then(({ instances, fieldsById }) => {
+        if (!isMounted) return;
+
+        const paired = instances.flatMap((instance) => {
+          const field = fieldsById.get(instance.fieldId);
+          return field ? [{ instance, field }] : [];
+        });
+
+        setInstancesWithFields(paired);
 
         // Initialise missing entries with their per-type defaults so the
         // controlled inputs always have a value.
         const currentValues = form.getValues("values") ?? {};
         const nextValues: Record<string, unknown> = { ...currentValues };
-        for (const field of resolvedFields) {
-          if (nextValues[field.id] === undefined) {
-            nextValues[field.id] = getDefaultValue(field);
+        for (const { instance, field } of paired) {
+          if (nextValues[instance.instanceId] === undefined) {
+            nextValues[instance.instanceId] = getDefaultValue(field);
           }
         }
         form.setValue("values", nextValues, { shouldValidate: false });
       })
       .catch(() => {
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
         toast.error(observationMessages.formNotFound);
       })
       .finally(() => {
-        if (isMounted) {
-          setIsLoadingFields(false);
-        }
+        if (isMounted) setIsLoadingFields(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [form, selectedFormId]);
+  }, [form, selectedFormId, isEditing, initialObservation]);
 
   const audioRecorder = useAudioRecorder({
     onStop: (blob) => {
-      const audioField = fields.find((field) => field.type === "audio");
+      const audioEntry = instancesWithFields.find(({ field }) => field.type === "audio");
 
-      if (!audioField) {
+      if (!audioEntry) {
         return;
       }
 
-      form.setValue(`values.${audioField.id}`, blob, {
+      form.setValue(`values.${audioEntry.instance.instanceId}`, blob, {
         shouldValidate: true,
       });
     },
@@ -301,7 +322,7 @@ export function ObservationForm({
 
     if (!initialObservation) {
       form.reset(buildInitialValues(undefined));
-      setFields([]);
+      setInstancesWithFields([]);
     }
   }
 
@@ -324,7 +345,7 @@ export function ObservationForm({
                   <option value="">Seleccioná un formulario</option>
                   {formOptions.map((formOption) => (
                     <option key={formOption.id} value={formOption.id}>
-                      {formOption.name} (v{formOption.version})
+                      {formOption.name}
                     </option>
                   ))}
                 </select>
@@ -382,146 +403,150 @@ export function ObservationForm({
           <p className="text-muted-foreground text-sm">Cargando campos...</p>
         ) : null}
 
-        {fields.map((field) => (
-          <FormField
-            key={field.id}
-            control={form.control}
-            name={`values.${field.id}`}
-            render={({ field: valueField }) => {
-              const mediaConfig = getMediaConfig(field);
+        {instancesWithFields.map(({ instance, field }) => {
+          const displayLabel = instance.labelOverride?.trim() || field.label;
 
-              return (
-                <FormItem>
-                  <FormLabel>
-                    {field.label}{" "}
-                    <span className="text-muted-foreground text-xs">
-                      ({fieldTypeLabel[field.type]})
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    {isMediaField(field) ? (
-                      <div className="space-y-2">
-                        <input
-                          type="file"
-                          accept={mediaConfig.accept}
-                          multiple={Boolean(mediaConfig.multiple)}
-                          capture={
-                            field.type === "image" || field.type === "video"
-                              ? "environment"
-                              : undefined
-                          }
-                          onChange={(event) => {
-                            const files = Array.from(event.target.files ?? []);
+          return (
+            <FormField
+              key={instance.instanceId}
+              control={form.control}
+              name={`values.${instance.instanceId}`}
+              render={({ field: valueField }) => {
+                const mediaConfig = getMediaConfig(field);
 
-                            if (files.length === 0) {
-                              valueField.onChange(mediaConfig.multiple ? [] : "");
-                              return;
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      {displayLabel}{" "}
+                      <span className="text-muted-foreground text-xs">
+                        ({fieldTypeLabel[field.type]})
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      {isMediaField(field) ? (
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            accept={mediaConfig.accept}
+                            multiple={Boolean(mediaConfig.multiple)}
+                            capture={
+                              field.type === "image" || field.type === "video"
+                                ? "environment"
+                                : undefined
                             }
+                            onChange={(event) => {
+                              const files = Array.from(event.target.files ?? []);
 
-                            valueField.onChange(mediaConfig.multiple ? files : files[0]);
-                          }}
-                        />
+                              if (files.length === 0) {
+                                valueField.onChange(mediaConfig.multiple ? [] : "");
+                                return;
+                              }
 
-                        {field.type === "audio" && !mediaConfig.multiple ? (
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={audioRecorder.isRecording}
-                              onClick={() => {
-                                void audioRecorder.start();
-                              }}
-                            >
-                              Grabar audio
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              disabled={!audioRecorder.isRecording}
-                              onClick={audioRecorder.stop}
-                            >
-                              Detener grabación
-                            </Button>
-                          </div>
-                        ) : null}
+                              valueField.onChange(mediaConfig.multiple ? files : files[0]);
+                            }}
+                          />
 
-                        <MediaFieldPreview
-                          value={valueField.value}
-                          kind={field.type}
-                          label={field.label}
-                        />
-                      </div>
-                    ) : field.type === "longText" ? (
-                      <textarea
-                        className="border-input bg-background min-h-24 w-full rounded-md border px-3 py-2 text-sm"
-                        value={String(valueField.value ?? "")}
-                        onChange={(event) => valueField.onChange(event.target.value)}
-                      />
-                    ) : field.type === "singleChoice" ? (
-                      <select
-                        className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                        value={String(valueField.value ?? "")}
-                        onChange={(event) => valueField.onChange(event.target.value)}
-                      >
-                        <option value="">Seleccioná una opción</option>
-                        {field.type === "singleChoice"
-                          ? field.config.options.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))
-                          : null}
-                      </select>
-                    ) : field.type === "multiChoice" ? (
-                      <div className="space-y-2">
-                        {field.config.options.map((option) => {
-                          const currentValues = Array.isArray(valueField.value)
-                            ? (valueField.value as string[])
-                            : [];
-
-                          return (
-                            <label key={option} className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={currentValues.includes(option)}
-                                onChange={(event) => {
-                                  const next = event.target.checked
-                                    ? [...currentValues, option]
-                                    : currentValues.filter((value) => value !== option);
-                                  valueField.onChange(next);
+                          {field.type === "audio" && !mediaConfig.multiple ? (
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={audioRecorder.isRecording}
+                                onClick={() => {
+                                  void audioRecorder.start();
                                 }}
-                              />
-                              {option}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    ) : field.type === "boolean" ? (
-                      <input
-                        type="checkbox"
-                        checked={Boolean(valueField.value)}
-                        onChange={(event) => valueField.onChange(event.target.checked)}
-                      />
-                    ) : (
-                      <Input
-                        type={
-                          field.type === "number" || field.type === "rating" ? "number" : "text"
-                        }
-                        value={String(valueField.value ?? "")}
-                        onChange={(event) =>
-                          valueField.onChange(parseFieldValue(field, event.target.value))
-                        }
-                      />
-                    )}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
-          />
-        ))}
+                              >
+                                Grabar audio
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                disabled={!audioRecorder.isRecording}
+                                onClick={audioRecorder.stop}
+                              >
+                                Detener grabación
+                              </Button>
+                            </div>
+                          ) : null}
+
+                          <MediaFieldPreview
+                            value={valueField.value}
+                            kind={field.type}
+                            label={displayLabel}
+                          />
+                        </div>
+                      ) : field.type === "longText" ? (
+                        <textarea
+                          className="border-input bg-background min-h-24 w-full rounded-md border px-3 py-2 text-sm"
+                          value={String(valueField.value ?? "")}
+                          onChange={(event) => valueField.onChange(event.target.value)}
+                        />
+                      ) : field.type === "singleChoice" ? (
+                        <select
+                          className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                          value={String(valueField.value ?? "")}
+                          onChange={(event) => valueField.onChange(event.target.value)}
+                        >
+                          <option value="">Seleccioná una opción</option>
+                          {field.type === "singleChoice"
+                            ? field.config.options.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))
+                            : null}
+                        </select>
+                      ) : field.type === "multiChoice" ? (
+                        <div className="space-y-2">
+                          {field.config.options.map((option) => {
+                            const currentValues = Array.isArray(valueField.value)
+                              ? (valueField.value as string[])
+                              : [];
+
+                            return (
+                              <label key={option} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={currentValues.includes(option)}
+                                  onChange={(event) => {
+                                    const next = event.target.checked
+                                      ? [...currentValues, option]
+                                      : currentValues.filter((value) => value !== option);
+                                    valueField.onChange(next);
+                                  }}
+                                />
+                                {option}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : field.type === "boolean" ? (
+                        <input
+                          type="checkbox"
+                          checked={Boolean(valueField.value)}
+                          onChange={(event) => valueField.onChange(event.target.checked)}
+                        />
+                      ) : (
+                        <Input
+                          type={
+                            field.type === "number" || field.type === "rating" ? "number" : "text"
+                          }
+                          value={String(valueField.value ?? "")}
+                          onChange={(event) =>
+                            valueField.onChange(parseFieldValue(field, event.target.value))
+                          }
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+          );
+        })}
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button type="submit" className="w-full sm:w-auto" disabled={isSaving || !selectedFormId}>

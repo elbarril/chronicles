@@ -6,6 +6,7 @@ import { projectMessages } from "@/features/projects/lib/messages";
 import {
   archiveProjectDefinition,
   createProjectDefinition,
+  deleteProjectDefinition,
   restoreProjectDefinition,
   updateProjectDefinition,
 } from "@/features/projects/services/project-service";
@@ -78,11 +79,26 @@ export function useProjectActions() {
     }
   }
 
+  async function remove(id: string) {
+    try {
+      await deleteProjectDefinition(id);
+      toast.success(projectMessages.deletedSuccess);
+    } catch (error) {
+      const message =
+        error instanceof AppError && error.code === "PROJECT_DELETE_NOT_ARCHIVED"
+          ? projectMessages.deleteNotArchived
+          : projectMessages.deleteError;
+      toast.error(message);
+      throw error;
+    }
+  }
+
   return {
     isSaving,
     create,
     update,
     archive,
     restore,
+    remove,
   };
 }

@@ -86,17 +86,18 @@ function buildChronicleBody(input: {
       `- Participante: ${participantName ?? "Sin participante asignado"}`,
     );
 
-    observation.fieldIds.forEach((fieldId) => {
-      const field = input.fieldsById.get(fieldId);
+    observation.fields.forEach((instance) => {
+      const field = input.fieldsById.get(instance.fieldId);
 
       if (!field) {
         return;
       }
 
-      const rawValue = observation.values[fieldId];
+      const displayLabel = instance.labelOverride?.trim() || field.label;
+      const rawValue = observation.values[instance.instanceId];
       const formattedValue = formatObservationValueAsText(field, rawValue);
 
-      lines.push(`- ${field.label}: ${formattedValue}`);
+      lines.push(`- ${displayLabel}: ${formattedValue}`);
     });
   });
 
@@ -141,7 +142,7 @@ export async function generateChronicle(encounterId: string): Promise<GenerateCh
   // (deduped) so the chronicle body / AI prompt can render them by label.
   const allFieldIds = new Set<string>();
   observations.forEach((observation) => {
-    observation.fieldIds.forEach((fieldId) => allFieldIds.add(fieldId));
+    observation.fields.forEach((instance) => allFieldIds.add(instance.fieldId));
   });
   const fields = allFieldIds.size > 0 ? await listFieldsByIds([...allFieldIds]) : [];
 

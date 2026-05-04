@@ -10,7 +10,6 @@ interface EncounterFixture {
 async function createEncounterFlow(page: Page, suffix: string): Promise<EncounterFixture> {
   const projectName = `Proyecto Crónica ${suffix}`;
   const fieldName = `Nota Crónica ${suffix}`;
-  const fieldKey = `nota_cronica_${suffix}`;
   const formName = `Formulario Crónica ${suffix}`;
   const encounterName = `Encuentro Crónica ${suffix}`;
 
@@ -22,7 +21,6 @@ async function createEncounterFlow(page: Page, suffix: string): Promise<Encounte
 
   await page.goto("/fields/new");
   await page.getByLabel("Nombre del campo").fill(fieldName);
-  await page.getByLabel("Clave técnica").fill(fieldKey);
   await page.getByLabel("Tipo").selectOption("text");
   await page.getByRole("button", { name: "Guardar campo" }).click();
   await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
@@ -32,7 +30,7 @@ async function createEncounterFlow(page: Page, suffix: string): Promise<Encounte
   const availableFieldsPanel = page.locator("div", { hasText: "Campos disponibles" }).first();
   await availableFieldsPanel
     .locator("li", { hasText: fieldName })
-    .getByRole("button", { name: "Agregar" })
+    .locator("button").first()
     .click();
   await page.getByRole("button", { name: "Guardar formulario" }).click();
   await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
@@ -56,7 +54,7 @@ test("generates chronicle from encounter chronicle page and lists it", async ({ 
   );
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
-  await page.getByLabel("Formulario").selectOption({ label: `${formName} (v1)` });
+  await page.getByLabel("Formulario").selectOption({ label: formName });
   await page.getByLabel(new RegExp(fieldName)).fill("Observación para crónica");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 

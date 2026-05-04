@@ -1,4 +1,5 @@
 import { type Field } from "@/domain/field";
+import { type FormFieldInstance } from "@/domain/form";
 import { observationSchema, type Observation, type ObservationValue } from "@/domain/observation";
 import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { listFieldsByIds } from "@/infra/db/repositories/field-repository";
@@ -54,64 +55,72 @@ function isMediaRefList(value: unknown): value is { mediaIds: string[] } {
 }
 
 async function normalizeValues(
-  fields: Field[],
+  instances: FormFieldInstance[],
+  fieldsById: Map<string, Field>,
   values: Record<string, unknown>,
 ): Promise<Record<string, ObservationValue>> {
   const normalizedEntries = await Promise.all(
-    fields.map(async (field) => {
-      const value = values[field.id];
+    instances.map(async (instance) => {
+      const field = fieldsById.get(instance.fieldId);
+      const value = values[instance.instanceId];
 
       if (value === undefined) {
-        return [field.id, ""] as const;
+        return [instance.instanceId, ""] as const;
       }
 
       if (
-        field.type === "image" ||
-        field.type === "video" ||
-        field.type === "audio" ||
-        field.type === "file"
+        field &&
+        (field.type === "image" ||
+          field.type === "video" ||
+          field.type === "audio" ||
+          field.type === "file")
       ) {
         if (isMediaBlobValue(value)) {
           const mediaId = await saveMediaBlob(value, value.type);
-          return [field.id, { mediaId }] as const;
+          return [instance.instanceId, { mediaId }] as const;
         }
 
         if (isMediaBlobList(value)) {
           const mediaIds = await Promise.all(value.map((blob) => saveMediaBlob(blob, blob.type)));
-          return [field.id, { mediaIds }] as const;
+          return [instance.instanceId, { mediaIds }] as const;
         }
 
         if (typeof value === "string") {
-          return [field.id, value] as const;
+          return [instance.instanceId, value] as const;
         }
 
         if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
-          return [field.id, value] as const;
+          return [instance.instanceId, value] as const;
         }
 
         if (isMediaRef(value) || isMediaRefList(value)) {
-          return [field.id, value] as const;
+          return [instance.instanceId, value] as const;
         }
       }
 
       if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-        return [field.id, value] as const;
+        return [instance.instanceId, value] as const;
       }
 
       if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
-        return [field.id, value] as const;
+        return [instance.instanceId, value] as const;
       }
 
-      return [field.id, ""] as const;
+      return [instance.instanceId, ""] as const;
     }),
   );
 
   return Object.fromEntries(normalizedEntries) as Record<string, ObservationValue>;
 }
 
-async function resolveFormSnapshot(
-  formId: string,
-): Promise<{ form: Awaited<ReturnType<typeof getFormById>>; fields: Field[] }> {
+export interface ResolvedFormSnapshot {
+  formId: string;
+  formVersion: number;
+  instances: FormFieldInstance[];
+  fieldsById: Map<string, Field>;
+}
+
+async function resolveFormSnapshot(formId: string): Promise<ResolvedFormSnapshot> {
   const form = await getFormById(formId);
 
   if (!form) {
@@ -122,27 +131,30 @@ async function resolveFormSnapshot(
     throw new AppError("FORM_ARCHIVED", "Cannot use an archived form for an observation.");
   }
 
-  const fields = await listFieldsByIds(form.fieldIds);
+  const allFieldIds = [...new Set(form.fields.map((inst) => inst.fieldId))];
+  const fields = await listFieldsByIds(allFieldIds);
+  const fieldsById = new Map(fields.map((f) => [f.id, f]));
 
-  return { form, fields };
+  return {
+    formId: form.id,
+    formVersion: form.version,
+    instances: form.fields,
+    fieldsById,
+  };
 }
 
 export async function createObservationDefinition(
   input: ObservationCreateInput,
 ): Promise<Observation> {
-  const { form, fields } = await resolveFormSnapshot(input.formId);
+  const { formVersion, instances, fieldsById } = await resolveFormSnapshot(input.formId);
 
-  if (!form) {
-    throw new AppError("OBSERVATION_FORM_NOT_FOUND", "Form not found for observation.");
-  }
-
-  const normalizedValues = await normalizeValues(fields, input.values);
+  const normalizedValues = await normalizeValues(instances, fieldsById, input.values);
 
   return createObservation({
     encounterId: input.encounterId,
-    formId: form.id,
-    formVersion: form.version,
-    fieldIds: form.fieldIds,
+    formId: input.formId,
+    formVersion,
+    fields: instances,
     participantId: input.participantId,
     title: normalizeTitle(input.title),
     values: normalizedValues,
@@ -162,9 +174,11 @@ export async function updateObservationDefinition(
   // Re-resolve fields using the snapshot the observation was created with so
   // updates keep referencing the same form version, even if the live form has
   // since been edited.
-  const fields = await listFieldsByIds(previous.fieldIds);
+  const allFieldIds = [...new Set(previous.fields.map((inst) => inst.fieldId))];
+  const fields = await listFieldsByIds(allFieldIds);
+  const fieldsById = new Map(fields.map((f) => [f.id, f]));
 
-  const normalizedValues = await normalizeValues(fields, input.values);
+  const normalizedValues = await normalizeValues(previous.fields, fieldsById, input.values);
   const next = await updateObservation(observationId, {
     participantId: input.participantId,
     title: normalizeTitle(input.title),
@@ -207,7 +221,12 @@ export async function listEncounterObservations(encounterId: string) {
   return listObservationsByEncounter(encounterId);
 }
 
-export async function listObservationFormFields(formId: string): Promise<Field[]> {
-  const { fields } = await resolveFormSnapshot(formId);
-  return fields;
+/** Returns the field instances and resolved Field objects for a live form.
+ *  Used when creating a new observation (not editing). */
+export async function listObservationFormInstances(formId: string): Promise<{
+  instances: FormFieldInstance[];
+  fieldsById: Map<string, Field>;
+}> {
+  const { instances, fieldsById } = await resolveFormSnapshot(formId);
+  return { instances, fieldsById };
 }

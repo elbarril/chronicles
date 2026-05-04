@@ -8,17 +8,6 @@ interface ChronicleListTableProps {
   chronicles: ChronicleListItem[];
 }
 
-function formatDate(value: string): string {
-  if (!value) {
-    return "-";
-  }
-
-  return new Date(value).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
-
 function ChronicleActions({ id }: { id: string }): JSX.Element {
   return (
     <Button asChild size="sm" variant="outline">
@@ -42,9 +31,6 @@ export function ChronicleListTable({ chronicles }: ChronicleListTableProps): JSX
                 >
                   {item.chronicle.title}
                 </Link>
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {chronicleMessages.generatedAtLabel}: {formatDate(item.chronicle.generatedAt)}
               </p>
             </div>
             <dl className="space-y-1 text-sm">
@@ -70,9 +56,6 @@ export function ChronicleListTable({ chronicles }: ChronicleListTableProps): JSX
               <th className="px-3 py-2 text-left font-medium">
                 {chronicleMessages.encounterLabel}
               </th>
-              <th className="px-3 py-2 text-left font-medium">
-                {chronicleMessages.generatedAtLabel}
-              </th>
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
@@ -89,9 +72,6 @@ export function ChronicleListTable({ chronicles }: ChronicleListTableProps): JSX
                 </td>
                 <td className="px-3 py-3 align-middle">
                   {item.encounter?.name ?? "No disponible"}
-                </td>
-                <td className="text-muted-foreground px-3 py-3 align-middle">
-                  {formatDate(item.chronicle.generatedAt)}
                 </td>
                 <td className="px-3 py-3 align-middle">
                   <div className="flex justify-end gap-2">

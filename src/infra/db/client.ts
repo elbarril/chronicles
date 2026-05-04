@@ -91,17 +91,51 @@ export class ChronicleDB extends Dexie {
     // The legacy `groups` store is removed entirely; participants get a new
     // `projectId` shape; encounters, observations and chronicles are wiped
     // because their record shapes are incompatible with the new schema.
-    this.version(DB_VERSION)
+    this.version(7)
       .stores({
-        ...stores,
-        // Drop the legacy `groups` table by setting its schema to `null`.
+        institutions: "id, name, createdAt",
+        projects: "id, institutionId, name, archivedAt, createdAt",
+        participants: "id, projectId, displayName, archivedAt, createdAt",
+        fields: "id, key, type, archivedAt, createdAt",
+        forms: "id, name, version, archivedAt, createdAt",
+        encounters: "id, projectId, startsAt, archivedAt, createdAt",
+        observations: "id, encounterId, formId, participantId, createdAt",
+        media: "id, mime, createdAt",
+        chronicles: "id, encounterId, generatedAt, createdAt",
+        // Drop the legacy `groups` table.
         groups: null,
       })
       .upgrade(async (tx) => {
-        // Wipe stale rows that no longer match the new shape. We cannot keep
-        // them: domain Zod schemas now require fields the old rows do not
-        // have (projectId, formId snapshot on observation, etc.).
         const tablesToWipe = ["participants", "encounters", "observations", "chronicles"] as const;
+
+        for (const tableName of tablesToWipe) {
+          await tx.table(tableName).clear();
+        }
+
+        const institutions = tx.table<Institution, string>("institutions");
+        const existing = await institutions.toArray();
+
+        if (existing.length === 0) {
+          await institutions.add({
+            id: DEFAULT_INSTITUTION_ID,
+            name: "Default",
+            createdAt: new Date().toISOString(),
+          });
+        }
+      });
+
+    // F11: hard reset of forms, observations, chronicles and media.
+    // ObservationForm now stores `fields: FormFieldInstance[]` instead of
+    // `fieldIds: string[]`, and Observation stores `fields[]` as a snapshot
+    // with values keyed by instanceId. The old row shapes are incompatible.
+    // `fields`, `projects`, `participants`, `encounters` and `institutions`
+    // are preserved — they are unaffected by the domain change.
+    this.version(DB_VERSION)
+      .stores({
+        ...stores,
+      })
+      .upgrade(async (tx) => {
+        const tablesToWipe = ["forms", "observations", "chronicles", "media"] as const;
 
         for (const tableName of tablesToWipe) {
           await tx.table(tableName).clear();

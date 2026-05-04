@@ -14,27 +14,13 @@ import {
   DEFAULT_FIELD_SEEDS,
   DEFAULT_FORM_SEED,
   DEFAULT_FIELD_IDS,
-  DEFAULT_AUDIO_FIELD_ID,
-  DEFAULT_LONG_TEXT_FIELD_ID,
   DEMO_ENCOUNTER_SEED,
-  DEMO_FIELD_AUDIO_ID,
-  DEMO_FIELD_BOOLEAN_ID,
-  DEMO_FIELD_DATE_ID,
-  DEMO_FIELD_DATETIME_ID,
-  DEMO_FIELD_FILE_ID,
   DEMO_FIELD_IDS,
-  DEMO_FIELD_IMAGE_ID,
-  DEMO_FIELD_LOCATION_ID,
-  DEMO_FIELD_LONG_TEXT_ID,
-  DEMO_FIELD_MULTI_CHOICE_ID,
-  DEMO_FIELD_NUMBER_ID,
-  DEMO_FIELD_RATING_ID,
   DEMO_FIELD_SEEDS,
-  DEMO_FIELD_SINGLE_CHOICE_ID,
-  DEMO_FIELD_TEXT_ID,
-  DEMO_FIELD_TIME_ID,
-  DEMO_FIELD_VIDEO_ID,
+  DEMO_FORM_INSTANCE_IDS,
   DEMO_FORM_SEED,
+  DEFAULT_FORM_INSTANCE_AUDIO_ID,
+  DEFAULT_FORM_INSTANCE_LONGTEXT_ID,
   DEMO_PROJECT_SEED,
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_SEEDS,
@@ -120,7 +106,7 @@ export async function restoreDefaultForm(): Promise<RestoreOutcome & { fields: R
       const form: ObservationForm = observationFormSchema.parse({
         id: DEFAULT_FORM_SEED.id,
         name: DEFAULT_FORM_SEED.name,
-        fieldIds: [...DEFAULT_FORM_SEED.fieldIds],
+        fields: [...DEFAULT_FORM_SEED.fields],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -184,7 +170,7 @@ async function ensureDemoFieldsAndForm(): Promise<{
       const form: ObservationForm = observationFormSchema.parse({
         id: DEMO_FORM_SEED.id,
         name: DEMO_FORM_SEED.name,
-        fieldIds: [...DEMO_FORM_SEED.fieldIds],
+        fields: [...DEMO_FORM_SEED.fields],
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -223,36 +209,51 @@ async function ensureDemoFieldsAndForm(): Promise<{
 
 /**
  * Builds a fully populated value map covering every demo field with
- * content valid against its Zod schema. Media values are real Blobs;
- * the observation service normalises them into media references.
+ * content valid against its Zod schema. Keys are instanceIds (not fieldIds).
+ * Media values are real Blobs; the observation service normalises them into
+ * media references.
+ *
+ * DEMO_FORM_INSTANCE_IDS index order mirrors DEMO_FIELD_SEEDS:
+ *   0→text, 1→longText, 2→number, 3→boolean, 4→singleChoice,
+ *   5→multiChoice, 6→date, 7→time, 8→datetime, 9→image,
+ *   10→video, 11→audio, 12→file, 13→rating, 14→location
  */
 function buildDemoObservationValues(): Record<string, unknown> {
-  return {
-    [DEMO_FIELD_TEXT_ID]: "Texto corto de ejemplo.",
-    [DEMO_FIELD_LONG_TEXT_ID]:
+  // DEMO_FORM_INSTANCE_IDS index order mirrors DEMO_FIELD_SEEDS (15 entries).
+  // Using Object.fromEntries avoids noUncheckedIndexedAccess issues with
+  // dynamic property keys derived from a readonly array.
+  const rawValues: Array<[string, unknown]> = [
+    ["Texto corto de ejemplo."],
+    [
       "Esta es una descripción larga generada automáticamente para mostrar cómo se renderiza el campo de texto largo dentro del timeline y de la crónica.",
-    [DEMO_FIELD_NUMBER_ID]: 42,
-    [DEMO_FIELD_BOOLEAN_ID]: true,
-    [DEMO_FIELD_SINGLE_CHOICE_ID]: "Opción A",
-    [DEMO_FIELD_MULTI_CHOICE_ID]: ["Verde", "Azul"],
-    [DEMO_FIELD_DATE_ID]: "2026-04-30",
-    [DEMO_FIELD_TIME_ID]: "10:30",
-    [DEMO_FIELD_DATETIME_ID]: "2026-04-30T10:30",
-    [DEMO_FIELD_IMAGE_ID]: buildTinyPngBlob(),
-    [DEMO_FIELD_VIDEO_ID]: buildPlaceholderWebmBlob(),
-    [DEMO_FIELD_AUDIO_ID]: buildSilentWavBlob(),
-    [DEMO_FIELD_FILE_ID]: buildPlainTextFileBlob(),
-    [DEMO_FIELD_RATING_ID]: 4,
-    [DEMO_FIELD_LOCATION_ID]: "Ciudad Autónoma de Buenos Aires",
-  };
+    ],
+    [42],
+    [true],
+    ["Opción A"],
+    [["Verde", "Azul"]],
+    ["2026-04-30"],
+    ["10:30"],
+    ["2026-04-30T10:30"],
+    [buildTinyPngBlob()],
+    [buildPlaceholderWebmBlob()],
+    [buildSilentWavBlob()],
+    [buildPlainTextFileBlob()],
+    [4],
+    ["Ciudad Autónoma de Buenos Aires"],
+  ].map(
+    (entry, i) => [DEMO_FORM_INSTANCE_IDS[i] ?? `__missing_${i}`, entry[0]] as [string, unknown],
+  );
+
+  return Object.fromEntries(rawValues);
 }
 
 function buildDemoDefaultFormValues(): Record<string, unknown> {
   return {
-    [DEFAULT_LONG_TEXT_FIELD_ID]:
+    // longText instance
+    [DEFAULT_FORM_INSTANCE_LONGTEXT_ID]:
       "Una segunda observación cargada con el formulario por defecto, para mostrar que un mismo encuentro puede mezclar formularios distintos.",
     // Audio field intentionally left empty: optional and demonstrates valid empty media.
-    [DEFAULT_AUDIO_FIELD_ID]: "",
+    [DEFAULT_FORM_INSTANCE_AUDIO_ID]: "",
   };
 }
 
@@ -495,7 +496,7 @@ export async function seedDefaultsIfMissing(): Promise<void> {
       const form: ObservationForm = observationFormSchema.parse({
         id: DEFAULT_FORM_SEED.id,
         name: DEFAULT_FORM_SEED.name,
-        fieldIds: [...DEFAULT_FORM_SEED.fieldIds],
+        fields: [...DEFAULT_FORM_SEED.fields],
         version: 1,
         createdAt: now,
         updatedAt: now,

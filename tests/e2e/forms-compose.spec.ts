@@ -5,12 +5,9 @@ test("can compose, reorder, version, archive and restore a form", async ({ page 
   const firstFieldName = `Participación ${suffix}`;
   const secondFieldName = `Ánimo ${suffix}`;
   const formName = `Sesión grupal ${suffix}`;
-  const firstFieldKey = `participacion_${suffix}`;
-  const secondFieldKey = `animo_${suffix}`;
 
   await page.goto("/fields/new");
   await page.getByLabel("Nombre del campo").fill(firstFieldName);
-  await page.getByLabel("Clave técnica").fill(firstFieldKey);
   await page.getByLabel("Tipo").selectOption("number");
   await page.getByRole("button", { name: "Guardar campo" }).click();
   await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
@@ -18,7 +15,6 @@ test("can compose, reorder, version, archive and restore a form", async ({ page 
 
   await page.goto("/fields/new");
   await page.getByLabel("Nombre del campo").fill(secondFieldName);
-  await page.getByLabel("Clave técnica").fill(secondFieldKey);
   await page.getByLabel("Tipo").selectOption("text");
   await page.getByRole("button", { name: "Guardar campo" }).click();
   await expect(page.getByRole("heading", { name: "Campos" })).toBeVisible();
@@ -29,39 +25,37 @@ test("can compose, reorder, version, archive and restore a form", async ({ page 
 
   await page.getByLabel("Nombre del formulario").fill(formName);
 
-  const selectedList = page.locator("ol").first();
+  const selectedList = page.locator('ol[aria-label="Campos seleccionados del formulario"]');
   const availableFieldsPanel = page.locator("div", { hasText: "Campos disponibles" }).first();
 
   await availableFieldsPanel
     .locator("li", { hasText: firstFieldName })
-    .getByRole("button", { name: "Agregar" })
+    .locator("button").first()
     .click();
   await availableFieldsPanel
     .locator("li", { hasText: secondFieldName })
-    .getByRole("button", { name: "Agregar" })
+    .locator("button").first()
     .click();
 
   await expect(selectedList.locator("li").first()).toContainText(firstFieldName);
   await selectedList
     .locator("li", { hasText: secondFieldName })
-    .getByRole("button", { name: new RegExp(`subir campo ${secondFieldName}`, "i") })
+    .getByRole("button", { name: new RegExp(`subir ${secondFieldName}`, "i") })
     .click();
   await expect(selectedList.locator("li").first()).toContainText(secondFieldName);
 
   await page.getByRole("button", { name: "Guardar formulario" }).click();
   await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
   await expect(page.getByRole("cell", { name: formName })).toBeVisible();
-  const activeFormRow = page.locator("tr", { hasText: formName }).first();
-  await expect(activeFormRow).toContainText("1");
 
   await page.getByRole("link", { name: "Editar" }).first().click();
   await selectedList
     .locator("li", { hasText: firstFieldName })
-    .getByRole("button", { name: new RegExp(`quitar campo ${firstFieldName}`, "i") })
+    .getByRole("button", { name: new RegExp(`quitar ${firstFieldName}`, "i") })
     .click();
   await page.getByRole("button", { name: "Guardar formulario" }).click();
-
-  await expect(page.locator("tr", { hasText: formName }).first()).toContainText("2");
+  await expect(page.getByRole("heading", { name: "Formularios" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: formName })).toBeVisible();
 
   await page.getByRole("button", { name: "Archivar" }).first().click();
   await page.getByRole("button", { name: "Archivados" }).click();

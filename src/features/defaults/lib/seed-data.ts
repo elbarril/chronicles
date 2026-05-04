@@ -1,5 +1,5 @@
 import { type Field } from "@/domain/field";
-import { type ObservationForm } from "@/domain/form";
+import { type FormFieldInstance, type ObservationForm } from "@/domain/form";
 
 /**
  * Stable identifiers for the built-in default field and form definitions.
@@ -38,12 +38,19 @@ export const DEFAULT_FIELD_SEEDS: readonly DefaultFieldSeed[] = [
   },
 ] as const;
 
-type DefaultFormSeed = Pick<ObservationForm, "id" | "name" | "fieldIds">;
+/** Stable instance IDs for default form instances. */
+export const DEFAULT_FORM_INSTANCE_AUDIO_ID = "00000000-0000-4000-8000-00000000e001";
+export const DEFAULT_FORM_INSTANCE_LONGTEXT_ID = "00000000-0000-4000-8000-00000000e002";
+
+type DefaultFormSeed = Pick<ObservationForm, "id" | "name" | "fields">;
 
 export const DEFAULT_FORM_SEED: DefaultFormSeed = {
   id: DEFAULT_FORM_ID,
   name: "Observación de encuentro",
-  fieldIds: [...DEFAULT_FIELD_IDS],
+  fields: [
+    { instanceId: DEFAULT_FORM_INSTANCE_AUDIO_ID, fieldId: DEFAULT_AUDIO_FIELD_ID },
+    { instanceId: DEFAULT_FORM_INSTANCE_LONGTEXT_ID, fieldId: DEFAULT_LONG_TEXT_FIELD_ID },
+  ] satisfies FormFieldInstance[],
 };
 
 /**
@@ -217,10 +224,18 @@ export const DEMO_FIELD_IDS: readonly string[] = DEMO_FIELD_SEEDS.map((seed) => 
 
 export const DEMO_FORM_ID = "00000000-0000-4000-8000-00000000d102";
 
-export const DEMO_FORM_SEED: Pick<ObservationForm, "id" | "name" | "fieldIds"> = {
+/** Stable instance IDs for demo form instances (one per demo field, same index). */
+export const DEMO_FORM_INSTANCE_IDS: readonly string[] = DEMO_FIELD_SEEDS.map(
+  (_, i) => `00000000-0000-4000-8000-00000000f${String(i + 1).padStart(3, "0")}`,
+);
+
+export const DEMO_FORM_SEED: Pick<ObservationForm, "id" | "name" | "fields"> = {
   id: DEMO_FORM_ID,
   name: "Formulario de prueba",
-  fieldIds: [...DEMO_FIELD_IDS],
+  fields: DEMO_FIELD_SEEDS.map((seed, i) => ({
+    instanceId: DEMO_FORM_INSTANCE_IDS[i] as string,
+    fieldId: seed.id,
+  })) satisfies FormFieldInstance[],
 };
 
 export const DEMO_PROJECT_ID = "00000000-0000-4000-8000-00000000d211";

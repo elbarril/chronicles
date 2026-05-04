@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
-import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
 import { type FieldFormInput } from "@/domain/field";
 import { FieldForm } from "@/features/field-definitions/components/FieldForm";
 import { useFieldActions } from "@/features/field-definitions/hooks/use-field-actions";
@@ -85,11 +85,9 @@ export function FieldFormPage(): JSX.Element {
 
   return (
     <section className="space-y-6" aria-labelledby="field-form-title">
-      <nav aria-label="Migas de pan">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/fields">← Volver a campos</Link>
-        </Button>
-      </nav>
+      <Breadcrumbs
+        items={[{ label: "Inicio", to: "/" }, { label: "Campos", to: "/fields" }, { label: title }]}
+      />
 
       <header>
         <h1 id="field-form-title" className="text-3xl font-bold tracking-tight">

@@ -1,6 +1,8 @@
 import { participantSchema, type Participant } from "@/domain/participant";
 import { projectSchema, type Project } from "@/domain/project";
+import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { db } from "@/infra/db/client";
+import { deleteMediaBlob } from "@/infra/media/store";
 
 const DEFAULT_INSTITUTION_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -207,4 +209,62 @@ export async function isProjectNameUnique(name: string, excludeId?: string): Pro
       project.archivedAt !== "" ||
       project.name.trim().toLowerCase() !== normalizedName,
   );
+}
+
+export async function deleteProjectCascade(projectId: string): Promise<boolean> {
+  const project = await db.projects.get(projectId);
+
+  if (!project) {
+    return false;
+  }
+
+  // Collect all encounters for this project
+  const encounters = await db.encounters.where("projectId").equals(projectId).toArray();
+  const encounterIds = encounters.map((encounter) => encounter.id);
+
+  // Collect all observations for those encounters and gather media ids
+  const allObservations =
+    encounterIds.length > 0
+      ? await db.observations.where("encounterId").anyOf(encounterIds).toArray()
+      : [];
+
+  const allMediaIds = allObservations.flatMap((observation) =>
+    collectObservationMediaIds(observation),
+  );
+
+  await db.transaction(
+    "rw",
+    [db.projects, db.participants, db.encounters, db.observations, db.chronicles],
+    async () => {
+      // Delete chronicles linked to the encounters
+      if (encounterIds.length > 0) {
+        const chronicles = await db.chronicles.where("encounterId").anyOf(encounterIds).toArray();
+        await db.chronicles.bulkDelete(chronicles.map((chronicle) => chronicle.id));
+      }
+
+      // Delete observations
+      if (allObservations.length > 0) {
+        await db.observations.bulkDelete(allObservations.map((observation) => observation.id));
+      }
+
+      // Delete encounters
+      if (encounterIds.length > 0) {
+        await db.encounters.bulkDelete(encounterIds);
+      }
+
+      // Delete participants
+      const participants = await db.participants.where("projectId").equals(projectId).toArray();
+      if (participants.length > 0) {
+        await db.participants.bulkDelete(participants.map((participant) => participant.id));
+      }
+
+      // Delete the project
+      await db.projects.delete(projectId);
+    },
+  );
+
+  // Delete media blobs outside the transaction (IndexedDB media table is separate in store.ts)
+  await Promise.all(allMediaIds.map((mediaId) => deleteMediaBlob(mediaId)));
+
+  return true;
 }

@@ -1,5 +1,7 @@
 import { type Encounter, encounterSchema } from "@/domain/encounter";
+import { collectObservationMediaIds } from "@/features/observations/lib/collect-media-ids";
 import { db } from "@/infra/db/client";
+import { deleteMediaBlob } from "@/infra/media/store";
 
 function nowIsoString(): string {
   return new Date().toISOString();
@@ -117,4 +119,38 @@ export async function listAllActiveEncounters(): Promise<Encounter[]> {
   return all
     .filter((encounter) => !encounter.archivedAt || encounter.archivedAt === "")
     .sort((left, right) => right.startsAt.localeCompare(left.startsAt));
+}
+
+export async function deleteEncounterCascade(encounterId: string): Promise<boolean> {
+  const encounter = await db.encounters.get(encounterId);
+
+  if (!encounter) {
+    return false;
+  }
+
+  // Collect observations and media ids before deleting
+  const observations = await db.observations.where("encounterId").equals(encounterId).toArray();
+
+  const allMediaIds = observations.flatMap((observation) =>
+    collectObservationMediaIds(observation),
+  );
+
+  await db.transaction("rw", [db.encounters, db.observations, db.chronicles], async () => {
+    // Delete the chronicle for this encounter if any
+    const chronicles = await db.chronicles.where("encounterId").equals(encounterId).toArray();
+    await db.chronicles.bulkDelete(chronicles.map((chronicle) => chronicle.id));
+
+    // Delete observations
+    if (observations.length > 0) {
+      await db.observations.bulkDelete(observations.map((observation) => observation.id));
+    }
+
+    // Delete the encounter
+    await db.encounters.delete(encounterId);
+  });
+
+  // Delete media blobs outside the transaction
+  await Promise.all(allMediaIds.map((mediaId) => deleteMediaBlob(mediaId)));
+
+  return true;
 }

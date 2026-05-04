@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { type Encounter } from "@/domain/encounter";
+import { encounterMessages } from "@/features/encounters/lib/messages";
 
 interface ProjectEncounterListTableProps {
   encounters: Encounter[];
@@ -9,6 +12,7 @@ interface ProjectEncounterListTableProps {
   projectId: string;
   onArchive: (encounterId: string) => Promise<void>;
   onRestore: (encounterId: string) => Promise<void>;
+  onDelete: (encounterId: string) => Promise<void>;
 }
 
 function formatDateTime(value: string): string {
@@ -27,11 +31,13 @@ function EncounterRowActions({
   status,
   onArchive,
   onRestore,
+  onRequestDelete,
 }: {
   encounter: Encounter;
   status: "active" | "archived";
   onArchive: (encounterId: string) => Promise<void>;
   onRestore: (encounterId: string) => Promise<void>;
+  onRequestDelete: (encounterId: string) => void;
 }): JSX.Element {
   return (
     <>
@@ -39,16 +45,28 @@ function EncounterRowActions({
         <Link to={`/encounters/${encounter.id}`}>Abrir</Link>
       </Button>
       {status === "archived" ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            void onRestore(encounter.id);
-          }}
-        >
-          Restaurar
-        </Button>
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void onRestore(encounter.id);
+            }}
+          >
+            Restaurar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            onClick={() => {
+              onRequestDelete(encounter.id);
+            }}
+          >
+            Eliminar
+          </Button>
+        </>
       ) : (
         <Button
           type="button"
@@ -71,7 +89,26 @@ export function ProjectEncounterListTable({
   projectId,
   onArchive,
   onRestore,
+  onDelete,
 }: ProjectEncounterListTableProps): JSX.Element {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirmDelete(): Promise<void> {
+    if (!pendingDeleteId) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await onDelete(pendingDeleteId);
+    } finally {
+      setIsDeleting(false);
+      setPendingDeleteId(null);
+    }
+  }
+
   if (encounters.length === 0) {
     return (
       <div className="bg-muted/40 rounded-3xl p-6 text-center">
@@ -120,6 +157,7 @@ export function ProjectEncounterListTable({
                 status={status}
                 onArchive={onArchive}
                 onRestore={onRestore}
+                onRequestDelete={setPendingDeleteId}
               />
             </div>
           </li>
@@ -164,6 +202,7 @@ export function ProjectEncounterListTable({
                       status={status}
                       onArchive={onArchive}
                       onRestore={onRestore}
+                      onRequestDelete={setPendingDeleteId}
                     />
                   </div>
                 </td>
@@ -172,6 +211,15 @@ export function ProjectEncounterListTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDeleteDialog
+        open={pendingDeleteId !== null}
+        title={encounterMessages.confirmDeleteTitle}
+        description={encounterMessages.confirmDeleteDescription}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+        isLoading={isDeleting}
+      />
     </>
   );
 }
