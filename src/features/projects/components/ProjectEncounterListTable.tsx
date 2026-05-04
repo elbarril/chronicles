@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,13 @@ interface ProjectEncounterListTableProps {
   encounters: Encounter[];
   status: "active" | "archived";
   projectId: string;
+  /**
+   * Ids of the project's current participants. Used to count only attendees
+   * whose participant record still exists, so the list matches the encounter
+   * detail (which already filters stale ids out via
+   * `resolveEncounterDependencies`).
+   */
+  validParticipantIds: string[];
   onArchive: (encounterId: string) => Promise<void>;
   onRestore: (encounterId: string) => Promise<void>;
   onDelete: (encounterId: string) => Promise<void>;
@@ -92,12 +99,22 @@ export function ProjectEncounterListTable({
   encounters,
   status,
   projectId,
+  validParticipantIds,
   onArchive,
   onRestore,
   onDelete,
 }: ProjectEncounterListTableProps): JSX.Element {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const validParticipantIdSet = useMemo(() => new Set(validParticipantIds), [validParticipantIds]);
+
+  function countActiveAttendees(encounter: Encounter): number {
+    return encounter.participantIds.reduce(
+      (total, participantId) => (validParticipantIdSet.has(participantId) ? total + 1 : total),
+      0,
+    );
+  }
 
   async function handleConfirmDelete(): Promise<void> {
     if (!pendingDeleteId) {
@@ -153,7 +170,7 @@ export function ProjectEncounterListTable({
             <dl className="space-y-1 text-sm">
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Participantes:</dt>
-                <dd>{encounter.participantIds.length}</dd>
+                <dd>{countActiveAttendees(encounter)}</dd>
               </div>
             </dl>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -199,7 +216,7 @@ export function ProjectEncounterListTable({
                 <td className="text-muted-foreground px-3 py-3 align-middle">
                   {formatDateTime(encounter.endsAt)}
                 </td>
-                <td className="px-3 py-3 align-middle">{encounter.participantIds.length}</td>
+                <td className="px-3 py-3 align-middle">{countActiveAttendees(encounter)}</td>
                 <td className="px-3 py-3 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
                     <EncounterRowActions

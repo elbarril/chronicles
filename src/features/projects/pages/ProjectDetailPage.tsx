@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { Breadcrumbs } from "@/components/ui/breadcrumb";
@@ -27,6 +27,11 @@ export function ProjectDetailPage(): JSX.Element {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const validParticipantIds = useMemo(
+    () => project?.participants.map((participant) => participant.id) ?? [],
+    [project],
+  );
 
   if (!projectId) {
     return <p className="text-muted-foreground text-sm">Proyecto inválido.</p>;
@@ -195,6 +200,7 @@ export function ProjectDetailPage(): JSX.Element {
           encounters={encounters}
           status={status}
           projectId={project.id}
+          validParticipantIds={validParticipantIds}
           onArchive={handleArchiveEncounter}
           onRestore={handleRestoreEncounter}
           onDelete={handleDeleteEncounter}
