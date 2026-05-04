@@ -68,16 +68,21 @@ function EncounterRowActions({
           </Button>
         </>
       ) : (
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            void onArchive(encounter.id);
-          }}
-        >
-          Archivar
-        </Button>
+        <>
+          <Button asChild size="sm" variant="outline">
+            <Link to={`/encounters/${encounter.id}/edit`}>Editar</Link>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              void onArchive(encounter.id);
+            }}
+          >
+            Archivar
+          </Button>
+        </>
       )}
     </>
   );

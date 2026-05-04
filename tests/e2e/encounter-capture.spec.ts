@@ -29,6 +29,9 @@ test("can register a post-event encounter and capture observations with media", 
 
   await expect(page.getByRole("heading", { name: encounterName })).toBeVisible();
 
+  // The attendee chip list shows everyone who attended the encounter.
+  await expect(page.getByLabel("Lista de asistentes").getByText("Sofía")).toBeVisible();
+
   // Create observation with form selector
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });

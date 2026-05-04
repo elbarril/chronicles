@@ -32,9 +32,9 @@ export interface ProjectWithParticipants {
 function normalizeInput(input: ProjectInput): ProjectInput {
   return projectInputSchema.parse({
     name: input.name.trim(),
-    participantNames: input.participantNames
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0),
+    participants: input.participants
+      .map((row) => ({ id: row.id, displayName: row.displayName.trim() }))
+      .filter((row) => row.displayName.length > 0),
   });
 }
 
@@ -52,7 +52,7 @@ export async function createProjectDefinition(
   const parsed = normalizeInput(input);
   await ensureUniqueName(parsed.name);
 
-  if (parsed.participantNames.length === 0) {
+  if (parsed.participants.length === 0) {
     throw new AppError("PROJECT_EMPTY_PARTICIPANTS", "Project requires at least one participant.");
   }
 
@@ -71,7 +71,7 @@ export async function updateProjectDefinition(
   const parsed = normalizeInput(input);
   await ensureUniqueName(parsed.name, id);
 
-  if (parsed.participantNames.length === 0) {
+  if (parsed.participants.length === 0) {
     throw new AppError("PROJECT_EMPTY_PARTICIPANTS", "Project requires at least one participant.");
   }
 

@@ -175,7 +175,7 @@ export function EncounterDetailPage(): JSX.Element {
       <EncounterHeader
         encounter={encounter}
         projectName={projectName}
-        participantCount={participants.length}
+        participants={participants}
         observationCount={observations.length}
         onArchive={handleArchiveEncounter}
         onRestore={handleRestoreEncounter}

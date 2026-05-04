@@ -803,3 +803,30 @@ Specifically:
 
 - Cursor users who clone the repo will no longer get an automatic bridge. They can either rely on `AGENTS.md` directly or recreate `.cursor/rules/agents.mdc` locally without committing it.
 - Future rule creation runs through the slimmer `.agents/workflows/create-rule.md` (Windsurf bridge only).
+
+---
+
+## [2026-05-03] F12 — Encounter editing + stable participant identity
+
+**Context:** Two related issues surfaced together. (1) Encounters had no edit affordance — once created, the only way to fix a typo in the name, adjust the start/end, or correct the attendee list was to delete the encounter (losing observations and the chronicle). (2) The encounter detail header showed only a count of attendees, and that count was almost always wrong: editing the project regenerated every participant uuid, leaving every encounter's `participantIds` pointing to deleted records — `resolveEncounterDependencies` then filtered all of them out, so the header read "0 de los del proyecto" and the timeline labelled every observation as "Participante desconocido". The same fragility silently truncated the participants block in deterministic chronicles and the AI prompt input.
+
+**Decision:**
+
+1. **Stable participant identity across project edits.** `projectInputSchema` was switched from `participantNames: string[]` to `participants: { id?, displayName }[]` (with a dedicated `projectInputParticipantSchema`). `ProjectForm` now keeps the row id around per row, `ProjectFormPage.toFormInput` propagates ids when loading an existing project, and `getDefaultProjectInput` returns `[{ displayName: "" }]`. The repository's `updateProjectWithParticipants` was rewritten as a diff: rows that match by id get an in-place `displayName` update (no-op when unchanged), rows without an id get a fresh uuid via `crypto.randomUUID()`, and rows whose previous id is missing from the input are hard-deleted. `createProjectWithParticipants` ignores any incoming id (every row is brand new on create). The result is the same UX (`Quitar` removes a participant, the input editor keeps working) but `encounter.participantIds` survives every project edit.
+2. **Encounter editing as a dedicated route.** New `EncounterEditPage` at `/encounters/:id/edit` mirrors `EncounterNewPage`: it loads the encounter + project in parallel, drops `participantIds` whose participant no longer exists (defensive cleanup for legacy data), and reuses `EncounterForm` with `submitLabel="Guardar cambios"`. Wired through `useEncounterActions().update` (already present, previously unused). `EncounterHeader` exposes "Editar encuentro" (hidden when the encounter is archived) right before "Archivar"; `ProjectEncounterListTable` shows "Editar" in every active row between "Abrir" and "Archivar".
+3. **Encounter header lists the actual attendees.** The "X de los del proyecto · Y observaciones" copy was replaced by an explicit attendees section (chip list, mirrors the chip list on `ProjectDetailPage`) under the start/end metadata. The observation count moved into its own definition list cell.
+4. **Tests.** Added `tests/e2e/encounter-edit.spec.ts` with two scenarios — full edit flow (rename + retime + add an attendee) and project-edit identity preservation (rename project, encounter still shows the same attendee chip). Extended `tests/e2e/encounter-capture.spec.ts` with an attendee-chip assertion. Updated `tests/unit/project-schema.test.ts` for the new shape (id is optional UUID, empty displayName rejected, non-uuid id rejected).
+5. **Removed participants are intentionally hard-deleted.** When a user removes a participant row from the project edit form we delete the participant record. Their id may still appear in `encounter.participantIds` for older encounters; both `resolveEncounterDependencies` and `chronicle-service.ts` already filter unknown ids out, so this only manifests as the participant disappearing from the attendee chip list — same outcome as before this change but now bounded to "the user actually removed that person from the project". Soft-archiving removed participants to preserve historical attribution is a possible future iteration.
+
+**Justification:**
+
+- The visible bug (empty/incorrect attendee list and "Participante desconocido" everywhere) was a downstream symptom of the participant uuid churn. Fixing the root cause was strictly cheaper than papering over each consumer (`resolveEncounterDependencies`, `chronicle-service`, AI prompt builder), and it removes a class of silent data-integrity drift.
+- Adding edit as a dedicated page is the consistent choice — projects and forms already edit on a dedicated route, so users have a predictable pattern. Reusing `EncounterForm` keeps the UX identical to creation.
+- Showing the attendees as chips matches the equivalent block on `ProjectDetailPage`, removes the awkward "X de los del proyecto" copy, and lets the user verify attendance at a glance without opening the edit page.
+
+**Consequences:**
+
+- `ProjectInput` consumers must use `participants: { id?, displayName }[]` instead of `participantNames: string[]`. The defaults service was unaffected (it seeds `participants` directly with their own uuids, never goes through the input shape).
+- Older databases that already accumulated stale `encounter.participantIds` (from edits made before this change) keep working: the unknown ids are simply filtered out. Re-editing the encounter gives the user a clean slate to reselect attendees from the current project participants.
+- Export/import is unaffected: `chronicle-full-v3` already serialises the full `participants` table with their stable ids, so the import path round-trips correctly without changes.
+- The onboarding tour was not extended for this iteration; "Editar encuentro" is discoverable from the encounter header and the project's encounter list, and adding a tour stop is a follow-up if needed.

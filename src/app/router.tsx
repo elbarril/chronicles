@@ -5,6 +5,7 @@ import { ChronicleDetailPage } from "@/features/chronicles/pages/ChronicleDetail
 import { ChronicleListPage } from "@/features/chronicles/pages/ChronicleListPage";
 import { EncounterChroniclePage } from "@/features/chronicles/pages/EncounterChroniclePage";
 import { EncounterDetailPage } from "@/features/encounters/pages/EncounterDetailPage";
+import { EncounterEditPage } from "@/features/encounters/pages/EncounterEditPage";
 import { EncounterNewPage } from "@/features/encounters/pages/EncounterNewPage";
 import { FormBuilderPage } from "@/features/forms/pages/FormBuilderPage";
 import { FormListPage } from "@/features/forms/pages/FormListPage";
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
       {
         path: "/encounters/:id",
         element: <EncounterDetailPage />,
+      },
+      {
+        path: "/encounters/:id/edit",
+        element: <EncounterEditPage />,
       },
       {
         path: "/encounters/:id/observations/new",

@@ -11,6 +11,7 @@ export const encounterMessages = {
   deleteError: "No pudimos eliminar el encuentro.",
   deleteNotArchived: "Solo podés eliminar encuentros archivados.",
   viewChronicleButton: "Ver crónica",
+  editButton: "Editar encuentro",
   notFound: "No encontramos el encuentro.",
   projectNotFound: "No encontramos el proyecto del encuentro.",
   participantsInvalid: "Tenés que seleccionar al menos un participante del proyecto.",

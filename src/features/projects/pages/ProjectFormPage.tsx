@@ -15,7 +15,10 @@ function toFormInput(project: Awaited<ReturnType<typeof getProjectDefinition>>):
 
   return {
     name: project.name,
-    participantNames: project.participants.map((participant) => participant.displayName),
+    participants: project.participants.map((participant) => ({
+      id: participant.id,
+      displayName: participant.displayName,
+    })),
   };
 }
 
