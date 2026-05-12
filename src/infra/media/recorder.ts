@@ -9,6 +9,7 @@ interface UseAudioRecorderOptions {
 interface UseAudioRecorderResult {
   state: AudioRecorderState;
   isRecording: boolean;
+  stream: MediaStream | null;
   start: () => Promise<void>;
   stop: () => void;
   clear: () => void;
@@ -18,23 +19,23 @@ const FALLBACK_MIME_TYPE = "audio/webm";
 
 export function useAudioRecorder(options: UseAudioRecorderOptions = {}): UseAudioRecorderResult {
   const [state, setState] = useState<AudioRecorderState>("idle");
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const clear = useCallback(() => {
     chunksRef.current = [];
 
-    if (streamRef.current) {
-      for (const track of streamRef.current.getTracks()) {
+    if (stream) {
+      for (const track of stream.getTracks()) {
         track.stop();
       }
-      streamRef.current = null;
+      setStream(null);
     }
 
     mediaRecorderRef.current = null;
     setState("idle");
-  }, []);
+  }, [stream]);
 
   const stop = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -58,10 +59,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}): UseAudi
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(audioStream);
 
-      streamRef.current = stream;
+      setStream(audioStream);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -82,11 +83,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}): UseAudi
         setState("stopped");
         options.onStop?.(blob, mimeType);
 
-        if (streamRef.current) {
-          for (const track of streamRef.current.getTracks()) {
+        if (stream) {
+          for (const track of stream.getTracks()) {
             track.stop();
           }
-          streamRef.current = null;
+          setStream(null);
         }
 
         mediaRecorderRef.current = null;
@@ -97,11 +98,12 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}): UseAudi
     } catch {
       setState("denied");
     }
-  }, [options]);
+  }, [options, stream]);
 
   return {
     state,
     isRecording: state === "recording",
+    stream,
     start,
     stop,
     clear,
