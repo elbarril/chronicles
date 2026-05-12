@@ -76,6 +76,8 @@ const dateLikeConfigSchema = z.object({
 const mediaConfigSchema = z.object({
   accept: z.string().optional(),
   multiple: z.boolean().optional(),
+  transcriptionEnabled: z.boolean().optional(),
+  transcriptionTargetFieldId: z.string().uuid().optional(),
 });
 
 const ratingConfigSchema = z
