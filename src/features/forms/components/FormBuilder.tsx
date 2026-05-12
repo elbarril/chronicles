@@ -11,12 +11,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { type Field } from "@/domain/field";
+import { type Field, type FieldFormInput } from "@/domain/field";
 import {
   observationFormInputSchema,
   type FormFieldInstanceInput,
   type ObservationFormInput,
 } from "@/domain/form";
+import { getDefaultFieldInput } from "@/features/field-definitions/lib/field-defaults";
 import { fieldTypeLabel } from "@/features/field-definitions/lib/field-type-meta";
 import { ManageFieldsDialog } from "@/features/forms/components/ManageFieldsDialog";
 import { formMessages } from "@/features/forms/lib/messages";
@@ -28,6 +29,7 @@ interface FormBuilderProps {
   isSaving: boolean;
   onSubmit: (values: ObservationFormInput) => Promise<void>;
   onCancel: () => void;
+  onCreateField?: (fieldInput: FieldFormInput) => Promise<Field>;
 }
 
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
@@ -59,8 +61,10 @@ export function FormBuilder({
   isSaving,
   onSubmit,
   onCancel,
+  onCreateField,
 }: FormBuilderProps): JSX.Element {
   const [announceMessage, setAnnounceMessage] = useState("");
+  const [additionalFields, setAdditionalFields] = useState<Field[]>([]);
 
   const form = useForm<ObservationFormInput>({
     resolver: buildResolver(observationFormInputSchema),
@@ -78,10 +82,12 @@ export function FormBuilder({
 
   const selectedInstances = useMemo(() => watchedFields ?? [], [watchedFields]);
 
-  const availableById = useMemo(
-    () => new Map(availableFields.map((field) => [field.id, field])),
-    [availableFields],
-  );
+  const availableById = useMemo(() => {
+    const map = new Map(availableFields.map((field) => [field.id, field]));
+    // Add additional fields created during this session
+    additionalFields.forEach((field) => map.set(field.id, field));
+    return map;
+  }, [availableFields, additionalFields]);
 
   // Use a ref to track if it's the first render to avoid overriding initial values
   const hasInitialized = useRef(false);
@@ -96,15 +102,94 @@ export function FormBuilder({
     //  the form remain valid from existing forms — we keep them to not lose data.)
   }, [availableFields]);
 
-  function addField(fieldId: string): void {
+  async function addField(fieldId: string): Promise<void> {
+    const field = availableById.get(fieldId);
     const current = form.getValues("fields");
     const newInstance: FormFieldInstanceInput = {
       instanceId: crypto.randomUUID(),
       fieldId,
     };
 
+    const updatedFields = [...current, newInstance];
+
+    // If this is an audio field with transcription enabled, handle target field creation
+    if (
+      field?.type === "audio" &&
+      (field.config as { transcriptionEnabled?: boolean }).transcriptionEnabled
+    ) {
+      const audioConfig = field.config as {
+        transcriptionEnabled?: boolean;
+        transcriptionTargetFieldId?: string;
+      };
+      const targetFieldId = audioConfig.transcriptionTargetFieldId;
+
+      if (targetFieldId) {
+        const targetField = availableById.get(targetFieldId);
+
+        // If target field doesn't exist, create it automatically
+        if (!targetField && onCreateField) {
+          const textFieldInput = getDefaultFieldInput("longText");
+          textFieldInput.label = `Transcripción de ${field.label}`;
+          textFieldInput.key = `transcripcion_${field.key}`;
+          textFieldInput.config = {};
+
+          const createdField = await onCreateField(textFieldInput);
+
+          // Add to additional fields so it appears in the UI
+          setAdditionalFields((prev) => [...prev, createdField]);
+
+          // Add the text field instance immediately after the audio field
+          const textInstance: FormFieldInstanceInput = {
+            instanceId: crypto.randomUUID(),
+            fieldId: createdField.id,
+          };
+
+          updatedFields.push(textInstance);
+          setAnnounceMessage(
+            `Se creó automáticamente el campo de texto "${createdField.label}" para la transcripción.`,
+          );
+        } else if (targetField) {
+          // Target field exists, add its instance if not already in the form
+          const alreadyInForm = current.some((instance) => instance.fieldId === targetFieldId);
+          if (!alreadyInForm) {
+            const textInstance: FormFieldInstanceInput = {
+              instanceId: crypto.randomUUID(),
+              fieldId: targetFieldId,
+            };
+
+            updatedFields.push(textInstance);
+            setAnnounceMessage(
+              `Se agregó el campo de texto "${targetField.label}" para la transcripción.`,
+            );
+          }
+        }
+      } else if (onCreateField) {
+        // No target field ID specified, create the text field automatically
+        const textFieldInput = getDefaultFieldInput("longText");
+        textFieldInput.label = `Transcripción de ${field.label}`;
+        textFieldInput.key = `transcripcion_${field.key}`;
+        textFieldInput.config = {};
+
+        const createdField = await onCreateField(textFieldInput);
+
+        // Add to additional fields so it appears in the UI
+        setAdditionalFields((prev) => [...prev, createdField]);
+
+        // Add the text field instance immediately after the audio field
+        const textInstance: FormFieldInstanceInput = {
+          instanceId: crypto.randomUUID(),
+          fieldId: createdField.id,
+        };
+
+        updatedFields.push(textInstance);
+        setAnnounceMessage(
+          `Se creó automáticamente el campo de texto "${createdField.label}" para la transcripción.`,
+        );
+      }
+    }
+
     form.clearErrors("fields");
-    form.setValue("fields", [...current, newInstance], { shouldValidate: true });
+    form.setValue("fields", updatedFields, { shouldValidate: true });
   }
 
   function duplicateInstance(index: number): void {
@@ -133,11 +218,89 @@ export function FormBuilder({
 
   function removeInstance(index: number): void {
     const current = form.getValues("fields");
+    const instanceToRemove = current[index];
+
+    if (!instanceToRemove) {
+      return;
+    }
+
+    // Check if this field is a transcription target (cannot be removed)
+    const isTranscriptionTarget = current.some((instance) => {
+      const field = availableById.get(instance.fieldId);
+      if (!field || field.type !== "audio") return false;
+
+      const audioConfig = field.config as {
+        transcriptionEnabled?: boolean;
+        transcriptionTargetFieldId?: string;
+      };
+
+      if (!audioConfig.transcriptionEnabled) return false;
+
+      // Check if this is the specified target field
+      if (audioConfig.transcriptionTargetFieldId === instanceToRemove.fieldId) {
+        return true;
+      }
+
+      // Check if this is an auto-created target field (by key pattern)
+      if (!audioConfig.transcriptionTargetFieldId) {
+        const expectedKey = `transcripcion_${field.key}`;
+        const targetField = availableById.get(instanceToRemove.fieldId);
+        return (
+          targetField &&
+          (targetField.type === "text" || targetField.type === "longText") &&
+          targetField.key === expectedKey
+        );
+      }
+
+      return false;
+    });
+
+    if (isTranscriptionTarget) {
+      const targetField = availableById.get(instanceToRemove.fieldId);
+      setAnnounceMessage(
+        `No se puede quitar "${targetField?.label}" porque está vinculado a la transcripción de un campo de audio.`,
+      );
+      return;
+    }
+
     form.setValue(
       "fields",
       current.filter((_, i) => i !== index),
       { shouldValidate: true },
     );
+  }
+
+  function isTranscriptionTarget(instance: FormFieldInstanceInput): boolean {
+    const current = form.getValues("fields");
+    return current.some((inst) => {
+      const field = availableById.get(inst.fieldId);
+      if (!field || field.type !== "audio") return false;
+
+      const audioConfig = field.config as {
+        transcriptionEnabled?: boolean;
+        transcriptionTargetFieldId?: string;
+      };
+
+      if (!audioConfig.transcriptionEnabled) return false;
+
+      // Check if this is the specified target field
+      if (audioConfig.transcriptionTargetFieldId === instance.fieldId) {
+        return true;
+      }
+
+      // Check if this is an auto-created target field (by key pattern)
+      if (!audioConfig.transcriptionTargetFieldId) {
+        const expectedKey = `transcripcion_${field.key}`;
+        const targetField = availableById.get(instance.fieldId);
+        return (
+          targetField &&
+          (targetField.type === "text" || targetField.type === "longText") &&
+          targetField.key === expectedKey
+        );
+      }
+
+      return false;
+    });
   }
 
   function moveInstance(fromIndex: number, toIndex: number): void {
@@ -264,6 +427,7 @@ export function FormBuilder({
                 const field = availableById.get(instance.fieldId);
                 const displayLabel = instance.labelOverride ?? field?.label ?? instance.fieldId;
                 const typeLabel = field ? fieldTypeLabel[field.type] : "campo desconocido";
+                const isTarget = isTranscriptionTarget(instance);
 
                 return (
                   <li
@@ -271,13 +435,18 @@ export function FormBuilder({
                     className="border-border flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-start"
                   >
                     <div className="flex-1 space-y-2">
-                      <div>
+                      <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">{displayLabel}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {typeLabel}
-                          {field && instance.labelOverride ? ` · base: ${field.label}` : ""}
-                        </p>
+                        {isTarget && (
+                          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
+                            Transcripción
+                          </span>
+                        )}
                       </div>
+                      <p className="text-muted-foreground text-xs">
+                        {typeLabel}
+                        {field && instance.labelOverride ? ` · base: ${field.label}` : ""}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Input
                           type="text"
@@ -324,6 +493,7 @@ export function FormBuilder({
                         type="button"
                         size="sm"
                         variant="secondary"
+                        disabled={isTarget}
                         aria-label={`Quitar ${displayLabel}`}
                         onClick={() => removeInstance(index)}
                       >
