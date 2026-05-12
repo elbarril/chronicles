@@ -27,7 +27,12 @@ export function getDefaultConfig(type: FieldType): FieldConfig {
     case "video":
     case "audio":
     case "file":
-      return { accept: undefined, multiple: false };
+      return {
+        accept: undefined,
+        multiple: false,
+        transcriptionEnabled: undefined,
+        transcriptionTargetFieldId: undefined,
+      };
     case "rating":
       return { min: 1, max: 5, step: 1 };
     default:
