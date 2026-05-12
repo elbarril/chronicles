@@ -105,6 +105,8 @@ export function useAudioTranscriber(
       return;
     }
 
+    console.log("SpeechRecognition available, initializing...");
+
     const recognition = new SpeechRecognitionConstructor();
     recognitionRef.current = recognition;
 
@@ -112,9 +114,16 @@ export function useAudioTranscriber(
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    console.log("SpeechRecognition config:", {
+      lang: recognition.lang,
+      continuous: recognition.continuous,
+      interimResults: recognition.interimResults,
+    });
+
     finalTranscriptRef.current = "";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      console.log("Speech recognition result received:", event.resultIndex, event.results.length);
       let interimTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -126,8 +135,10 @@ export function useAudioTranscriber(
         if (transcript) {
           if (result.isFinal) {
             finalTranscriptRef.current += transcript;
+            console.log("Final transcript:", transcript);
           } else {
             interimTranscript += transcript;
+            console.log("Interim transcript:", transcript);
           }
         }
       }
@@ -138,8 +149,12 @@ export function useAudioTranscriber(
       }
     };
 
+    recognition.onstart = () => {
+      console.log("Speech recognition started");
+    };
+
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("Speech recognition error:", event.error);
+      console.error("Speech recognition error:", event.error, event.message);
 
       if (event.error === "not-allowed") {
         setState("error");
@@ -154,11 +169,23 @@ export function useAudioTranscriber(
         return;
       }
 
+      if (event.error === "network") {
+        setState("error");
+        options.onError?.("Error de red en la transcripción");
+        return;
+      }
+
+      if (event.error === "aborted") {
+        setState("done");
+        return;
+      }
+
       setState("error");
-      options.onError?.("Error al transcribir el audio");
+      options.onError?.(`Error al transcribir: ${event.error}`);
     };
 
     recognition.onend = () => {
+      console.log("Speech recognition ended");
       if (state === "transcribing") {
         setState("done");
         options.onTranscript?.(finalTranscriptRef.current);
@@ -167,6 +194,7 @@ export function useAudioTranscriber(
     };
 
     setState("transcribing");
+    console.log("Starting speech recognition...");
     void recognition.start();
   }, [options, state]);
 

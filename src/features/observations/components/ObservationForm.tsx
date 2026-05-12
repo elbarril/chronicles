@@ -349,7 +349,15 @@ export function ObservationForm({
     if (audioRecorder.state === "unsupported") {
       toast.error(observationMessages.recorderUnsupported);
     }
-  }, [audioRecorder.state]);
+
+    if (transcriber.state === "unsupported") {
+      toast.error("Tu navegador no soporta transcripción de audio");
+    }
+
+    if (transcriber.state === "error") {
+      toast.error("Error en la transcripción de audio");
+    }
+  }, [audioRecorder.state, transcriber.state]);
 
   async function handleSubmit(values: ObservationFormValues): Promise<void> {
     if (!values.formId) {
