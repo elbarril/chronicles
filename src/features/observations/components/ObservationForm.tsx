@@ -23,6 +23,7 @@ import { useObservationForms } from "@/features/forms/hooks/use-forms";
 import { observationMessages } from "@/features/observations/lib/messages";
 import { listObservationFormInstances } from "@/features/observations/services/observation-service";
 import { useAudioRecorder } from "@/infra/media/recorder";
+import { useAudioTranscriber } from "@/infra/media/transcriber";
 import { buildResolver } from "@/lib/zod";
 
 interface ParticipantOption {
@@ -279,6 +280,50 @@ export function ObservationForm({
     };
   }, [form, selectedFormId, isEditing, initialObservation]);
 
+  const transcriber = useAudioTranscriber({
+    onTranscript: (text) => {
+      // Find the audio field with transcription enabled
+      const audioEntry = instancesWithFields.find(
+        ({ field }) =>
+          field.type === "audio" &&
+          (field.config as { transcriptionEnabled?: boolean }).transcriptionEnabled,
+      );
+
+      if (!audioEntry) return;
+
+      const audioConfig = audioEntry.field.config as {
+        transcriptionEnabled?: boolean;
+        transcriptionTargetFieldId?: string;
+      };
+
+      if (!audioConfig.transcriptionEnabled) return;
+
+      let textEntry;
+
+      if (audioConfig.transcriptionTargetFieldId) {
+        // Use the specified target field
+        const targetFieldId = audioConfig.transcriptionTargetFieldId;
+        textEntry = instancesWithFields.find(({ field }) => field.id === targetFieldId);
+      } else {
+        // Auto-created field: look for a text field with the expected key pattern
+        const expectedKey = `transcripcion_${audioEntry.field.key}`;
+        textEntry = instancesWithFields.find(
+          ({ field }) =>
+            (field.type === "text" || field.type === "longText") && field.key === expectedKey,
+        );
+      }
+
+      if (textEntry) {
+        form.setValue(`values.${textEntry.instance.instanceId}`, text, {
+          shouldValidate: false,
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error(error);
+    },
+  });
+
   const audioRecorder = useAudioRecorder({
     onStop: (blob) => {
       const audioEntry = instancesWithFields.find(({ field }) => field.type === "audio");
@@ -290,6 +335,9 @@ export function ObservationForm({
       form.setValue(`values.${audioEntry.instance.instanceId}`, blob, {
         shouldValidate: true,
       });
+
+      // Stop transcription when recording stops
+      transcriber.stop();
     },
   });
 
@@ -453,8 +501,15 @@ export function ObservationForm({
                                 size="sm"
                                 variant="outline"
                                 disabled={audioRecorder.isRecording}
-                                onClick={() => {
-                                  void audioRecorder.start();
+                                onClick={async () => {
+                                  await audioRecorder.start();
+                                  // Check if this audio field has transcription enabled
+                                  const audioConfig = field.config as {
+                                    transcriptionEnabled?: boolean;
+                                  };
+                                  if (audioConfig.transcriptionEnabled) {
+                                    transcriber.start();
+                                  }
                                 }}
                               >
                                 Grabar audio

@@ -11,6 +11,10 @@ export const observationMessages = {
   formRequired: "Elegí un formulario para registrar la observación.",
   recorderDenied: "No pudimos acceder al micrófono. Podés subir un archivo de audio.",
   recorderUnsupported: "Este navegador no soporta grabación de audio. Subí un archivo en su lugar.",
+  transcriptionUnsupported: "Tu navegador no soporta transcripción de audio.",
+  transcriptionDenied: "Permiso de micrófono denegado para transcripción.",
+  transcriptionFailed: "Error al transcribir el audio.",
+  transcribing: "Transcribiendo audio...",
   confirmDeleteTitle: "¿Eliminar observación?",
   confirmDeleteDescription: "Esta acción es permanente y no se puede deshacer.",
 } as const;
