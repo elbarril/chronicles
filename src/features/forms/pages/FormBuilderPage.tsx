@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { Breadcrumbs } from "@/components/ui/breadcrumb";
+import { type FieldFormInput } from "@/domain/field";
 import { type ObservationFormInput } from "@/domain/form";
+import { useFieldActions } from "@/features/field-definitions/hooks/use-field-actions";
 import { useFields } from "@/features/field-definitions/hooks/use-fields";
 import { FormBuilder } from "@/features/forms/components/FormBuilder";
 import { useFormActions } from "@/features/forms/hooks/use-form-actions";
@@ -30,6 +32,7 @@ export function FormBuilderPage(): JSX.Element {
   const formId = params.id;
   const mode = formId ? "edit" : "create";
   const actions = useFormActions();
+  const fieldActions = useFieldActions();
   const createInitialValues = useMemo(() => getDefaultFormInput(), []);
 
   // Available fields via live query (so they refresh after ManageFieldsDialog adds one)
@@ -84,6 +87,10 @@ export function FormBuilderPage(): JSX.Element {
     navigate("/forms");
   }
 
+  async function handleCreateField(fieldInput: FieldFormInput) {
+    return fieldActions.create(fieldInput);
+  }
+
   if (isLoadingFields || (mode === "edit" && !editInitialValues)) {
     return <p className="text-muted-foreground text-sm">Cargando formulario...</p>;
   }
@@ -115,6 +122,7 @@ export function FormBuilderPage(): JSX.Element {
         isSaving={actions.isSaving}
         onSubmit={handleSubmit}
         onCancel={() => navigate("/forms")}
+        onCreateField={handleCreateField}
       />
     </section>
   );
