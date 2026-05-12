@@ -341,47 +341,102 @@ export function FieldForm({
             currentType === "video" ||
             currentType === "audio" ||
             currentType === "file") && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2 text-sm font-medium" htmlFor="config-accept">
-                <span>accept (opcional)</span>
-                <input
-                  id="config-accept"
-                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                  value={String((form.watch("config") as { accept?: string }).accept ?? "")}
-                  onChange={(event) => {
-                    const config = form.watch("config") as { accept?: string; multiple?: boolean };
-                    form.setValue(
-                      "config",
-                      {
-                        ...config,
-                        accept: event.target.value.trim() || undefined,
-                      },
-                      { shouldValidate: true },
-                    );
-                  }}
-                />
-              </label>
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm font-medium" htmlFor="config-accept">
+                  <span>accept (opcional)</span>
+                  <input
+                    id="config-accept"
+                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                    value={String((form.watch("config") as { accept?: string }).accept ?? "")}
+                    onChange={(event) => {
+                      const config = form.watch("config") as {
+                        accept?: string;
+                        multiple?: boolean;
+                        transcriptionEnabled?: boolean;
+                        transcriptionTargetFieldId?: string;
+                      };
+                      form.setValue(
+                        "config",
+                        {
+                          ...config,
+                          accept: event.target.value.trim() || undefined,
+                        },
+                        { shouldValidate: true },
+                      );
+                    }}
+                  />
+                </label>
 
-              <label className="space-y-2 text-sm font-medium" htmlFor="config-multiple">
-                <span>Permitir múltiples archivos</span>
-                <input
-                  id="config-multiple"
-                  type="checkbox"
-                  className="h-5 w-5"
-                  checked={Boolean((form.watch("config") as { multiple?: boolean }).multiple)}
-                  onChange={(event) => {
-                    const config = form.watch("config") as { accept?: string; multiple?: boolean };
-                    form.setValue(
-                      "config",
-                      {
-                        ...config,
-                        multiple: event.target.checked,
-                      },
-                      { shouldValidate: true },
-                    );
-                  }}
-                />
-              </label>
+                <label className="space-y-2 text-sm font-medium" htmlFor="config-multiple">
+                  <span>Permitir múltiples archivos</span>
+                  <input
+                    id="config-multiple"
+                    type="checkbox"
+                    className="h-5 w-5"
+                    checked={Boolean((form.watch("config") as { multiple?: boolean }).multiple)}
+                    onChange={(event) => {
+                      const config = form.watch("config") as {
+                        accept?: string;
+                        multiple?: boolean;
+                        transcriptionEnabled?: boolean;
+                        transcriptionTargetFieldId?: string;
+                      };
+                      form.setValue(
+                        "config",
+                        {
+                          ...config,
+                          multiple: event.target.checked,
+                        },
+                        { shouldValidate: true },
+                      );
+                    }}
+                  />
+                </label>
+              </div>
+
+              {currentType === "audio" && (
+                <div className="space-y-3 border-t pt-4">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5"
+                      checked={Boolean(
+                        (form.watch("config") as { transcriptionEnabled?: boolean })
+                          .transcriptionEnabled,
+                      )}
+                      onChange={(event) => {
+                        const config = form.watch("config") as {
+                          accept?: string;
+                          multiple?: boolean;
+                          transcriptionEnabled?: boolean;
+                          transcriptionTargetFieldId?: string;
+                        };
+                        form.setValue(
+                          "config",
+                          {
+                            ...config,
+                            transcriptionEnabled: event.target.checked,
+                            transcriptionTargetFieldId: undefined,
+                          },
+                          { shouldValidate: true },
+                        );
+                      }}
+                    />
+                    <span>Habilitar transcripción automática</span>
+                  </label>
+
+                  {(form.watch("config") as { transcriptionEnabled?: boolean })
+                    .transcriptionEnabled && (
+                    <div className="space-y-2 pl-7">
+                      <p className="text-muted-foreground text-xs">
+                        Se creará automáticamente un campo de texto cuando se agregue este campo a
+                        un formulario.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
