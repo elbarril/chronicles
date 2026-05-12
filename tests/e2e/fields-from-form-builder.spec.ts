@@ -48,4 +48,27 @@ test("can create, archive and restore a field from the form builder dialog", asy
   // Verify it is back among the active fields.
   await dialog.getByRole("tab", { name: "Activos" }).click();
   await expect(dialog.getByRole("cell", { name: fieldName })).toBeVisible();
+
+  // Archive it again to test deletion.
+  await dialog
+    .locator("tr", { hasText: fieldName })
+    .getByRole("button", { name: "Archivar" })
+    .click();
+  await dialog.getByRole("tab", { name: "Archivados" }).click();
+  await expect(dialog.getByRole("cell", { name: fieldName })).toBeVisible();
+
+  // Delete the archived field.
+  await dialog
+    .locator("tr", { hasText: fieldName })
+    .getByRole("button", { name: "Eliminar" })
+    .click();
+  await expect(dialog.getByRole("heading", { name: "¿Eliminar campo?" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Eliminar" }).click();
+  await expect(dialog.getByRole("cell", { name: fieldName })).toHaveCount(0);
+
+  // Verify it is permanently gone by switching back to active tab and searching.
+  await dialog.getByRole("tab", { name: "Activos" }).click();
+  await expect(dialog.getByRole("cell", { name: fieldName })).toHaveCount(0);
+  await dialog.getByRole("tab", { name: "Archivados" }).click();
+  await expect(dialog.getByRole("cell", { name: fieldName })).toHaveCount(0);
 });
