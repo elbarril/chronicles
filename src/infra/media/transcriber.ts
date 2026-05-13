@@ -1,5 +1,35 @@
 import { useCallback, useRef, useState } from "react";
 
+// Simple logger for mobile debugging
+const mobileLogger = {
+  logs: [] as string[],
+  log: (message: string, data?: any) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}${data ? `: ${JSON.stringify(data)}` : ''}`;
+    mobileLogger.logs.push(logMessage);
+    console.log(message, data);
+    // Keep only last 50 logs
+    if (mobileLogger.logs.length > 50) {
+      mobileLogger.logs.shift();
+    }
+  },
+  error: (message: string, error?: any) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ERROR: ${message}${error ? `: ${JSON.stringify(error)}` : ''}`;
+    mobileLogger.logs.push(logMessage);
+    console.error(message, error);
+    if (mobileLogger.logs.length > 50) {
+      mobileLogger.logs.shift();
+    }
+  },
+  clear: () => {
+    mobileLogger.logs = [];
+  },
+  getLogs: () => mobileLogger.logs,
+};
+
+export { mobileLogger };
+
 // Type declarations for Web Speech API
 interface SpeechRecognition extends EventTarget {
   lang: string;
@@ -105,7 +135,7 @@ export function useAudioTranscriber(
       return;
     }
 
-    console.log("SpeechRecognition available, initializing...");
+    mobileLogger.log("SpeechRecognition available, initializing...");
 
     const recognition = new SpeechRecognitionConstructor();
     recognitionRef.current = recognition;
@@ -114,7 +144,7 @@ export function useAudioTranscriber(
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    console.log("SpeechRecognition config:", {
+    mobileLogger.log("SpeechRecognition config", {
       lang: recognition.lang,
       continuous: recognition.continuous,
       interimResults: recognition.interimResults,
@@ -123,7 +153,7 @@ export function useAudioTranscriber(
     finalTranscriptRef.current = "";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      console.log("Speech recognition result received:", event.resultIndex, event.results.length);
+      mobileLogger.log("Speech recognition result received", { resultIndex: event.resultIndex, resultsLength: event.results.length });
       let interimTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -135,10 +165,10 @@ export function useAudioTranscriber(
         if (transcript) {
           if (result.isFinal) {
             finalTranscriptRef.current += transcript;
-            console.log("Final transcript:", transcript);
+            mobileLogger.log("Final transcript", transcript);
           } else {
             interimTranscript += transcript;
-            console.log("Interim transcript:", transcript);
+            mobileLogger.log("Interim transcript", transcript);
           }
         }
       }
@@ -150,11 +180,11 @@ export function useAudioTranscriber(
     };
 
     recognition.onstart = () => {
-      console.log("Speech recognition started");
+      mobileLogger.log("Speech recognition started");
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("Speech recognition error:", event.error, event.message);
+      mobileLogger.error("Speech recognition error", { error: event.error, message: event.message });
 
       if (event.error === "not-allowed") {
         setState("error");
@@ -185,7 +215,7 @@ export function useAudioTranscriber(
     };
 
     recognition.onend = () => {
-      console.log("Speech recognition ended");
+      mobileLogger.log("Speech recognition ended");
       if (state === "transcribing") {
         setState("done");
         options.onTranscript?.(finalTranscriptRef.current);
@@ -194,7 +224,7 @@ export function useAudioTranscriber(
     };
 
     setState("transcribing");
-    console.log("Starting speech recognition...");
+    mobileLogger.log("Starting speech recognition...");
     void recognition.start();
   }, [options, state]);
 

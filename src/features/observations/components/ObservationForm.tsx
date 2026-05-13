@@ -23,7 +23,7 @@ import { useObservationForms } from "@/features/forms/hooks/use-forms";
 import { observationMessages } from "@/features/observations/lib/messages";
 import { listObservationFormInstances } from "@/features/observations/services/observation-service";
 import { useAudioRecorder } from "@/infra/media/recorder";
-import { useAudioTranscriber } from "@/infra/media/transcriber";
+import { useAudioTranscriber, mobileLogger } from "@/infra/media/transcriber";
 import { buildResolver } from "@/lib/zod";
 
 interface ParticipantOption {
@@ -205,6 +205,7 @@ export function ObservationForm({
     Array<{ instance: FormFieldInstance; field: Field }>
   >([]);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
 
   const formOptions = useMemo(() => {
     if (!isEditing) {
@@ -358,6 +359,14 @@ export function ObservationForm({
       toast.error("Error en la transcripción de audio");
     }
   }, [audioRecorder.state, transcriber.state]);
+
+  // Update logs from mobileLogger
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogs(mobileLogger.getLogs());
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleSubmit(values: ObservationFormValues): Promise<void> {
     if (!values.formId) {
@@ -630,6 +639,32 @@ export function ObservationForm({
             </Button>
           ) : null}
         </div>
+
+        {/* Mobile Debug Logs */}
+        {logs.length > 0 && (
+          <div className="mt-4 rounded border bg-gray-100 p-2 text-xs">
+            <div className="mb-2 flex items-center justify-between">
+              <strong>Debug Logs</strong>
+              <button
+                type="button"
+                onClick={() => {
+                  mobileLogger.clear();
+                  setLogs([]);
+                }}
+                className="text-blue-600 hover:underline"
+              >
+                Limpiar
+              </button>
+            </div>
+            <div className="max-h-40 overflow-y-auto">
+              {logs.map((log, index) => (
+                <div key={index} className="mb-1 font-mono">
+                  {log}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </Form>
   );
