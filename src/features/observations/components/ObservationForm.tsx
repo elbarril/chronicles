@@ -641,30 +641,32 @@ export function ObservationForm({
         </div>
 
         {/* Mobile Debug Logs */}
-        {logs.length > 0 && (
-          <div className="mt-4 rounded border bg-gray-100 p-2 text-xs">
-            <div className="mb-2 flex items-center justify-between">
-              <strong>Debug Logs</strong>
-              <button
-                type="button"
-                onClick={() => {
-                  mobileLogger.clear();
-                  setLogs([]);
-                }}
-                className="text-blue-600 hover:underline"
-              >
-                Limpiar
-              </button>
-            </div>
-            <div className="max-h-40 overflow-y-auto">
-              {logs.map((log, index) => (
+        <div className="mt-4 rounded border bg-gray-100 p-2 text-xs">
+          <div className="mb-2 flex items-center justify-between">
+            <strong>Debug Logs</strong>
+            <button
+              type="button"
+              onClick={() => {
+                mobileLogger.clear();
+                setLogs([]);
+              }}
+              className="text-blue-600 hover:underline"
+            >
+              Limpiar
+            </button>
+          </div>
+          <div className="max-h-40 overflow-y-auto">
+            {logs.length === 0 ? (
+              <div className="text-gray-500">No hay logs aún - usá la transcripción para ver errores</div>
+            ) : (
+              logs.map((log, index) => (
                 <div key={index} className="mb-1 font-mono">
                   {log}
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
-        )}
+        </div>
       </form>
     </Form>
   );
