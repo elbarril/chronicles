@@ -3,9 +3,9 @@ import { useCallback, useRef, useState } from "react";
 // Simple logger for mobile debugging
 const mobileLogger = {
   logs: [] as string[],
-  log: (message: string, data?: any) => {
+  log: (message: string, data?: unknown) => {
     const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}${data ? `: ${JSON.stringify(data)}` : ''}`;
+    const logMessage = `[${timestamp}] ${message}${data ? `: ${JSON.stringify(data)}` : ""}`;
     mobileLogger.logs.push(logMessage);
     console.log(message, data);
     // Keep only last 50 logs
@@ -13,9 +13,9 @@ const mobileLogger = {
       mobileLogger.logs.shift();
     }
   },
-  error: (message: string, error?: any) => {
+  error: (message: string, error?: unknown) => {
     const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ERROR: ${message}${error ? `: ${JSON.stringify(error)}` : ''}`;
+    const logMessage = `[${timestamp}] ERROR: ${message}${error ? `: ${JSON.stringify(error)}` : ""}`;
     mobileLogger.logs.push(logMessage);
     console.error(message, error);
     if (mobileLogger.logs.length > 50) {
@@ -153,7 +153,10 @@ export function useAudioTranscriber(
     finalTranscriptRef.current = "";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      mobileLogger.log("Speech recognition result received", { resultIndex: event.resultIndex, resultsLength: event.results.length });
+      mobileLogger.log("Speech recognition result received", {
+        resultIndex: event.resultIndex,
+        resultsLength: event.results.length,
+      });
       let interimTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -184,7 +187,10 @@ export function useAudioTranscriber(
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      mobileLogger.error("Speech recognition error", { error: event.error, message: event.message });
+      mobileLogger.error("Speech recognition error", {
+        error: event.error,
+        message: event.message,
+      });
 
       if (event.error === "not-allowed") {
         setState("error");
