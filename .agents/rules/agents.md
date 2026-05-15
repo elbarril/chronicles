@@ -47,7 +47,7 @@ If the task affects `.agents/`, delegate to
 Implementation work is organized around generic updates, not roadmap phases.
 
 | Skill | Use when |
-|---|---|
+| --- | --- |
 | `.agents/skills/change-planner/SKILL.md` | A non-trivial change needs a confirmed plan before code is written. |
 | `.agents/skills/change-implementer/SKILL.md` | A confirmed plan is ready and implementation can begin. |
 | `.agents/skills/change-closeout/SKILL.md` | The change introduced new patterns, dependencies, domain concepts, or anything that must reach `docs/`, memory, or skills. Skip otherwise. |

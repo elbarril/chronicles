@@ -134,17 +134,20 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Context:** The user requested to translate all files to English, leaving rioplatense Spanish strictly for user-facing UI content and human-agent conversations. Past entries in this decisions log were in Spanish.
 
 **Decision:**
+
 1. A strict bilingual split is adopted: English for all internal project artifacts (code, tests, agent rules, docs, route URLs, dev-facing errors), and rioplatense Spanish exclusively for end-user UI strings (JSX text, toasts, labels, `lang="es-AR"`).
 2. The domain glossary adopts a 3-column format: `Spanish term | Canonical English identifier | English definition`.
 3. Created `.agents/rules/language-policy.md` to encode this boundary for all agents.
 4. As a one-time exception, all historical entries in this `decisions.md` file and other agent memory files were translated to English.
 
 **Justification:**
+
 - Keeps the repository aligned with the mainstream English AI-coding ecosystem.
 - Preserves the product requirement that Practitioners consume the app in rioplatense Spanish.
 - Translating the historical decisions log (despite being an append-only file) avoids cognitive dissonance for agents reading mixed-language context.
 
 **Consequences:**
+
 - All future entries in `decisions.md` MUST be written in English.
 - Developers and agents must map Spanish UI labels to English service errors using the new `src/**/messages.ts` convention.
 
@@ -155,6 +158,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Context:** Deep analysis of the `.agents/` workspace revealed several issues: all three skill files were written in Spanish (violating the language policy), two bridge files (`.windsurf/rules/agents.md`, `.cursor/rules/agents.mdc`) used Spanish text, the bootstrap sequence was duplicated in three places (`AGENTS.md`, `.agents/rules/agents.md`, `.agents/README.md`), `project-context.md` had an explicitly acknowledged duplicate of AGENTS.md principles, and three orphaned files existed that were not indexed or reachable via bootstrap (`memory/f1-closeout.md`, `prompts/f0-scaffolding-planning.md`, `prompts/f1-field-crud-planning.md`).
 
 **Decision:**
+
 1. Translated all skill files to English: `agent-workspace-manager/SKILL.md`, `phase-closeout/SKILL.md`, `update-project-docs/SKILL.md`.
 2. Fixed bridge files to English: `.windsurf/rules/agents.md`, `.cursor/rules/agents.mdc`.
 3. Removed the "Encounter Protocol" section from `.agents/README.md` (third copy of bootstrap) and replaced "Current Technical State" with a pointer to `project-context.md`.
@@ -166,6 +170,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Justification:** Each change addressed either a language policy violation (hallucination risk) or a duplication that creates divergence risk across multi-agent systems. Orphaned files not reachable via bootstrap paths are pure noise.
 
 **Consequences:**
+
 - All `.agents/` files are now fully in English, consistent with language policy.
 - Bootstrap is defined in one canonical place (`AGENTS.md`) and referenced by bridges, not duplicated.
 - `project-context.md` no longer self-duplicates AGENTS.md content.
@@ -219,11 +224,13 @@ Log of technical and product decisions. Only append entries, never edit existing
 4. **`.agents/workflows/verify.md`**: new workflow defining the correct verification sequence for implementation sessions (`pnpm test` → `pnpm test:e2e` → `pnpm check` before commit). Also available as `/verify` Cascade slash command via `.windsurf/workflows/verify.md` stub.
 
 **Justification:**
+
 - Removing the build from the default `test:e2e` path eliminates ~1.5 s per iteration and removes the `dist/` dependency.
 - Switching to `list` reporter eliminates the blocking HTTP server that made agent sessions unrecoverable without manual intervention.
 - Formalizing failure classes and fixes reduces multi-turn diagnosis loops to a single lookup.
 
 **Consequences:**
+
 - `pnpm test:e2e` is now safe to run as a Blocking command — it always exits cleanly.
 - `pnpm check` is the canonical pre-commit verification command.
 - Agents must consult `test-fix` skill before retrying a failing test more than once.
@@ -238,6 +245,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Decision:** Implemented a full F3 baseline with the following scope:
 
 **F3.0 — Groups and Participants:**
+
 - Domain: `Group` and `Participant` in `src/domain/group.ts` / `src/domain/participant.ts` with Zod schemas.
 - Persistence: `group-repository` (CRUD, archive/restore, participant count), `participant-repository` (bulk sync by groupId).
 - Feature module: `src/features/groups/` with service, hooks, pages, and components.
@@ -245,6 +253,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 - Routing: `/groups` (list), `/groups/:id/edit` + main navigation entry "Grupos".
 
 **F3.1 — Encounters:**
+
 - Domain: `Encounter` expanded with `formVersion` and `fieldIds[]` (form snapshot frozen at creation time).
 - Persistence: `encounter-repository`; encounter service freezes the form snapshot on `create` and sets `endedAt` on `finish`.
 - `resolveEncounterDependencies`: single call that hydrates fields, participants, form, and observations together for the detail page.
@@ -253,6 +262,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 - Routing: `/encounters` (list, with status filter tabs), `/encounters/new`, `/encounters/:id`.
 
 **F3.2 — Observations:**
+
 - Domain: `Observation` expanded with typed scalar and media value union (`fieldId → scalar | mediaId`).
 - Persistence: `observation-repository` with media cleanup on update/delete.
 - Observation service: normalizes media, validates per-field dynamic schema, `observation-values-schema.ts` builder.
@@ -260,6 +270,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 - `ObservationForm`: dynamic field renderer dispatch table (text/number/boolean/choice/media), file picker for all media types, `useAudioRecorder` hook for in-app audio recording.
 
 **Infrastructure:**
+
 - Dexie schema bumped to v4: `groups` (index `institutionId`), `participants` (index `groupId`), `encounters` (index `groupId,formId`), `media` table. Migration adds default Institution row.
 - `infra/media/store.ts`: Blob CRUD with object URL lifecycle management.
 - `infra/media/recorder.ts`: `useAudioRecorder` hook wrapping the MediaRecorder API.
@@ -267,6 +278,7 @@ Log of technical and product decisions. Only append entries, never edit existing
 - `error.ts`: added `GROUP_*`, `ENCOUNTER_*`, `OBSERVATION_*` error codes.
 
 **Testing:**
+
 - Unit: `tests/unit/group-schema.test.ts`, `tests/unit/participant-schema.test.ts`, `tests/unit/encounter-schema.test.ts`, `tests/unit/observation-schema.test.ts`.
 - E2E: `tests/e2e/groups-crud.spec.ts` (create/edit/archive/restore), `tests/e2e/encounter-capture.spec.ts` (full flow + media files).
 - All 29 unit tests and 5 E2E tests passing (`pnpm check` green).
@@ -274,11 +286,13 @@ Log of technical and product decisions. Only append entries, never edit existing
 **Skill evaluation:** No new skill required. F3 patterns (feature module + repository + dynamic form + media infra) are a direct extension of the established F1/F2 pattern. Existing `test-fix` and `phase-closeout` skills remain current.
 
 **Justification:**
+
 - Form snapshot strategy ensures encounter data is immutable regardless of future form edits.
 - Media stored as Blobs in dedicated table keeps main observation records lightweight and indexable.
 - Deep-link `/encounters/:id/observations/new` supports mobile capture workflows where users tap a shared link to open directly in capture mode.
 
 **Consequences:**
+
 - F3 completed in functional baseline state; F4 (Export/Import) can now build on the complete domain.
 - Dexie persistence contract changed to v4 — documented in `stack-and-architecture.md` sections 5.2 and 5.3.
 - `project-context.md` state transitions to "F3 implemented".
@@ -297,12 +311,14 @@ Log of technical and product decisions. Only append entries, never edit existing
 Both skills have Windsurf slash command stubs in `.windsurf/workflows/`.
 
 **Justification:**
+
 - Formalizes every implementation axis observed across F1–F3 into a reusable, auditable protocol.
 - Eliminates ad-hoc planning and reduces agent session startup cost for future phases.
 - The planner/implementer split enforces a confirmation gate — agents cannot start coding without an approved scope.
 - Delegation to `phase-closeout` at the end of `phase-implementer` preserves the documentation invariant without duplicating its logic.
 
 **Consequences:**
+
 - Future phases MUST start with `phase-planner` and proceed through `phase-implementer`.
 - Both skills are listed in `.agents/README.md`.
 - The Windsurf slash commands `/phase-planner` and `/phase-implementer` are now available.

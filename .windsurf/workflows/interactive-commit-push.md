@@ -10,7 +10,7 @@ description: Create commit and push with interactive branch and change type sele
 
 2. **Interactive branch selection** (UI buttons):
    - Show current branch and present two options:
-     - **Button: "Usar rama actual (<branch>)"** → Continue without asking for branch again.
+     - **Button: "Usar rama actual (branch)"** → Continue without asking for branch again.
      - **Button: "Cambiar rama"** → Open text input to enter destination branch, validate existence locally/remotely.
 
 3. **Interactive change type selection** (UI dropdown):

@@ -9,7 +9,7 @@ something inside `.agents/`.
 ## File Map
 
 | Path | Role | When to read or edit |
-|---|---|---|
+| --- | --- | --- |
 | `memory/project-context.md` | Concise current project state | Mandatory bootstrap read every session |
 | `memory/decisions.md` | Append-only log of decisions | On-demand: revisiting a past decision or appending a new one (do **not** load on every session) |
 | `memory/glossary.md` | Canonical domain vocabulary | On-demand: when naming or renaming domain concepts |

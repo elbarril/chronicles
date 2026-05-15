@@ -16,13 +16,13 @@ When starting any session:
 
 Everything else is **on-demand**. Read only what the active task requires:
 
-| Read this | When |
-|---|---|
-| `docs/stack-and-architecture.md` | Task touches the stack, architecture, folder structure, persistence, or domain model. Respect its maintenance protocol (section 8). |
-| `.agents/memory/decisions.md` | You need to revisit a past decision, or you are about to append a new one. Do **not** load it on every session — it is a long, append-only log. |
-| `.agents/memory/glossary.md` | You are creating or renaming domain concepts, or surface terms that must stay canonical. |
-| `.agents/README.md` | You are about to modify anything inside `.agents/`. |
-| Specific skill `SKILL.md` | The active task matches the skill's trigger conditions. |
+| Read this                        | When                                                                                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/stack-and-architecture.md` | Task touches the stack, architecture, folder structure, persistence, or domain model. Respect its maintenance protocol (section 8).             |
+| `.agents/memory/decisions.md`    | You need to revisit a past decision, or you are about to append a new one. Do **not** load it on every session — it is a long, append-only log. |
+| `.agents/memory/glossary.md`     | You are creating or renaming domain concepts, or surface terms that must stay canonical.                                                        |
+| `.agents/README.md`              | You are about to modify anything inside `.agents/`.                                                                                             |
+| Specific skill `SKILL.md`        | The active task matches the skill's trigger conditions.                                                                                         |
 
 If the task affects `.agents/`, delegate to `.agents/skills/agent-workspace-manager/SKILL.md`.
 

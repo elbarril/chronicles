@@ -51,14 +51,14 @@ Translated to technology:
 | Icons | **lucide-react** | Lightweight, tree-shakeable. |
 | Toast Notifications | **sonner** | Lightweight, accessible toast system for user-facing feedback messages. |
 | Forms | **React Hook Form + Zod** | Performance, reusable declarative validation between runtime and types. |
-| Local Persistence| **IndexedDB via Dexie.js** | Handles native `Blob`/`File` (image, video, audio), transactions, indices. |
+| Local Persistence | **IndexedDB via Dexie.js** | Handles native `Blob`/`File` (image, video, audio), transactions, indices. |
 | Media Capture | **MediaRecorder API + `<input type=file capture>`** | Browser APIs, no external services. |
 | PWA / Offline | **vite-plugin-pwa (Workbox)** | Installable app functional without connection. |
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
 | ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v3` since F11). Legacy `chronicle-full-v1`, `chronicle-full-v2` and `chronicle-encounter-v1` are no longer importable (the underlying record shapes changed across F9 and F11). |
 | Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
-| Package Manager| **pnpm** | Fast, deterministic, disk-efficient. |
+| Package Manager | **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
 
 ### F7: Optional External AI Integration (Google Gemini)
@@ -344,6 +344,7 @@ The roadmap above is historical. Future work no longer follows the `F<N>` phase 
 This repository follows a strict bilingual split: internal artifacts are in English, while user-facing content remains in rioplatense Spanish.
 
 **English (Internal Artifacts):**
+
 - Code identifiers, types, functions, variables, constants, enums
 - File and directory names
 - Code comments, JSDoc/TSDoc
@@ -357,6 +358,7 @@ This repository follows a strict bilingual split: internal artifacts are in Engl
 - Glossary term definitions (column 3 in `glossary.md`)
 
 **Rioplatense Spanish (User-Facing Content):**
+
 - Text inside JSX/HTML that the user reads: headings, labels, placeholders, button text, empty states, confirmation dialogs, captions, legends
 - `toast.*()` copy that surfaces to the user
 - `aria-label`, `aria-description`, `aria-live` content (for screen readers)

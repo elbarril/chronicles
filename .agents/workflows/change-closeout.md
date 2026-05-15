@@ -14,6 +14,6 @@ Execute the canonical skill `.agents/skills/change-closeout/SKILL.md`.
 
 ## Notes
 
-- This workflow is the canonical entry point for closeout; the legacy `phase-closeout` was removed when the project moved away from the F<N> roadmap model.
+- This workflow is the canonical entry point for closeout; the legacy `phase-closeout` was removed when the project moved away from the F(N) roadmap model.
 - Skip closeout entirely when the change is self-contained and does not introduce new patterns, dependencies, domain concepts, or cross-cutting impact.
 - Do not duplicate business logic outside the canonical skill.

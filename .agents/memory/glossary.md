@@ -3,7 +3,7 @@
 Canonical terminology of the Chronicle project. Every agent must use these terms consistently.
 
 | Spanish Term | Canonical Identifier | Definition (English) |
-|---|---|---|
+| --- | --- | --- |
 | Actividad | Activity | The task or exercise that the group performs during a session. (Domain-level concept; since F9 there is no `activity` field on encounters — the encounter `name` plays that role.) |
 | Campo | Field | Typed definition of a data point to capture during an observation (text, number, date, image, video, audio, etc.). Since F11 there is no dedicated `/fields*` route in the UI: fields are managed inside the form-builder via the `Editar campos` dialog. |
 | Instancia de campo | FormFieldInstance | A single occurrence of a Field inside a Form, carrying a stable `instanceId`, the referenced `fieldId`, and an optional `labelOverride`. A form can contain multiple instances of the same field (each with its own override) — e.g. "Foto antes" and "Foto después" both pointing to the same `image` field. Introduced in F11. |

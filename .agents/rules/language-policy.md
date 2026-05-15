@@ -1,10 +1,11 @@
 # Language Policy (Canonical Rule)
 
-This repository follows a strict bilingual split: internal artifacts are in English, while user-facing content remains in rioplatense Spanish. 
+This repository follows a strict bilingual split: internal artifacts are in English, while user-facing content remains in rioplatense Spanish.
 
 ## 1. English (Internal Artifacts)
 
 Agents MUST use English for:
+
 - Code identifiers, types, functions, variables, constants, enums
 - File and directory names
 - Code comments, JSDoc/TSDoc
@@ -20,6 +21,7 @@ Agents MUST use English for:
 ## 2. Rioplatense Spanish (User-Facing Content)
 
 Agents MUST use Spanish for:
+
 - Text inside JSX/HTML that the user reads: headings, labels, placeholders, button text, empty states, confirmation dialogs, captions, legends
 - `toast.*()` copy that surfaces to the user
 - `aria-label`, `aria-description`, `aria-live` content (for screen readers)
@@ -33,11 +35,13 @@ Agents MUST use Spanish for:
 Never throw a Spanish string from a service layer.
 
 Instead, throw an `AppError` with a stable English code:
+
 ```typescript
 throw new AppError("FIELD_KEY_TAKEN", "A field with the same key already exists.");
 ```
 
 At the UI/hook boundary, catch the `AppError` and map its code to Spanish copy using a per-feature `messages.ts` catalog:
+
 ```typescript
 const message = error instanceof AppError && error.code === "FIELD_KEY_TAKEN"
   ? fieldMessages.keyAlreadyTaken

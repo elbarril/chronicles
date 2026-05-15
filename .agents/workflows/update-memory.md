@@ -9,7 +9,7 @@ description: Update a memory file in .agents/memory/
 1. Identify which memory file corresponds to the change:
 
    | File | When |
-   |--------|--------|
+   | -------- | -------- |
    | `project-context.md` | Changes in project state, stack, or purpose |
    | `decisions.md` | Architectural, technical, or product decisions |
    | `glossary.md` | New or redefined domain terms |
