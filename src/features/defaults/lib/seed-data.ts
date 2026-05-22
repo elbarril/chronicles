@@ -10,12 +10,7 @@ export const DEFAULT_AUDIO_FIELD_ID = "00000000-0000-4000-8000-00000000d001";
 export const DEFAULT_LONG_TEXT_FIELD_ID = "00000000-0000-4000-8000-00000000d002";
 export const DEFAULT_FORM_ID = "00000000-0000-4000-8000-00000000d101";
 
-export const DEFAULT_FIELD_IDS: readonly string[] = [
-  DEFAULT_AUDIO_FIELD_ID,
-  DEFAULT_LONG_TEXT_FIELD_ID,
-] as const;
-
-// MAE Form IDs - Integrated into defaults
+// MAE Form and Field IDs - Integrated into defaults (forms + fields)
 export const MAE_EVAL_FORM_ID = "00000000-0000-4000-8000-00000000d103";
 export const MAE_OBS_FORM_ENC_1_ID = "00000000-0000-4000-8000-00000000d104";
 export const MAE_OBS_FORM_ENC_2_ID = "00000000-0000-4000-8000-00000000d105";
@@ -40,31 +35,6 @@ export const DEFAULT_FORM_IDS: readonly string[] = [
 ] as const;
 
 type DefaultFieldSeed = Omit<Field, "createdAt" | "updatedAt" | "archivedAt">;
-
-export const DEFAULT_FIELD_SEEDS: readonly DefaultFieldSeed[] = [
-  {
-    id: DEFAULT_AUDIO_FIELD_ID,
-    type: "audio",
-    key: "audio_de_observacion",
-    label: "Audio de observación",
-    required: false,
-    helpText: "",
-    config: {
-      multiple: false,
-      transcriptionEnabled: true,
-      transcriptionTargetFieldId: undefined,
-    },
-  },
-  {
-    id: DEFAULT_LONG_TEXT_FIELD_ID,
-    type: "longText",
-    key: "transcripcion_audio_de_observacion",
-    label: "Transcripción de audio de observación",
-    required: false,
-    helpText: "",
-    config: {},
-  },
-] as const;
 
 /** Stable instance IDs for default form instances. */
 export const DEFAULT_FORM_INSTANCE_AUDIO_ID = "00000000-0000-4000-8000-00000000e001";
@@ -4152,6 +4122,42 @@ export const MAE_OBS_FIELD_SEEDS: readonly MaeObsFieldSeed[] = [
     helpText: "",
     config: {},
   },
+] as const;
+
+// Default field IDs - includes original defaults + MAE fields
+export const DEFAULT_FIELD_IDS: readonly string[] = [
+  DEFAULT_AUDIO_FIELD_ID,
+  DEFAULT_LONG_TEXT_FIELD_ID,
+  ...MAE_EVAL_FIELD_IDS,
+  ...MAE_OBS_FIELD_IDS,
+] as const;
+
+// Default field seeds - includes original defaults + MAE fields
+export const DEFAULT_FIELD_SEEDS: readonly DefaultFieldSeed[] = [
+  {
+    id: DEFAULT_AUDIO_FIELD_ID,
+    type: "audio",
+    key: "audio_de_observacion",
+    label: "Audio de observación",
+    required: false,
+    helpText: "",
+    config: {
+      multiple: false,
+      transcriptionEnabled: true,
+      transcriptionTargetFieldId: undefined,
+    },
+  },
+  {
+    id: DEFAULT_LONG_TEXT_FIELD_ID,
+    type: "longText",
+    key: "transcripcion_audio_de_observacion",
+    label: "Transcripción de audio de observación",
+    required: false,
+    helpText: "",
+    config: {},
+  },
+  ...MAE_EVAL_FIELD_SEEDS,
+  ...MAE_OBS_FIELD_SEEDS,
 ] as const;
 
 // MAE Observation Forms (IDs defined above in DEFAULT_FORM_IDS)
