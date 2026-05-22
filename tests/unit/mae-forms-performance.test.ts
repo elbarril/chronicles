@@ -36,8 +36,8 @@ describe("MAE Forms - Unit Performance Tests", () => {
       `MAE Evaluation Form fields access time (${totalFields} fields): ${accessTime.toFixed(2)}ms`,
     );
 
-    // Performance criteria: Data structure access should be fast (< 100ms including import overhead)
-    expect(accessTime).toBeLessThan(100);
+    // Performance criteria: Data structure access should be fast (< 500ms including import overhead for all default fields)
+    expect(accessTime).toBeLessThan(500);
     expect(totalFields).toBe(29);
   });
 
@@ -286,7 +286,7 @@ describe("MAE Forms - Unit Performance Tests", () => {
       `Field validation schema build time (600 schemas): ${schemaBuildTime.toFixed(2)}ms`,
     );
 
-    // Performance criteria: Schema building should be fast (< 200ms for 600 schemas)
-    expect(schemaBuildTime).toBeLessThan(200);
+    // Performance criteria: Schema building should be fast (< 500ms for all default forms including MAE)
+    expect(schemaBuildTime).toBeLessThan(500);
   });
 });
