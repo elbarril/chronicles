@@ -37,7 +37,7 @@ export function FormListPage(): JSX.Element {
             variant="outline"
             disabled={defaults.isLoading}
             onClick={() => {
-              void defaults.restoreForm();
+              void defaults.restoreAllForms();
             }}
           >
             {defaultsMessages.loadDefaultForm}

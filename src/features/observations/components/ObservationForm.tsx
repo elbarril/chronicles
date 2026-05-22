@@ -156,6 +156,15 @@ function getDefaultValue(field: Field): unknown {
   switch (field.type) {
     case "boolean":
       return false;
+    case "date":
+    case "time":
+    case "datetime":
+    case "number":
+    case "rating":
+    case "text":
+    case "longText":
+    case "singleChoice":
+      return "";
     case "multiChoice":
       return [];
     default:
@@ -180,6 +189,10 @@ function parseFieldValue(field: Field, value: string): unknown {
 
   if (field.type === "boolean") {
     return value === "true";
+  }
+
+  if (field.type === "date" || field.type === "time" || field.type === "datetime") {
+    return value;
   }
 
   return value;
@@ -705,15 +718,43 @@ export function ObservationForm({
                             checked={Boolean(valueField.value)}
                             onChange={(event) => valueField.onChange(event.target.checked)}
                           />
-                        ) : (
+                        ) : field.type === "date" ? (
+                          <input
+                            type="date"
+                            className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                            value={String(valueField.value ?? "")}
+                            onChange={(event) => valueField.onChange(event.target.value)}
+                          />
+                        ) : field.type === "time" ? (
+                          <input
+                            type="time"
+                            className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                            value={String(valueField.value ?? "")}
+                            onChange={(event) => valueField.onChange(event.target.value)}
+                          />
+                        ) : field.type === "datetime" ? (
+                          <input
+                            type="datetime-local"
+                            className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                            value={String(valueField.value ?? "")}
+                            onChange={(event) => valueField.onChange(event.target.value)}
+                          />
+                        ) : field.type === "number" || field.type === "rating" ? (
                           <Input
-                            type={
-                              field.type === "number" || field.type === "rating" ? "number" : "text"
-                            }
+                            type="number"
+                            min={field.config.min}
+                            max={field.config.max}
+                            step={field.type === "rating" ? field.config.step : undefined}
                             value={String(valueField.value ?? "")}
                             onChange={(event) =>
                               valueField.onChange(parseFieldValue(field, event.target.value))
                             }
+                          />
+                        ) : (
+                          <Input
+                            type="text"
+                            value={String(valueField.value ?? "")}
+                            onChange={(event) => valueField.onChange(event.target.value)}
                           />
                         )}
                       </FormControl>

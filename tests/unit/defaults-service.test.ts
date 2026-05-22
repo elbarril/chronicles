@@ -75,6 +75,8 @@ import {
   MAE_OBS_FORM_ENC_8_ID,
 } from "@/features/defaults/lib/seed-data";
 import {
+  restoreAllDefaultFields,
+  restoreAllDefaultForms,
   restoreDefaultFields,
   restoreDefaultForm,
   restoreMAEEvaluationFields,
@@ -1403,6 +1405,111 @@ describe("defaults service", () => {
       expect(fieldIds).toContain(MAE_OBS_FIELD_FECHA_ENCUENTRO_2_ID);
       expect(fieldIds).not.toContain(MAE_OBS_FIELD_CLIMA_GRUPAL_FAVORECEDOR_ID);
       expect(fieldIds).not.toContain(MAE_OBS_FIELD_OBSERVACIONES_GENERALES_ID);
+    });
+  });
+
+  describe("restoreAllDefaultFields", () => {
+    it("creates all default fields when none exist", async () => {
+      fieldsBulkGetMock.mockResolvedValueOnce(Array(DEFAULT_FIELD_IDS.length).fill(undefined));
+
+      const outcome = await restoreAllDefaultFields();
+
+      expect(outcome.created).toBe(DEFAULT_FIELD_IDS.length);
+      expect(outcome.restored).toBe(0);
+      expect(outcome.unchanged).toBe(0);
+      expect(fieldsAddMock).toHaveBeenCalledTimes(DEFAULT_FIELD_IDS.length);
+    });
+
+    it("restores archived default fields", async () => {
+      const archivedFields = DEFAULT_FIELD_IDS.map((id) => archivedRow(id));
+      fieldsBulkGetMock.mockResolvedValueOnce(archivedFields);
+      fieldsUpdateMock.mockResolvedValue(1);
+
+      const outcome = await restoreAllDefaultFields();
+
+      expect(outcome.created).toBe(0);
+      expect(outcome.restored).toBe(DEFAULT_FIELD_IDS.length);
+      expect(outcome.unchanged).toBe(0);
+      expect(fieldsUpdateMock).toHaveBeenCalledTimes(DEFAULT_FIELD_IDS.length);
+    });
+
+    it("leaves active default fields untouched", async () => {
+      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
+      fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
+
+      const outcome = await restoreAllDefaultFields();
+
+      expect(outcome.created).toBe(0);
+      expect(outcome.restored).toBe(0);
+      expect(outcome.unchanged).toBe(DEFAULT_FIELD_IDS.length);
+      expect(fieldsAddMock).not.toHaveBeenCalled();
+      expect(fieldsUpdateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("restoreAllDefaultForms", () => {
+    it("creates all 10 default forms when none exist", async () => {
+      fieldsBulkGetMock.mockResolvedValueOnce(Array(DEFAULT_FIELD_IDS.length).fill(undefined));
+      formsBulkGetMock.mockResolvedValueOnce(Array(DEFAULT_FORM_IDS.length).fill(undefined));
+
+      const outcome = await restoreAllDefaultForms();
+
+      expect(outcome.created).toBe(DEFAULT_FORM_IDS.length);
+      expect(outcome.restored).toBe(0);
+      expect(outcome.unchanged).toBe(0);
+      expect(outcome.fields.created).toBe(DEFAULT_FIELD_IDS.length);
+      expect(formsAddMock).toHaveBeenCalledTimes(DEFAULT_FORM_IDS.length);
+
+      const addedFormIds = formsAddMock.mock.calls.map((call) => call[0].id);
+      expect(addedFormIds).toEqual(expect.arrayContaining([...DEFAULT_FORM_IDS]));
+    });
+
+    it("restores archived default forms", async () => {
+      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
+      const archivedForms = DEFAULT_FORM_IDS.map((id) => ({
+        ...activeFormRow(id),
+        archivedAt,
+      }));
+      fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
+      formsBulkGetMock.mockResolvedValueOnce(archivedForms);
+      formsUpdateMock.mockResolvedValue(1);
+
+      const outcome = await restoreAllDefaultForms();
+
+      expect(outcome.created).toBe(0);
+      expect(outcome.restored).toBe(DEFAULT_FORM_IDS.length);
+      expect(outcome.unchanged).toBe(0);
+      expect(outcome.fields.unchanged).toBe(DEFAULT_FIELD_IDS.length);
+      expect(formsUpdateMock).toHaveBeenCalledTimes(DEFAULT_FORM_IDS.length);
+    });
+
+    it("leaves active default forms untouched", async () => {
+      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeForms = DEFAULT_FORM_IDS.map((id) => activeFormRow(id));
+      fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
+      formsBulkGetMock.mockResolvedValueOnce(activeForms);
+
+      const outcome = await restoreAllDefaultForms();
+
+      expect(outcome.created).toBe(0);
+      expect(outcome.restored).toBe(0);
+      expect(outcome.unchanged).toBe(DEFAULT_FORM_IDS.length);
+      expect(outcome.fields.unchanged).toBe(DEFAULT_FIELD_IDS.length);
+      expect(formsAddMock).not.toHaveBeenCalled();
+      expect(formsUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("restores all 10 forms including basic, MAE evaluation, and MAE observation forms", async () => {
+      fieldsBulkGetMock.mockResolvedValueOnce(Array(DEFAULT_FIELD_IDS.length).fill(undefined));
+      formsBulkGetMock.mockResolvedValueOnce(Array(DEFAULT_FORM_IDS.length).fill(undefined));
+
+      await restoreAllDefaultForms();
+
+      const addedFormIds = formsAddMock.mock.calls.map((call) => call[0].id);
+      expect(addedFormIds).toContain(DEFAULT_FORM_ID);
+      expect(addedFormIds).toContain(MAE_EVAL_FORM_ID);
+      expect(addedFormIds).toContain(MAE_OBS_FORM_ENC_1_ID);
+      expect(addedFormIds).toContain(MAE_OBS_FORM_ENC_8_ID);
     });
   });
 });

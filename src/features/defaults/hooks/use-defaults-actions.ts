@@ -6,6 +6,7 @@ import {
   type DemoEncounterOutcome,
   type DemoEncounterRemovalOutcome,
   removeDemoEncounter,
+  restoreAllDefaultForms,
   restoreDefaultFields,
   restoreDefaultForm,
   seedDemoEncounter,
@@ -47,6 +48,27 @@ export function useDefaultsActions() {
       );
     } catch (error) {
       toast.error(defaultsMessages.formRestoreError);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function restoreAllForms() {
+    setIsLoading(true);
+
+    try {
+      const outcome = await restoreAllDefaultForms();
+      const formChanged = outcome.created + outcome.restored;
+      const fieldsChanged = outcome.fields.created + outcome.fields.restored;
+
+      toast.success(
+        formChanged + fieldsChanged > 0
+          ? defaultsMessages.allFormsRestored
+          : defaultsMessages.allFormsAlreadyActive,
+      );
+    } catch (error) {
+      toast.error(defaultsMessages.allFormsRestoreError);
       throw error;
     } finally {
       setIsLoading(false);
@@ -99,6 +121,7 @@ export function useDefaultsActions() {
     isLoading,
     restoreFields,
     restoreForm,
+    restoreAllForms,
     loadDemoEncounter,
     removeDemoEncounter: deleteDemoEncounter,
   };

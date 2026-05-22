@@ -19,6 +19,7 @@ v1 is a **local-first** web app (without backend) based on Vite + React + TypeSc
 Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`](docs/stack-and-architecture.md).
 
 The documentation now includes:
+
 - Technology stack with up-to-date details (Tailwind CSS v4, ESLint 9 Flat Config, TypeScript strict mode)
 - TypeScript configuration and strict mode options
 - Messaging strategy (bilingual: Spanish UI messages, English error codes)

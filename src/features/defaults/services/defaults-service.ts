@@ -157,6 +157,105 @@ export async function restoreDefaultForm(): Promise<RestoreOutcome & { fields: R
 }
 
 /**
+ * Ensures every default field exists and is active.
+ * - Missing rows are created.
+ * - Archived rows are restored.
+ * - Active rows are left untouched.
+ *
+ * This restores all default fields including MAE fields.
+ */
+export async function restoreAllDefaultFields(): Promise<RestoreOutcome> {
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.fields, async () => {
+    const existingRows = await db.fields.bulkGet(DEFAULT_FIELD_SEEDS.map((seed) => seed.id));
+
+    for (const [index, seed] of DEFAULT_FIELD_SEEDS.entries()) {
+      const existing = existingRows[index];
+      const now = nowIsoString();
+
+      if (!existing) {
+        const field: Field = fieldSchema.parse({
+          ...seed,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
+
+        await db.fields.add(field);
+        outcome.created += 1;
+
+        continue;
+      }
+
+      if (existing.archivedAt && existing.archivedAt !== "") {
+        await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
+        outcome.restored += 1;
+
+        continue;
+      }
+
+      outcome.unchanged += 1;
+    }
+  });
+
+  return outcome;
+}
+
+/**
+ * Ensures all default forms exist and are active. All default fields
+ * are restored first so the forms can reference them.
+ *
+ * This restores all 10 default forms:
+ * - 1 basic "Observación de encuentro" form
+ * - 1 MAE evaluation form
+ * - 8 MAE observation forms (encounters 1-8)
+ */
+export async function restoreAllDefaultForms(): Promise<
+  RestoreOutcome & { fields: RestoreOutcome }
+> {
+  const fields = await restoreAllDefaultFields();
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.forms, async () => {
+    const existingRows = await db.forms.bulkGet(DEFAULT_FORM_SEEDS.map((seed) => seed.id));
+    const now = nowIsoString();
+
+    for (const [index, seed] of DEFAULT_FORM_SEEDS.entries()) {
+      const existing = existingRows[index];
+
+      if (!existing) {
+        const form: ObservationForm = observationFormSchema.parse({
+          id: seed.id,
+          name: seed.name,
+          fields: [...seed.fields],
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
+
+        await db.forms.add(form);
+        outcome.created += 1;
+
+        continue;
+      }
+
+      if (existing.archivedAt && existing.archivedAt !== "") {
+        await db.forms.update(existing.id, { archivedAt: "", updatedAt: now });
+        outcome.restored += 1;
+
+        continue;
+      }
+
+      outcome.unchanged += 1;
+    }
+  });
+
+  return { ...outcome, fields };
+}
+
+/**
  * Ensures every MAE evaluation field exists and is active.
  * - Missing rows are created.
  * - Archived rows are restored.

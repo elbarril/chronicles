@@ -120,9 +120,9 @@
   --ring: oklch(0.52 0.18 68);
 }
 [data-brand="amber"].dark {
-  --primary: oklch(0.80 0.15 75);
+  --primary: oklch(0.8 0.15 75);
   --primary-foreground: oklch(0.22 0.06 68);
-  --ring: oklch(0.80 0.15 75);
+  --ring: oklch(0.8 0.15 75);
 }
 
 /* ─── Brand: Indigo ─── */
