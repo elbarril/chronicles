@@ -15,6 +15,30 @@ export const DEFAULT_FIELD_IDS: readonly string[] = [
   DEFAULT_LONG_TEXT_FIELD_ID,
 ] as const;
 
+// MAE Form IDs - Integrated into defaults
+export const MAE_EVAL_FORM_ID = "00000000-0000-4000-8000-00000000d103";
+export const MAE_OBS_FORM_ENC_1_ID = "00000000-0000-4000-8000-00000000d104";
+export const MAE_OBS_FORM_ENC_2_ID = "00000000-0000-4000-8000-00000000d105";
+export const MAE_OBS_FORM_ENC_3_ID = "00000000-0000-4000-8000-00000000d106";
+export const MAE_OBS_FORM_ENC_4_ID = "00000000-0000-4000-8000-00000000d107";
+export const MAE_OBS_FORM_ENC_5_ID = "00000000-0000-4000-8000-00000000d108";
+export const MAE_OBS_FORM_ENC_6_ID = "00000000-0000-4000-8000-00000000d109";
+export const MAE_OBS_FORM_ENC_7_ID = "00000000-0000-4000-8000-00000000d10a";
+export const MAE_OBS_FORM_ENC_8_ID = "00000000-0000-4000-8000-00000000d10b";
+
+export const DEFAULT_FORM_IDS: readonly string[] = [
+  DEFAULT_FORM_ID,
+  MAE_EVAL_FORM_ID,
+  MAE_OBS_FORM_ENC_1_ID,
+  MAE_OBS_FORM_ENC_2_ID,
+  MAE_OBS_FORM_ENC_3_ID,
+  MAE_OBS_FORM_ENC_4_ID,
+  MAE_OBS_FORM_ENC_5_ID,
+  MAE_OBS_FORM_ENC_6_ID,
+  MAE_OBS_FORM_ENC_7_ID,
+  MAE_OBS_FORM_ENC_8_ID,
+] as const;
+
 type DefaultFieldSeed = Omit<Field, "createdAt" | "updatedAt" | "archivedAt">;
 
 export const DEFAULT_FIELD_SEEDS: readonly DefaultFieldSeed[] = [
@@ -56,6 +80,8 @@ export const DEFAULT_FORM_SEED: DefaultFormSeed = {
     { instanceId: DEFAULT_FORM_INSTANCE_LONGTEXT_ID, fieldId: DEFAULT_LONG_TEXT_FIELD_ID },
   ] satisfies FormFieldInstance[],
 };
+
+type MAEFormSeed = Pick<ObservationForm, "id" | "name" | "fields">;
 
 /**
  * Stable identifiers for the comprehensive demo scenario, used by
@@ -716,8 +742,7 @@ export const MAE_EVAL_FIELD_SEEDS: readonly MaeEvalFieldSeed[] = [
   },
 ] as const;
 
-// MAE Evaluation Form
-export const MAE_EVAL_FORM_ID = "00000000-0000-4000-8000-00000000d103";
+// MAE Evaluation Form (ID defined above in DEFAULT_FORM_IDS)
 
 // Stable instance IDs for MAE evaluation form instances (one per field, same index order)
 export const MAE_EVAL_FORM_INSTANCE_IDS: readonly string[] = MAE_EVAL_FIELD_SEEDS.map(
@@ -4129,15 +4154,7 @@ export const MAE_OBS_FIELD_SEEDS: readonly MaeObsFieldSeed[] = [
   },
 ] as const;
 
-// MAE Observation Forms
-export const MAE_OBS_FORM_ENC_1_ID = "00000000-0000-4000-8000-00000000d104";
-export const MAE_OBS_FORM_ENC_2_ID = "00000000-0000-4000-8000-00000000d105";
-export const MAE_OBS_FORM_ENC_3_ID = "00000000-0000-4000-8000-00000000d106";
-export const MAE_OBS_FORM_ENC_4_ID = "00000000-0000-4000-8000-00000000d107";
-export const MAE_OBS_FORM_ENC_5_ID = "00000000-0000-4000-8000-00000000d108";
-export const MAE_OBS_FORM_ENC_6_ID = "00000000-0000-4000-8000-00000000d109";
-export const MAE_OBS_FORM_ENC_7_ID = "00000000-0000-4000-8000-00000000d10a";
-export const MAE_OBS_FORM_ENC_8_ID = "00000000-0000-4000-8000-00000000d10b";
+// MAE Observation Forms (IDs defined above in DEFAULT_FORM_IDS)
 
 // Stable instance IDs for MAE observation form 1 instances (40 instances)
 export const MAE_OBS_FORM_ENC_1_INSTANCE_IDS: readonly string[] = [
@@ -4862,3 +4879,20 @@ export const MAE_OBS_FORM_ENC_8_SEED: Pick<ObservationForm, "id" | "name" | "fie
   name: "MAE - Ficha de Observación - Encuentro 8",
   fields: createEncounter8FieldInstances(),
 };
+
+/**
+ * All default form seeds (built-in + MAE forms)
+ * These forms are automatically seeded on first app launch
+ */
+export const DEFAULT_FORM_SEEDS: readonly (DefaultFormSeed | MAEFormSeed)[] = [
+  DEFAULT_FORM_SEED,
+  MAE_EVAL_FORM_SEED,
+  MAE_OBS_FORM_ENC_1_SEED,
+  MAE_OBS_FORM_ENC_2_SEED,
+  MAE_OBS_FORM_ENC_3_SEED,
+  MAE_OBS_FORM_ENC_4_SEED,
+  MAE_OBS_FORM_ENC_5_SEED,
+  MAE_OBS_FORM_ENC_6_SEED,
+  MAE_OBS_FORM_ENC_7_SEED,
+  MAE_OBS_FORM_ENC_8_SEED,
+] as const;

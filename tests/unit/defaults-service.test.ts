@@ -81,6 +81,11 @@ import {
   restoreMAEObservationForms,
   seedDefaultsIfMissing,
 } from "@/features/defaults/services/defaults-service";
+import {
+  DEFAULT_FIELD_IDS,
+  DEFAULT_FORM_IDS,
+  DEFAULT_FORM_SEEDS,
+} from "@/features/defaults/lib/seed-data";
 
 const {
   fieldsBulkGetMock,
@@ -148,6 +153,18 @@ function activeFieldRow(id: string) {
   };
 }
 
+function activeFormRow(id: string) {
+  return {
+    id,
+    name: "Test Form",
+    fields: [],
+    version: 1,
+    archivedAt: "",
+    createdAt: archivedAt,
+    updatedAt: archivedAt,
+  };
+}
+
 describe("defaults service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -156,24 +173,22 @@ describe("defaults service", () => {
   describe("seedDefaultsIfMissing", () => {
     it("creates every default when none exist", async () => {
       fieldsBulkGetMock.mockResolvedValueOnce([undefined, undefined]);
-      formsGetMock.mockResolvedValueOnce(undefined);
+      formsBulkGetMock.mockResolvedValueOnce(
+        DEFAULT_FORM_IDS.map(() => undefined),
+      );
 
-      await seedDefaultsIfMissing({ includeMAEForms: false });
+      await seedDefaultsIfMissing();
 
       expect(fieldsAddMock).toHaveBeenCalledTimes(2);
-      expect(formsAddMock).toHaveBeenCalledTimes(1);
+      expect(formsAddMock).toHaveBeenCalledTimes(DEFAULT_FORM_IDS.length);
 
       const addedIds = fieldsAddMock.mock.calls.map((call) => call[0].id);
       expect(addedIds).toEqual(
         expect.arrayContaining([DEFAULT_AUDIO_FIELD_ID, DEFAULT_LONG_TEXT_FIELD_ID]),
       );
 
-      const formArg = formsAddMock.mock.calls[0]?.[0];
-      expect(formArg.id).toBe(DEFAULT_FORM_ID);
-      expect(formArg.fields.map((f: { fieldId: string }) => f.fieldId)).toEqual([
-        DEFAULT_AUDIO_FIELD_ID,
-        DEFAULT_LONG_TEXT_FIELD_ID,
-      ]);
+      const addedFormIds = formsAddMock.mock.calls.map((call) => call[0].id);
+      expect(addedFormIds).toEqual(expect.arrayContaining([...DEFAULT_FORM_IDS]));
     });
 
     it("does nothing when all defaults already exist (even archived)", async () => {
@@ -181,17 +196,11 @@ describe("defaults service", () => {
         archivedRow(DEFAULT_AUDIO_FIELD_ID),
         activeFieldRow(DEFAULT_LONG_TEXT_FIELD_ID),
       ]);
-      formsGetMock.mockResolvedValueOnce({
-        id: DEFAULT_FORM_ID,
-        name: "Observación de encuentro",
-        fieldIds: [DEFAULT_AUDIO_FIELD_ID, DEFAULT_LONG_TEXT_FIELD_ID],
-        version: 1,
-        archivedAt: "",
-        createdAt: archivedAt,
-        updatedAt: archivedAt,
-      });
+      formsBulkGetMock.mockResolvedValueOnce(
+        DEFAULT_FORM_IDS.map((id) => activeFormRow(id)),
+      );
 
-      await seedDefaultsIfMissing({ includeMAEForms: false });
+      await seedDefaultsIfMissing();
 
       expect(fieldsAddMock).not.toHaveBeenCalled();
       expect(formsAddMock).not.toHaveBeenCalled();
@@ -199,13 +208,15 @@ describe("defaults service", () => {
 
     it("only creates the missing pieces", async () => {
       fieldsBulkGetMock.mockResolvedValueOnce([activeFieldRow(DEFAULT_AUDIO_FIELD_ID), undefined]);
-      formsGetMock.mockResolvedValueOnce(undefined);
+      formsBulkGetMock.mockResolvedValueOnce(
+        DEFAULT_FORM_IDS.map((id) => activeFormRow(id)),
+      );
 
-      await seedDefaultsIfMissing({ includeMAEForms: false });
+      await seedDefaultsIfMissing();
 
       expect(fieldsAddMock).toHaveBeenCalledTimes(1);
       expect(fieldsAddMock.mock.calls[0]?.[0].id).toBe(DEFAULT_LONG_TEXT_FIELD_ID);
-      expect(formsAddMock).toHaveBeenCalledTimes(1);
+      expect(formsAddMock).not.toHaveBeenCalled();
     });
   });
 

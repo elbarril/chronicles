@@ -13,7 +13,9 @@ import {
 import {
   DEFAULT_FIELD_SEEDS,
   DEFAULT_FORM_SEED,
+  DEFAULT_FORM_SEEDS,
   DEFAULT_FIELD_IDS,
+  DEFAULT_FORM_IDS,
   DEMO_ENCOUNTER_ID,
   DEMO_ENCOUNTER_IDS,
   DEMO_ENCOUNTER_SEEDS,
@@ -855,17 +857,18 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
  * has never seen them. Existing rows (including archived ones) are left
  * untouched so we never undo the user's explicit decisions.
  */
-export async function seedDefaultsIfMissing(options?: {
-  includeMAEForms?: boolean;
-}): Promise<void> {
+export async function seedDefaultsIfMissing(): Promise<void> {
   const existingFields = await db.fields.bulkGet([...DEFAULT_FIELD_IDS]);
-  const existingForm = await db.forms.get(DEFAULT_FORM_SEED.id);
-  const allExist = existingFields.every((row) => Boolean(row)) && Boolean(existingForm);
+  const existingForms = await db.forms.bulkGet([...DEFAULT_FORM_IDS]);
+  const allFieldsExist = existingFields.every((row) => Boolean(row));
+  const allFormsExist = existingForms.every((row) => Boolean(row));
+  const allExist = allFieldsExist && allFormsExist;
 
   if (!allExist) {
     await db.transaction("rw", db.fields, db.forms, async () => {
       const now = nowIsoString();
 
+      // Seed default fields
       for (const [index, seed] of DEFAULT_FIELD_SEEDS.entries()) {
         if (existingFields[index]) {
           continue;
@@ -881,11 +884,16 @@ export async function seedDefaultsIfMissing(options?: {
         await db.fields.add(field);
       }
 
-      if (!existingForm) {
+      // Seed all default forms (built-in + MAE)
+      for (const [index, seed] of DEFAULT_FORM_SEEDS.entries()) {
+        if (existingForms[index]) {
+          continue;
+        }
+
         const form: ObservationForm = observationFormSchema.parse({
-          id: DEFAULT_FORM_SEED.id,
-          name: DEFAULT_FORM_SEED.name,
-          fields: [...DEFAULT_FORM_SEED.fields],
+          id: seed.id,
+          name: seed.name,
+          fields: [...seed.fields],
           version: 1,
           createdAt: now,
           updatedAt: now,
@@ -895,11 +903,5 @@ export async function seedDefaultsIfMissing(options?: {
         await db.forms.add(form);
       }
     });
-  }
-
-  // Restore MAE forms if requested (they may be missing from databases seeded before they were added)
-  if (options?.includeMAEForms !== false) {
-    await restoreMAEEvaluationForm();
-    await restoreMAEObservationForms();
   }
 }
