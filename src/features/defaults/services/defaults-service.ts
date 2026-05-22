@@ -28,6 +28,25 @@ import {
   DEMO_PARTICIPANT_ONE_ID,
   DEMO_PARTICIPANT_SEEDS,
   DEMO_PARTICIPANT_TWO_ID,
+  MAE_EVAL_FIELD_SEEDS,
+  MAE_EVAL_FORM_SEED,
+  MAE_OBS_FIELD_SEEDS,
+  MAE_OBS_FORM_ENC_1_ID,
+  MAE_OBS_FORM_ENC_1_SEED,
+  MAE_OBS_FORM_ENC_2_ID,
+  MAE_OBS_FORM_ENC_2_SEED,
+  MAE_OBS_FORM_ENC_3_ID,
+  MAE_OBS_FORM_ENC_3_SEED,
+  MAE_OBS_FORM_ENC_4_ID,
+  MAE_OBS_FORM_ENC_4_SEED,
+  MAE_OBS_FORM_ENC_5_ID,
+  MAE_OBS_FORM_ENC_5_SEED,
+  MAE_OBS_FORM_ENC_6_ID,
+  MAE_OBS_FORM_ENC_6_SEED,
+  MAE_OBS_FORM_ENC_7_ID,
+  MAE_OBS_FORM_ENC_7_SEED,
+  MAE_OBS_FORM_ENC_8_ID,
+  MAE_OBS_FORM_ENC_8_SEED,
 } from "@/features/defaults/lib/seed-data";
 import { createObservationDefinition } from "@/features/observations/services/observation-service";
 import { db } from "@/infra/db/client";
@@ -130,6 +149,339 @@ export async function restoreDefaultForm(): Promise<RestoreOutcome & { fields: R
     }
 
     outcome.unchanged += 1;
+  });
+
+  return { ...outcome, fields };
+}
+
+/**
+ * Ensures every MAE evaluation field exists and is active.
+ * - Missing rows are created.
+ * - Archived rows are restored.
+ * - Active rows are left untouched.
+ */
+export async function restoreMAEEvaluationFields(): Promise<RestoreOutcome> {
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.fields, async () => {
+    const existingRows = await db.fields.bulkGet(MAE_EVAL_FIELD_SEEDS.map((seed) => seed.id));
+
+    for (const [index, seed] of MAE_EVAL_FIELD_SEEDS.entries()) {
+      const existing = existingRows[index];
+      const now = nowIsoString();
+
+      if (!existing) {
+        const field: Field = fieldSchema.parse({
+          ...seed,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
+
+        await db.fields.add(field);
+        outcome.created += 1;
+
+        continue;
+      }
+
+      if (existing.archivedAt && existing.archivedAt !== "") {
+        await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
+        outcome.restored += 1;
+
+        continue;
+      }
+
+      outcome.unchanged += 1;
+    }
+  });
+
+  return outcome;
+}
+
+/**
+ * Ensures the MAE evaluation form exists and is active. MAE evaluation
+ * fields are restored first so the form can reference them.
+ */
+export async function restoreMAEEvaluationForm(): Promise<
+  RestoreOutcome & { fields: RestoreOutcome }
+> {
+  const fields = await restoreMAEEvaluationFields();
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.forms, async () => {
+    const existing = await db.forms.get(MAE_EVAL_FORM_SEED.id);
+    const now = nowIsoString();
+
+    if (!existing) {
+      const form: ObservationForm = observationFormSchema.parse({
+        id: MAE_EVAL_FORM_SEED.id,
+        name: MAE_EVAL_FORM_SEED.name,
+        fields: [...MAE_EVAL_FORM_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form);
+      outcome.created += 1;
+
+      return;
+    }
+
+    if (existing.archivedAt && existing.archivedAt !== "") {
+      await db.forms.update(existing.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+
+      return;
+    }
+
+    outcome.unchanged += 1;
+  });
+
+  return { ...outcome, fields };
+}
+
+/**
+ * Ensures every MAE observation field exists and is active.
+ * - Missing rows are created.
+ * - Archived rows are restored.
+ * - Active rows are left untouched.
+ */
+export async function restoreMAEObservationFields(): Promise<RestoreOutcome> {
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.fields, async () => {
+    const existingRows = await db.fields.bulkGet(MAE_OBS_FIELD_SEEDS.map((seed) => seed.id));
+
+    for (const [index, seed] of MAE_OBS_FIELD_SEEDS.entries()) {
+      const existing = existingRows[index];
+      const now = nowIsoString();
+
+      if (!existing) {
+        const field: Field = fieldSchema.parse({
+          ...seed,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
+
+        await db.fields.add(field);
+        outcome.created += 1;
+
+        continue;
+      }
+
+      if (existing.archivedAt && existing.archivedAt !== "") {
+        await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
+        outcome.restored += 1;
+
+        continue;
+      }
+
+      outcome.unchanged += 1;
+    }
+  });
+
+  return outcome;
+}
+
+/**
+ * Ensures the MAE observation forms (encounters 1-8) exist and are active.
+ * MAE observation fields are restored first so the forms can reference them.
+ */
+export async function restoreMAEObservationForms(): Promise<
+  RestoreOutcome & { fields: RestoreOutcome }
+> {
+  const fields = await restoreMAEObservationFields();
+  const outcome = emptyOutcome();
+
+  await db.transaction("rw", db.forms, async () => {
+    const now = nowIsoString();
+
+    // Restore form 1
+    const existingForm1 = await db.forms.get(MAE_OBS_FORM_ENC_1_ID);
+
+    if (!existingForm1) {
+      const form1: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_1_SEED.id,
+        name: MAE_OBS_FORM_ENC_1_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_1_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form1);
+      outcome.created += 1;
+    } else if (existingForm1.archivedAt && existingForm1.archivedAt !== "") {
+      await db.forms.update(existingForm1.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 2
+    const existingForm2 = await db.forms.get(MAE_OBS_FORM_ENC_2_ID);
+
+    if (!existingForm2) {
+      const form2: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_2_SEED.id,
+        name: MAE_OBS_FORM_ENC_2_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_2_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form2);
+      outcome.created += 1;
+    } else if (existingForm2.archivedAt && existingForm2.archivedAt !== "") {
+      await db.forms.update(existingForm2.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 3
+    const existingForm3 = await db.forms.get(MAE_OBS_FORM_ENC_3_ID);
+
+    if (!existingForm3) {
+      const form3: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_3_SEED.id,
+        name: MAE_OBS_FORM_ENC_3_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_3_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form3);
+      outcome.created += 1;
+    } else if (existingForm3.archivedAt && existingForm3.archivedAt !== "") {
+      await db.forms.update(existingForm3.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 4
+    const existingForm4 = await db.forms.get(MAE_OBS_FORM_ENC_4_ID);
+
+    if (!existingForm4) {
+      const form4: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_4_SEED.id,
+        name: MAE_OBS_FORM_ENC_4_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_4_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form4);
+      outcome.created += 1;
+    } else if (existingForm4.archivedAt && existingForm4.archivedAt !== "") {
+      await db.forms.update(existingForm4.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 5
+    const existingForm5 = await db.forms.get(MAE_OBS_FORM_ENC_5_ID);
+
+    if (!existingForm5) {
+      const form5: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_5_SEED.id,
+        name: MAE_OBS_FORM_ENC_5_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_5_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form5);
+      outcome.created += 1;
+    } else if (existingForm5.archivedAt && existingForm5.archivedAt !== "") {
+      await db.forms.update(existingForm5.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 6
+    const existingForm6 = await db.forms.get(MAE_OBS_FORM_ENC_6_ID);
+
+    if (!existingForm6) {
+      const form6: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_6_SEED.id,
+        name: MAE_OBS_FORM_ENC_6_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_6_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form6);
+      outcome.created += 1;
+    } else if (existingForm6.archivedAt && existingForm6.archivedAt !== "") {
+      await db.forms.update(existingForm6.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 7
+    const existingForm7 = await db.forms.get(MAE_OBS_FORM_ENC_7_ID);
+
+    if (!existingForm7) {
+      const form7: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_7_SEED.id,
+        name: MAE_OBS_FORM_ENC_7_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_7_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form7);
+      outcome.created += 1;
+    } else if (existingForm7.archivedAt && existingForm7.archivedAt !== "") {
+      await db.forms.update(existingForm7.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
+
+    // Restore form 8
+    const existingForm8 = await db.forms.get(MAE_OBS_FORM_ENC_8_ID);
+
+    if (!existingForm8) {
+      const form8: ObservationForm = observationFormSchema.parse({
+        id: MAE_OBS_FORM_ENC_8_SEED.id,
+        name: MAE_OBS_FORM_ENC_8_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_8_SEED.fields],
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: "",
+      });
+
+      await db.forms.add(form8);
+      outcome.created += 1;
+    } else if (existingForm8.archivedAt && existingForm8.archivedAt !== "") {
+      await db.forms.update(existingForm8.id, { archivedAt: "", updatedAt: now });
+      outcome.restored += 1;
+    } else {
+      outcome.unchanged += 1;
+    }
   });
 
   return { ...outcome, fields };
@@ -503,45 +855,51 @@ export async function removeDemoEncounter(): Promise<DemoEncounterRemovalOutcome
  * has never seen them. Existing rows (including archived ones) are left
  * untouched so we never undo the user's explicit decisions.
  */
-export async function seedDefaultsIfMissing(): Promise<void> {
+export async function seedDefaultsIfMissing(options?: {
+  includeMAEForms?: boolean;
+}): Promise<void> {
   const existingFields = await db.fields.bulkGet([...DEFAULT_FIELD_IDS]);
   const existingForm = await db.forms.get(DEFAULT_FORM_SEED.id);
   const allExist = existingFields.every((row) => Boolean(row)) && Boolean(existingForm);
 
-  if (allExist) {
-    return;
-  }
+  if (!allExist) {
+    await db.transaction("rw", db.fields, db.forms, async () => {
+      const now = nowIsoString();
 
-  await db.transaction("rw", db.fields, db.forms, async () => {
-    const now = nowIsoString();
+      for (const [index, seed] of DEFAULT_FIELD_SEEDS.entries()) {
+        if (existingFields[index]) {
+          continue;
+        }
 
-    for (const [index, seed] of DEFAULT_FIELD_SEEDS.entries()) {
-      if (existingFields[index]) {
-        continue;
+        const field: Field = fieldSchema.parse({
+          ...seed,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
+
+        await db.fields.add(field);
       }
 
-      const field: Field = fieldSchema.parse({
-        ...seed,
-        createdAt: now,
-        updatedAt: now,
-        archivedAt: "",
-      });
+      if (!existingForm) {
+        const form: ObservationForm = observationFormSchema.parse({
+          id: DEFAULT_FORM_SEED.id,
+          name: DEFAULT_FORM_SEED.name,
+          fields: [...DEFAULT_FORM_SEED.fields],
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: "",
+        });
 
-      await db.fields.add(field);
-    }
+        await db.forms.add(form);
+      }
+    });
+  }
 
-    if (!existingForm) {
-      const form: ObservationForm = observationFormSchema.parse({
-        id: DEFAULT_FORM_SEED.id,
-        name: DEFAULT_FORM_SEED.name,
-        fields: [...DEFAULT_FORM_SEED.fields],
-        version: 1,
-        createdAt: now,
-        updatedAt: now,
-        archivedAt: "",
-      });
-
-      await db.forms.add(form);
-    }
-  });
+  // Restore MAE forms if requested (they may be missing from databases seeded before they were added)
+  if (options?.includeMAEForms !== false) {
+    await restoreMAEEvaluationForm();
+    await restoreMAEObservationForms();
+  }
 }

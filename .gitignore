@@ -33,3 +33,11 @@ coverage
 
 # PWA generated
 dev-dist
+
+# Personal/temporary
+_brain
+
+# Documentation reference files (CSV/XLSX from Excel forms)
+docs/*.csv
+docs/*.xlsx
+docs/*.xls
