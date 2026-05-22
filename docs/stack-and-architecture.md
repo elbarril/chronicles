@@ -3,7 +3,7 @@
 This document is the **source of truth** for structural technical decisions of Chronicle.
 It defines the stack, layered architecture, main modules, and development conventions.
 
-Last updated: 2026-05-03 (F12: encounter editing — new `/encounters/:id/edit` route mirrors the post-event create flow; "Editar encuentro" button on the encounter header and "Editar" on every active row of the project's encounter list. Project participant identity is now stable across edits: `projectInputSchema` carries `participants: { id?, displayName }[]` and the repository performs a diff (update existing rows, add new ones, delete removed ones) instead of regenerating every uuid; this keeps `encounter.participantIds` valid across project edits and unblocks the encounter detail header showing the actual list of attendees as chips.)
+Last updated: 2026-05-04 (Documentation refinement based on Oracle's contrast analysis: Updated technology stack details (Tailwind CSS v4 with native Vite plugin, ESLint 9 Flat Config, TypeScript strict mode options, React Router v7 without loaders/actions), added messaging strategy documentation, added Gemini AI model specifics (gemini-2.5-flash), added GitHub Actions lockfile integrity workflow details, added TypeScript configuration section, added three comprehensive appendices: Local Development Guide, Code Patterns and Conventions, and Testing Guide.)
 
 ---
 
@@ -45,8 +45,8 @@ Translated to technology:
 | Language | **TypeScript (strict)** | Clear contracts for dynamic forms and data models. |
 | Build/Dev | **Vite** | Fast startup, zero-config, HMR, modern build. |
 | UI Framework | **React 18+** | Mature ecosystem, ideal for dynamic forms. |
-| Routing | **React Router (data APIs)** | Standard SPA navigation, loaders/actions align with local model. |
-| Styling | **Tailwind CSS** | Utility-first, mobile-first responsive, consistent with user principles. |
+| Routing | **React Router v7** | Standard SPA navigation. v1 does not use loaders/actions (local-first model). |
+| Styling | **Tailwind CSS v4** | Utility-first, mobile-first responsive. Uses native Vite plugin (`@tailwindcss/vite`) — no `tailwind.config.ts` file. |
 | UI Components | **shadcn/ui + Radix UI** | Accessible primitives (proper ARIA) without tying to a monolithic library. |
 | Icons | **lucide-react** | Lightweight, tree-shakeable. |
 | Toast Notifications | **sonner** | Lightweight, accessible toast system for user-facing feedback messages. |
@@ -57,13 +57,50 @@ Translated to technology:
 | Unit Testing | **Vitest + React Testing Library** | Native integration with Vite. |
 | E2E Testing | **Playwright** | Covers critical flows with a real browser. |
 | ZIP Handling | **JSZip** | Browser-compatible ZIP read/write for self-contained global export/import with media blobs (`chronicle-full-v3` since F11). Legacy `chronicle-full-v1`, `chronicle-full-v2` and `chronicle-encounter-v1` are no longer importable (the underlying record shapes changed across F9 and F11). |
-| Lint/Format | **ESLint + Prettier** | Standard, low maintenance. |
+| Lint/Format | **ESLint 9 (Flat Config) + Prettier** | ESLint 9 uses flat config (`eslint.config.js`), not legacy `.eslintrc`. Prettier for formatting. |
 | Package Manager | **pnpm** | Fast, deterministic, disk-efficient. |
 | Node | **Current LTS (>= 20)** | Compatibility with modern toolchain. |
+
+### TypeScript Configuration
+
+The project uses TypeScript strict mode with additional strict options enabled in `tsconfig.json`:
+
+- `strict: true` — All strict type-checking options enabled
+- `noUncheckedIndexedAccess: true` — Enforces checking for undefined when accessing array/object indices
+- `noImplicitOverride: true` — Requires explicit `override` keyword when overriding base class methods
+- `moduleDetection: "force"` — Forces TypeScript to treat all files as modules (prevents CommonJS/ESM ambiguity)
+- `moduleResolution: "bundler"` — Modern resolution strategy for bundler-based projects
+- `target: "ES2022"` — Modern JavaScript features
+- `jsx: "react-jsx"` — New JSX transform (no need to import React)
+
+These options provide maximum type safety and catch potential bugs at compile time.
+
+### Messaging Strategy
+
+Chronicle follows a bilingual messaging strategy that separates user-facing text from internal error codes:
+
+- **User-facing messages (Spanish):** All text shown to end users in the UI is in rioplatense Spanish. Each feature has a `messages.ts` file (e.g., `src/features/settings/lib/messages.ts`) that exports a const object with all user-facing strings for that feature. This includes:
+  - Page titles and descriptions
+  - Button labels
+  - Form labels and placeholders
+  - Empty states and confirmation dialogs
+  - Toast notifications that surface to the user
+
+- **Internal error codes (English):** All `AppError` instances thrown in domain, infra, and feature layers use English error codes (e.g., `AI_KEY_INVALID`, `AI_RATE_LIMITED`, `IMPORT_SCHEMA_MISMATCH`). These codes are:
+  - Used for programmatic error handling
+  - Never shown directly to end users
+  - Mapped to user-facing Spanish messages in toast/error handlers
+
+This separation ensures that:
+- The codebase remains internally consistent with English identifiers
+- Users receive natural, culturally appropriate Spanish text
+- Error handling remains type-safe and programmatic
 
 ### F7: Optional External AI Integration (Google Gemini)
 
 F7 introduces an **opt-in** AI layer over the deterministic chronicle generator. Key design invariants:
+
+- **Model:** Uses Google Gemini `gemini-2.5-flash` model specifically. Configured in `src/infra/ai/gemini-client.ts`.
 
 - **BYOK (Bring Your Own Key):** the user provides their own Google Gemini API key, stored in `localStorage` under `chronicle.geminiApiKey`. The key is never sent to any Chronicle server because there is no Chronicle server.
 - **No mandatory network dependency:** the app remains fully functional offline; AI generation only activates when the user has configured a key and a network connection is available.
@@ -371,7 +408,49 @@ See `.agents/rules/language-policy.md` for the full canonical rule.
 
 ---
 
-## 8. Maintenance Protocol for this Document
+## 8. CI/CD and Deployment
+
+### GitHub Actions: Lockfile Integrity
+
+The project uses a GitHub Actions workflow (`.github/workflows/lockfile-integrity.yml`) to validate lockfile integrity on every push and pull request to the `master` branch. This ensures that:
+
+- `pnpm-lock.yaml` remains synchronized with `package.json`
+- Dependency changes are intentional and committed together
+- The CI environment can reproduce the exact same dependency tree
+
+The workflow:
+1. Checks out the code
+2. Sets up pnpm (version 9.15.3)
+3. Sets up Node.js (version 20)
+4. Runs `pnpm install --frozen-lockfile`
+
+If the lockfile is out of sync, the workflow fails, preventing merges that would introduce dependency drift.
+
+### Deployment (Vercel)
+
+Chronicle is deployed as a static client-side build to Vercel. The build output is the `dist/` directory from `pnpm build`.
+
+**Pre-deploy checklist (mandatory):**
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+```
+
+- If frozen lockfile fails, run `pnpm install` and commit dependency metadata changes
+- Keep `package.json` and `pnpm-lock.yaml` synchronized and committed together when dependencies change
+- In Vercel logs, verify the deployed commit hash matches the latest `master` commit
+
+The lockfile integrity workflow provides a guardrail before deployment by catching dependency drift early in the PR process.
+
+---
+
+## 9. Maintenance Protocol for this Document
+
+For detailed local development setup, code patterns, and testing conventions, see the appendices below:
+- [Appendix A: Local Development Guide](#appendix-a-local-development-guide) — Complete local development setup and workflow
+- [Appendix B: Code Patterns and Conventions](#appendix-b-code-patterns-and-conventions) — Project-specific code patterns and conventions
+- [Appendix C: Testing Guide](#appendix-c-testing-guide) — Testing strategy, coverage, and best practices
 
 This document must be **updated** when:
 
@@ -389,3 +468,1055 @@ Mandatory protocol for agents and humans:
 5. If the stack changes to the point of affecting agent bootstrap, update `AGENTS.md` and `.agents/README.md`.
 
 Trivial changes (typos, reordering) do not require a `decisions.md` entry.
+
+---
+
+## Appendix A: Local Development Guide
+
+This appendix provides detailed instructions for setting up and working with Chronicle in a local development environment.
+
+### Prerequisites
+
+Before starting, ensure you have the following installed:
+
+- **Node.js**: Version 20 or higher (Current LTS recommended)
+  - Check with: `node --version`
+  - Download from: https://nodejs.org/
+- **pnpm**: Version 9.15.3 or higher
+  - Check with: `pnpm --version`
+  - Install with: `npm install -g pnpm`
+- **Git**: For version control
+  - Check with: `git --version`
+
+### Initial Setup
+
+#### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd chronicle
+```
+
+#### 2. Install Dependencies
+
+```bash
+pnpm install
+```
+
+This installs all dependencies listed in `package.json` and generates the `pnpm-lock.yaml` file.
+
+#### 3. Verify Installation
+
+```bash
+pnpm check
+```
+
+This runs type checking, linting, unit tests, and E2E tests to ensure everything is set up correctly.
+
+### Development Workflow
+
+#### Starting the Development Server
+
+```bash
+pnpm dev
+```
+
+The Vite dev server starts at `http://localhost:5173` with:
+- Hot Module Replacement (HMR) enabled
+- React Fast Refresh for component changes
+- Tailwind CSS v4 with native Vite plugin (no config file needed)
+
+#### Type Checking
+
+```bash
+pnpm typecheck
+```
+
+Runs TypeScript compiler in check mode (no emit) for both:
+- Main project: `tsconfig.json`
+- Node config: `tsconfig.node.json`
+
+#### Linting
+
+```bash
+# Check lint errors
+pnpm lint
+
+# Fix auto-fixable issues
+pnpm lint:fix
+```
+
+Uses ESLint 9 with flat config (`eslint.config.js`). The linter checks:
+- TypeScript code with `typescript-eslint`
+- React best practices with `eslint-plugin-react` and `eslint-plugin-react-hooks`
+- Accessibility with `eslint-plugin-jsx-a11y`
+- Import ordering with `eslint-plugin-import`
+- Prettier integration with `eslint-plugin-prettier`
+
+#### Formatting
+
+```bash
+# Check formatting
+pnpm format:check
+
+# Format code
+pnpm format
+```
+
+Uses Prettier with the `prettier-plugin-tailwindcss` plugin for Tailwind class sorting.
+
+#### Running Tests
+
+**Unit Tests:**
+
+```bash
+# Run unit tests once
+pnpm test
+
+# Run in watch mode
+pnpm test:watch
+```
+
+Unit tests use Vitest with React Testing Library. They cover:
+- Domain models and Zod schemas
+- Repository logic
+- Service layer functions
+- Utility functions
+
+Test files are located in `tests/unit/` and follow the pattern `*.test.ts` or `*.test.tsx`.
+
+**E2E Tests:**
+
+```bash
+# Run E2E tests
+pnpm test:e2e
+
+# Run E2E tests in CI mode (builds first)
+pnpm test:e2e:ci
+```
+
+E2E tests use Playwright and cover critical user flows:
+- Field creation and management
+- Form composition
+- Project and encounter creation
+- Observation capture with media
+- Chronicle generation (deterministic and AI)
+- Export and import
+- Navigation and responsive behavior
+
+Test files are located in `tests/e2e/` and follow the pattern `*.spec.ts`.
+
+#### Building for Production
+
+```bash
+pnpm build
+```
+
+This:
+1. Runs TypeScript compiler check (`tsc -b`)
+2. Runs Vite build to generate optimized assets in `dist/`
+3. Generates PWA manifest and service worker
+
+#### Preview Production Build
+
+```bash
+pnpm preview
+```
+
+Starts a local server to preview the production build from `dist/`.
+
+### Configuration Files Reference
+
+**`tsconfig.json`** - Main TypeScript configuration:
+- Strict mode enabled with additional strict options
+- `noUncheckedIndexedAccess: true` - Forces checking for undefined on array/object access
+- `noImplicitOverride: true` - Requires explicit `override` keyword
+- `moduleDetection: "force"` - Treats all files as modules
+- `moduleResolution: "bundler"` - Modern bundler resolution
+- Path alias: `@/*` maps to `./src/*`
+
+**`eslint.config.js`** - ESLint 9 flat config:
+- Uses `typescript-eslint` for TypeScript support
+- React plugins for JSX and hooks
+- Accessibility checks with jsx-a11y
+- Import ordering rules
+- Prettier integration
+- Ignores: `dist/`, `node_modules/`, `src/components/ui/`, config files
+
+**`vite.config.ts`** - Vite build configuration:
+- React plugin (`@vitejs/plugin-react`)
+- Tailwind CSS v4 plugin (`@tailwindcss/vite`)
+- PWA plugin (`vite-plugin-pwa`) with Workbox
+- Path alias: `@/` → `src/`
+
+**`playwright.config.ts`** - E2E test configuration:
+- Browser targets: Chromium, Firefox, WebKit
+- Test directory: `tests/e2e/`
+- Base URL for tests: `http://localhost:5173`
+
+### Development Tips
+
+#### Working with Dexie (IndexedDB)
+
+The database lives in the browser. When developing:
+- Use the browser's DevTools → Application → IndexedDB to inspect data
+- To reset the database, use the "Borrar datos" button in `/support` or clear browser data for localhost
+- Schema changes require a migration in `src/infra/db/client.ts`
+
+#### Working with PWA
+
+- PWA features only work in HTTPS or localhost
+- To test PWA installation, use Chrome DevTools → Application → PWA
+- Service worker caching may require a hard refresh (Ctrl+Shift+R) during development
+
+#### Working with Gemini AI
+
+- The AI integration is optional (BYOK)
+- To test AI features, configure a Gemini API key in `/settings`
+- The key is stored in `localStorage` as `chronicle.geminiApiKey`
+- AI calls are cached by input hash to avoid redundant API calls
+
+#### Debugging
+
+- Use browser DevTools for React component debugging (React DevTools extension recommended)
+- Console logs are available in the browser console
+- For E2E test debugging, use `pnpm test:e2e --debug` or `--headed`
+
+### Common Issues
+
+**"Module not found" errors:**
+- Run `pnpm install` to ensure dependencies are installed
+- Check that the file path is correct and matches the `@/` alias
+
+**TypeScript errors after schema changes:**
+- Run `pnpm typecheck` to see all errors
+- Ensure domain types are updated when Dexie schema changes
+- Check that Zod schemas match TypeScript types
+
+**ESLint errors:**
+- Run `pnpm lint:fix` to auto-fix formatting issues
+- Check `eslint.config.js` for rule configuration
+
+**PWA not updating:**
+- Clear service worker cache in DevTools
+- Use `pnpm build && pnpm preview` to test production build locally
+
+### Git Workflow
+
+#### Branch Strategy
+
+- `main` (or `master`) - Production branch
+- Feature branches - Short-lived branches from `main`
+- Use descriptive branch names: `feature/add-ai-chronicle`, `fix/encounter-edit-bug`
+
+#### Commit Convention
+
+Follow Conventional Commits (English):
+
+```
+feat: add encounter editing functionality
+fix: resolve participant identity preservation issue
+docs: update local development guide
+refactor: simplify form builder logic
+test: add e2e test for chronicle generation
+```
+
+#### Pre-commit Checks
+
+The GitHub Actions workflow validates lockfile integrity on every push to `master`. Before pushing:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+```
+
+If `frozen-lockfile` fails, run `pnpm install` and commit the updated `pnpm-lock.yaml`.
+
+---
+
+## Appendix B: Code Patterns and Conventions
+
+This appendix documents the specific code patterns, conventions, and idioms used throughout the Chronicle codebase.
+
+### File and Directory Naming
+
+- **Files:** kebab-case for all files except TypeScript types which use PascalCase
+  - Examples: `field-repository.ts`, `EncounterDetailPage.tsx`, `use-observations.ts`
+- **Directories:** kebab-case
+  - Examples: `field-definitions/`, `chronicles/`, `infra/ai/`
+- **Components:** PascalCase for component files
+  - Examples: `FieldForm.tsx`, `ManageFieldsDialog.tsx`
+- **Test files:** Same name as source file with `.test.ts` or `.test.tsx` suffix
+  - Examples: `field-schema.test.ts`, `EncounterDetailPage.test.tsx`
+
+### Component Structure
+
+#### Functional Components with Hooks
+
+All components are functional components using React hooks:
+
+```typescript
+import { useState } from "react";
+
+interface MyComponentProps {
+  title: string;
+  onSave: (value: string) => void;
+}
+
+export function MyComponent({ title, onSave }: MyComponentProps) {
+  const [value, setValue] = useState("");
+
+  const handleSave = () => {
+    onSave(value);
+  };
+
+  return (
+    <div>
+      <h2>{title}</h2>
+      {/* JSX content */}
+    </div>
+  );
+}
+```
+
+#### Custom Hooks
+
+Custom hooks are prefixed with `use` and placed in `src/hooks/` or co-located with the feature:
+
+```typescript
+export function useMyHook() {
+  const [state, setState] = useState(initialState);
+
+  // Hook logic
+
+  return { state, setState };
+}
+```
+
+### Domain Types and Zod Schemas
+
+Domain types are defined in `src/domain/` with corresponding Zod schemas:
+
+```typescript
+// src/domain/field.ts
+import { z } from "zod";
+
+export const fieldTypeSchema = z.enum([
+  "text",
+  "longText",
+  "number",
+  "boolean",
+  "singleChoice",
+  "multiChoice",
+  "date",
+  "time",
+  "datetime",
+  "image",
+  "video",
+  "audio",
+  "file",
+  "rating",
+  "location",
+]);
+
+export type FieldType = z.infer<typeof fieldTypeSchema>;
+
+export const fieldSchema = z.object({
+  id: z.string().uuid(),
+  key: z.string().min(1).max(100),
+  label: z.string().min(1).max(200),
+  type: fieldTypeSchema,
+  required: z.boolean(),
+  helpText: z.string().max(500).optional(),
+  config: z.record(z.unknown()),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  archivedAt: z.string().datetime().optional(),
+});
+
+export type Field = z.infer<typeof fieldSchema>;
+```
+
+### Repository Pattern
+
+Repositories in `src/infra/db/repositories/` encapsulate Dexie operations:
+
+```typescript
+// src/infra/db/repositories/field-repository.ts
+import { db } from "../client";
+import type { Field } from "@/domain/field";
+
+export class FieldRepository {
+  async findAll(): Promise<Field[]> {
+    return await db.fields.toArray();
+  }
+
+  async findById(id: string): Promise<Field | undefined> {
+    return await db.fields.get(id);
+  }
+
+  async create(field: Omit<Field, "id" | "createdAt" | "updatedAt">): Promise<Field> {
+    const now = new Date().toISOString();
+    const newField: Field = {
+      ...field,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.fields.add(newField);
+    return newField;
+  }
+
+  async update(id: string, updates: Partial<Field>): Promise<void> {
+    await db.fields.update(id, {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async archive(id: string): Promise<void> {
+    await db.fields.update(id, { archivedAt: new Date().toISOString() });
+  }
+
+  async restore(id: string): Promise<void> {
+    await db.fields.update(id, { archivedAt: "" });
+  }
+}
+
+export const fieldRepository = new FieldRepository();
+```
+
+### Error Handling with AppError
+
+Use the `AppError` class for all domain and infrastructure errors:
+
+```typescript
+import { AppError } from "@/lib/error";
+
+// In domain/infra code
+if (!isValid) {
+  throw new AppError("FIELD_INVALID", "Field configuration is invalid");
+}
+
+// In feature code, map to user-facing messages
+try {
+  await someOperation();
+} catch (error) {
+  if (error instanceof AppError) {
+    if (error.code === "FIELD_INVALID") {
+      toast.error(fieldMessages.invalidConfig);
+    }
+  } else {
+    toast.error(fieldMessages.unknownError);
+  }
+}
+```
+
+### Messaging Pattern
+
+Each feature has a `messages.ts` file with all user-facing strings:
+
+```typescript
+// src/features/settings/lib/messages.ts
+export const settingsMessages = {
+  pageTitle: "Configuración",
+  pageDescription: "Ajustá las opciones de Chronicle según tus necesidades.",
+  saveButton: "Guardar",
+  saveSuccess: "Guardado correctamente.",
+  saveError: "No se pudo guardar.",
+} as const;
+
+type SettingsMessages = typeof settingsMessages;
+```
+
+### Form Validation with React Hook Form + Zod
+
+Dynamic forms use React Hook Form with Zod validation:
+
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  email: z.string().email("Email inválido"),
+});
+
+type FormData = z.infer<typeof schema>;
+
+export function MyForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
+  const onSubmit = async (data: FormData) => {
+    // Handle submission
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("name")} />
+      {errors.name && <span>{errors.name.message}</span>}
+      <input {...register("email")} />
+      {errors.email && <span>{errors.email.message}</span>}
+      <button type="submit">Guardar</button>
+    </form>
+  );
+}
+```
+
+### Live Queries with Dexie
+
+Use `useLiveQuery` from `dexie-react-hooks` for reactive database queries:
+
+```typescript
+import { useLiveQuery } from "dexie-react-hooks";
+import { fieldRepository } from "@/infra/db/repositories/field-repository";
+
+export function FieldList() {
+  const fields = useLiveQuery(() => fieldRepository.findAll(), []);
+
+  if (!fields) return <div>Loading...</div>;
+
+  return (
+    <ul>
+      {fields.map((field) => (
+        <li key={field.id}>{field.label}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Import Organization
+
+Imports are organized in this order:
+
+```typescript
+// 1. React and external libraries
+import { useState, useEffect } from "react";
+import { z } from "zod";
+
+// 2. Internal imports (using @/ alias)
+import { Field } from "@/domain/field";
+import { fieldRepository } from "@/infra/db/repositories/field-repository";
+import { MyComponent } from "@/components/MyComponent";
+
+// 3. Relative imports (if needed)
+import { helperFunction } from "../utils";
+```
+
+The ESLint import/order rule enforces this automatically.
+
+### TypeScript Patterns
+
+#### Discriminated Unions
+
+Use discriminated unions for type-safe variant handling:
+
+```typescript
+type FieldConfig =
+  | { type: "text"; maxLength?: number }
+  | { type: "number"; min?: number; max?: number }
+  | { type: "singleChoice"; options: string[] };
+
+function getFieldLabel(config: FieldConfig): string {
+  switch (config.type) {
+    case "text":
+      return "Texto";
+    case "number":
+      return "Número";
+    case "singleChoice":
+      return "Selección";
+  }
+}
+```
+
+#### Type Guards
+
+Use type guards for runtime type checking:
+
+```typescript
+function isField(value: unknown): value is Field {
+  return fieldSchema.safeParse(value).success;
+}
+```
+
+#### const Assertions
+
+Use `as const` for immutable objects:
+
+```typescript
+const messages = {
+  title: "My Title",
+  description: "My Description",
+} as const;
+
+type Messages = typeof messages; // Infers literal types
+```
+
+### CSS and Styling
+
+#### Tailwind CSS v4
+
+Tailwind CSS v4 uses the native Vite plugin—no `tailwind.config.ts` file. Styles are applied directly as utility classes:
+
+```typescript
+<div className="flex items-center gap-4 p-4 rounded-lg bg-white shadow">
+  <h2 className="text-xl font-semibold">Title</h2>
+</div>
+```
+
+#### Custom CSS
+
+For custom CSS that can't be expressed with Tailwind, use CSS variables and BEM naming in `src/styles/globals.css`:
+
+```css
+:root {
+  --color-primary: #0f172a;
+}
+
+.my-component {
+  display: flex;
+}
+
+.my-component__header {
+  font-size: 1.5rem;
+}
+
+.my-component--disabled {
+  opacity: 0.5;
+}
+```
+
+### Testing Patterns
+
+#### Unit Tests
+
+Unit tests use Vitest and React Testing Library:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { FieldForm } from "../FieldForm";
+
+describe("FieldForm", () => {
+  it("renders form fields", () => {
+    render(<FieldForm onSave={vi.fn()} />);
+    expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
+  });
+
+  it("calls onSave with valid data", async () => {
+    const onSave = vi.fn();
+    render(<FieldForm onSave={onSave} />);
+
+    const input = screen.getByLabelText(/nombre/i);
+    await userEvent.type(input, "Test Field");
+
+    const button = screen.getByRole("button", { name: /guardar/i });
+    await userEvent.click(button);
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Test Field" })
+    );
+  });
+});
+```
+
+#### E2E Tests
+
+E2E tests use Playwright:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test("can create a field", async ({ page }) => {
+  await page.goto("/forms/new");
+
+  await page.click('button:has-text("Agregar campo")');
+  await page.fill('input[name="label"]', "Test Field");
+  await page.click('button:has-text("Guardar")');
+
+  await expect(page.locator('text=Test Field')).toBeVisible();
+});
+```
+
+### Accessibility Patterns
+
+#### Semantic HTML
+
+Always use semantic HTML elements:
+
+```typescript
+// Good
+<button onClick={handleClick}>Click me</button>
+<a href="/details">View details</a>
+
+// Bad
+<div onClick={handleClick}>Click me</div>
+<div onClick={() => navigate("/details")}>View details</div>
+```
+
+#### ARIA Attributes
+
+Use ARIA attributes when semantic HTML is insufficient:
+
+```typescript
+<button
+  aria-label="Cerrar diálogo"
+  aria-describedby="dialog-description"
+  onClick={onClose}
+>
+  <XIcon aria-hidden="true" />
+</button>
+<div id="dialog-description">Esta acción cerrará el diálogo.</div>
+```
+
+#### Keyboard Navigation
+
+Ensure all interactive elements are keyboard accessible:
+
+```typescript
+<input
+  type="text"
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  }}
+/>
+```
+
+---
+
+## Appendix C: Testing Guide
+
+This appendix covers the testing strategy, coverage goals, and best practices for the Chronicle project.
+
+### Testing Philosophy
+
+Chronicle follows a testing pyramid approach:
+
+1. **Unit Tests** (base) - Fast, isolated tests of pure functions and small components
+2. **Integration Tests** - Tests that verify interactions between modules (repositories, services)
+3. **E2E Tests** (top) - Critical user flows tested in a real browser
+
+The goal is to have fast feedback for most changes (unit tests) while ensuring critical paths work end-to-end (E2E tests).
+
+### Unit Testing (Vitest)
+
+#### When to Write Unit Tests
+
+Write unit tests for:
+- Domain models and Zod schemas
+- Repository methods (using `fake-indexeddb`)
+- Service layer functions
+- Utility functions
+- Pure business logic
+
+#### Unit Test Structure
+
+Unit tests are located in `tests/unit/` and follow the naming pattern `*.test.ts` or `*.test.tsx`:
+
+```typescript
+import { describe, it, expect, beforeEach } from "vitest";
+import { fieldSchema, type Field } from "@/domain/field";
+
+describe("fieldSchema", () => {
+  it("validates a valid field", () => {
+    const validField: Field = {
+      id: "123e4567-e89b-12d3-a456-426614174000",
+      key: "test-field",
+      label: "Test Field",
+      type: "text",
+      required: true,
+      config: {},
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2024-01-01T00:00:00.000Z",
+    };
+
+    const result = fieldSchema.safeParse(validField);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects fields with invalid type", () => {
+    const invalidField = {
+      id: "123e4567-e89b-12d3-a456-426614174000",
+      key: "test-field",
+      label: "Test Field",
+      type: "invalid-type",
+      required: true,
+      config: {},
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2024-01-01T00:00:00.000Z",
+    };
+
+    const result = fieldSchema.safeParse(invalidField);
+    expect(result.success).toBe(false);
+  });
+});
+```
+
+#### Testing with fake-indexeddb
+
+For repository tests, use `fake-indexeddb` to avoid affecting the real browser database:
+
+```typescript
+import { describe, it, expect, beforeEach } from "vitest";
+import { db } from "@/infra/db/client";
+import { fieldRepository } from "@/infra/db/repositories/field-repository";
+import "fake-indexeddb/auto";
+
+describe("FieldRepository", () => {
+  beforeEach(async () => {
+    await db.delete();
+    await db.open();
+  });
+
+  it("creates and retrieves a field", async () => {
+    const field = await fieldRepository.create({
+      key: "test",
+      label: "Test",
+      type: "text",
+      required: false,
+      config: {},
+    });
+
+    const retrieved = await fieldRepository.findById(field.id);
+    expect(retrieved).toEqual(field);
+  });
+});
+```
+
+### Component Testing (React Testing Library)
+
+Component tests are also in `tests/unit/` but use React Testing Library:
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { FieldForm } from "@/features/field-definitions/FieldForm";
+
+describe("FieldForm", () => {
+  it("renders form fields", () => {
+    render(<FieldForm onSave={vi.fn()} />);
+
+    expect(screen.getByLabelText(/clave/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/etiqueta/i)).toBeInTheDocument();
+  });
+
+  it("calls onSave with form data", async () => {
+    const onSave = vi.fn();
+    render(<FieldForm onSave={onSave} />);
+
+    await userEvent.type(screen.getByLabelText(/clave/i), "test-field");
+    await userEvent.type(screen.getByLabelText(/etiqueta/i), "Test Field");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: "test-field",
+          label: "Test Field",
+        })
+      );
+    });
+  });
+});
+```
+
+### E2E Testing (Playwright)
+
+#### When to Write E2E Tests
+
+Write E2E tests for:
+- Critical user flows (happy paths)
+- Cross-feature interactions
+- PWA functionality
+- Media capture and handling
+- Export/import workflows
+
+#### E2E Test Structure
+
+E2E tests are located in `tests/e2e/` and follow the naming pattern `*.spec.ts`:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test.describe("Field Creation Flow", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("can create a text field", async ({ page }) => {
+    await page.click('text=Formularios');
+    await page.click('text=Nuevo formulario');
+
+    await page.click('button:has-text("Agregar campo")');
+    await page.fill('input[name="key"]', "test-field");
+    await page.fill('input[name="label"]', "Test Field");
+    await page.selectOption('select[name="type"]', "text");
+
+    await page.click('button:has-text("Guardar formulario")');
+
+    await expect(page.locator('text=Test Field')).toBeVisible();
+  });
+});
+```
+
+#### Page Object Pattern
+
+For complex flows, use page objects to encapsulate selectors and actions:
+
+```typescript
+// tests/e2e/pages/FormBuilderPage.ts
+export class FormBuilderPage {
+  constructor(private page: Page) {}
+
+  async goto() {
+    await this.page.goto("/forms/new");
+  }
+
+  async addField() {
+    await this.page.click('button:has-text("Agregar campo")');
+  }
+
+  async fillFieldKey(key: string) {
+    await this.page.fill('input[name="key"]', key);
+  }
+
+  async saveForm() {
+    await this.page.click('button:has-text("Guardar formulario")');
+  }
+}
+
+// Usage in test
+test("creates a form with fields", async ({ page }) => {
+  const builder = new FormBuilderPage(page);
+  await builder.goto();
+  await builder.addField();
+  await builder.fillFieldKey("test");
+  await builder.saveForm();
+});
+```
+
+### Test Coverage Goals
+
+Target coverage levels (measured by Vitest):
+
+- **Domain layer**: 90%+ (critical business logic)
+- **Infrastructure layer**: 80%+ (repositories, services)
+- **Feature components**: 70%+ (UI components)
+- **Overall project**: 75%+
+
+To run coverage report:
+
+```bash
+pnpm test --coverage
+```
+
+### Running Tests
+
+#### Unit Tests
+
+```bash
+# Run all unit tests once
+pnpm test
+
+# Run in watch mode (development)
+pnpm test:watch
+
+# Run specific test file
+pnpm test field-schema.test.ts
+
+# Run tests matching pattern
+pnpm test -- field
+```
+
+#### E2E Tests
+
+```bash
+# Run all E2E tests (headless)
+pnpm test:e2e
+
+# Run E2E tests in headed mode (show browser)
+pnpm test:e2e --headed
+
+# Run specific E2E test
+pnpm test:e2e field-crud.spec.ts
+
+# Debug E2E test
+pnpm test:e2e --debug
+
+# Run E2E in CI mode (builds first)
+pnpm test:e2e:ci
+```
+
+### Testing Best Practices
+
+#### Unit Tests
+
+1. **Test behavior, not implementation**: Focus on what the code does, not how it does it
+2. **Arrange-Act-Assert**: Structure tests clearly with these three phases
+3. **Use descriptive test names**: Test names should describe the scenario and expected outcome
+4. **Mock external dependencies**: Use vi.mock() for external services
+5. **Avoid test interdependence**: Each test should be independent
+
+#### Component Tests
+
+1. **Query by role, not text**: Use `getByRole` when possible for accessibility
+2. **Test user interactions**: Use `userEvent` for realistic user behavior
+3. **Avoid testing implementation details**: Test what the user sees and does
+4. **Wait for async operations**: Use `waitFor` for async state changes
+
+#### E2E Tests
+
+1. **Test critical paths only**: E2E tests are slow, focus on happy paths
+2. **Use data-testid sparingly**: Prefer accessible selectors
+3. **Handle async operations**: Use `waitFor` for network requests and animations
+4. **Clean up test data**: Each test should leave the system in a clean state
+
+### CI/CD Integration
+
+Tests run in CI via GitHub Actions:
+
+1. **On push/PR to master**: Lockfile integrity check
+2. **Manual CI**: Full test suite with `pnpm check`
+
+The CI environment uses:
+- Node.js 20
+- pnpm 9.15.3
+- Chromium for E2E tests
+
+### Common Testing Issues
+
+#### Flaky E2E Tests
+
+If E2E tests are flaky:
+- Add explicit waits with `waitFor`
+- Check for race conditions in async operations
+- Ensure test data is isolated between tests
+- Use `test.step()` to group related operations
+
+#### Slow Unit Tests
+
+If unit tests are slow:
+- Check for unnecessary database operations
+- Mock external dependencies
+- Avoid expensive computations in test setup
+- Use `vi.clearAllMocks()` in beforeEach
+
+#### Test Environment Issues
+
+If tests fail locally but pass in CI (or vice versa):
+- Ensure Node.js version matches (>= 20)
+- Clear node_modules and reinstall: `rm -rf node_modules && pnpm install`
+- Check for environment-specific configuration
+- Verify browser versions for E2E tests
+

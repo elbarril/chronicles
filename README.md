@@ -14,9 +14,19 @@ Chronicle helps practitioners register, after the fact, what happened in a sessi
 
 ## Stack and Architecture
 
-v1 is a **local-first** web app (without backend) based on Vite + React + TypeScript, Tailwind + shadcn/ui, Dexie.js over IndexedDB for data and media (image/video/audio), React Hook Form + Zod for dynamic forms, and PWA for offline use.
+v1 is a **local-first** web app (without backend) based on Vite + React + TypeScript, Tailwind CSS v4 (native Vite plugin), shadcn/ui, Dexie.js over IndexedDB for data and media (image/video/audio), React Hook Form + Zod for dynamic forms, and PWA for offline use.
 
 Complete definition and maintenance protocol: [`docs/stack-and-architecture.md`](docs/stack-and-architecture.md).
+
+The documentation now includes:
+- Technology stack with up-to-date details (Tailwind CSS v4, ESLint 9 Flat Config, TypeScript strict mode)
+- TypeScript configuration and strict mode options
+- Messaging strategy (bilingual: Spanish UI messages, English error codes)
+- AI integration details (Gemini gemini-2.5-flash model)
+- CI/CD and deployment workflow (GitHub Actions lockfile integrity)
+- **Appendix A**: Local Development Guide — complete setup and workflow
+- **Appendix B**: Code Patterns and Conventions — project-specific patterns
+- **Appendix C**: Testing Guide — testing strategy and best practices
 
 ## Current Roadmap State
 
@@ -99,6 +109,8 @@ pnpm test:e2e
 pnpm build
 pnpm preview
 ```
+
+For detailed local development setup, configuration details, and development tips, see **[Appendix A: Local Development Guide](docs/stack-and-architecture.md#appendix-a-local-development-guide)** in the main documentation.
 
 ## Migrating from pre-F11 builds
 
