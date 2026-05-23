@@ -6,6 +6,8 @@ import {
   DEFAULT_FORM_ID,
   DEFAULT_FORM_IDS,
   DEFAULT_LONG_TEXT_FIELD_ID,
+  DEFAULT_FIELD_SEEDS,
+  DEFAULT_FORM_SEEDS,
   MAE_EVAL_FIELD_ESTUDIANTES_ID,
   MAE_EVAL_FIELD_EDAD_ID,
   MAE_EVAL_FIELD_DISPOSICION_TRABAJO_ENC4_ID,
@@ -73,6 +75,15 @@ import {
   MAE_OBS_FORM_ENC_6_ID,
   MAE_OBS_FORM_ENC_7_ID,
   MAE_OBS_FORM_ENC_8_ID,
+  MAE_OBS_FORM_ENC_1_SEED,
+  MAE_OBS_FORM_ENC_2_SEED,
+  MAE_OBS_FORM_ENC_3_SEED,
+  MAE_OBS_FORM_ENC_4_SEED,
+  MAE_OBS_FORM_ENC_5_SEED,
+  MAE_OBS_FORM_ENC_6_SEED,
+  MAE_OBS_FORM_ENC_7_SEED,
+  MAE_OBS_FORM_ENC_8_SEED,
+  type DefaultFieldSeed,
 } from "@/features/defaults/lib/seed-data";
 import {
   restoreAllDefaultFields,
@@ -145,7 +156,15 @@ function archivedRow(id: string) {
   };
 }
 
-function activeFieldRow(id: string) {
+function activeFieldRow(id: string, seed?: DefaultFieldSeed) {
+  if (seed) {
+    return {
+      ...seed,
+      archivedAt: "",
+      createdAt: archivedAt,
+      updatedAt: archivedAt,
+    };
+  }
   return {
     ...archivedRow(id),
     archivedAt: "",
@@ -231,12 +250,15 @@ describe("defaults service", () => {
     });
 
     it("leaves active fields untouched", async () => {
-      fieldsBulkGetMock.mockResolvedValueOnce(DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id)));
+      fieldsBulkGetMock.mockResolvedValueOnce(
+        DEFAULT_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed)),
+      );
 
       const outcome = await restoreDefaultFields();
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(DEFAULT_FIELD_IDS.length);
       expect(fieldsAddMock).not.toHaveBeenCalled();
       expect(fieldsUpdateMock).not.toHaveBeenCalled();
@@ -311,13 +333,14 @@ describe("defaults service", () => {
     });
 
     it("leaves active MAE evaluation fields untouched", async () => {
-      const activeFields = MAE_EVAL_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_EVAL_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
 
       const outcome = await restoreMAEEvaluationFields();
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(29);
       expect(fieldsAddMock).not.toHaveBeenCalled();
       expect(fieldsUpdateMock).not.toHaveBeenCalled();
@@ -342,7 +365,7 @@ describe("defaults service", () => {
     });
 
     it("restores the archived MAE evaluation form after restoring the fields", async () => {
-      const activeFields = MAE_EVAL_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_EVAL_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
       formsGetMock.mockResolvedValueOnce({
         id: MAE_EVAL_FORM_ID,
@@ -362,6 +385,7 @@ describe("defaults service", () => {
 
       expect(outcome.restored).toBe(1);
       expect(outcome.created).toBe(0);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(29);
       expect(formsUpdateMock).toHaveBeenCalledWith(
         MAE_EVAL_FORM_ID,
@@ -370,7 +394,7 @@ describe("defaults service", () => {
     });
 
     it("leaves the active MAE evaluation form untouched", async () => {
-      const activeFields = MAE_EVAL_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_EVAL_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
       formsGetMock.mockResolvedValueOnce({
         id: MAE_EVAL_FORM_ID,
@@ -389,7 +413,9 @@ describe("defaults service", () => {
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(1);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(29);
       expect(formsAddMock).not.toHaveBeenCalled();
       expect(formsUpdateMock).not.toHaveBeenCalled();
@@ -1051,13 +1077,14 @@ describe("defaults service", () => {
     });
 
     it("leaves active MAE observation fields untouched", async () => {
-      const activeFields = MAE_OBS_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_OBS_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
 
       const outcome = await restoreMAEObservationFields();
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(278);
       expect(fieldsAddMock).not.toHaveBeenCalled();
       expect(fieldsUpdateMock).not.toHaveBeenCalled();
@@ -1109,7 +1136,7 @@ describe("defaults service", () => {
     });
 
     it("restores archived MAE observation forms after restoring the fields", async () => {
-      const activeFields = MAE_OBS_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_OBS_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_1_ID,
@@ -1189,17 +1216,18 @@ describe("defaults service", () => {
 
       expect(outcome.restored).toBe(8);
       expect(outcome.created).toBe(0);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(278);
       expect(formsUpdateMock).toHaveBeenCalledTimes(8);
     });
 
     it("leaves the active MAE observation forms untouched", async () => {
-      const activeFields = MAE_OBS_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = MAE_OBS_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_1_ID,
         name: "MAE - Ficha de Observación - Encuentro 1",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_1_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1208,7 +1236,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_2_ID,
         name: "MAE - Ficha de Observación - Encuentro 2",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_2_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1217,7 +1245,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_3_ID,
         name: "MAE - Ficha de Observación - Encuentro 3",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_3_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1226,7 +1254,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_4_ID,
         name: "MAE - Ficha de Observación - Encuentro 4",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_4_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1235,7 +1263,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_5_ID,
         name: "MAE - Ficha de Observación - Encuentro 5",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_5_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1244,7 +1272,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_6_ID,
         name: "MAE - Ficha de Observación - Encuentro 6",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_6_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1253,7 +1281,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_7_ID,
         name: "MAE - Ficha de Observación - Encuentro 7",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_7_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1262,7 +1290,7 @@ describe("defaults service", () => {
       formsGetMock.mockResolvedValueOnce({
         id: MAE_OBS_FORM_ENC_8_ID,
         name: "MAE - Ficha de Observación - Encuentro 8",
-        fields: [],
+        fields: MAE_OBS_FORM_ENC_8_SEED.fields,
         version: 1,
         archivedAt: "",
         createdAt: archivedAt,
@@ -1273,7 +1301,9 @@ describe("defaults service", () => {
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(8);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(278);
       expect(formsAddMock).not.toHaveBeenCalled();
       expect(formsUpdateMock).not.toHaveBeenCalled();
@@ -1434,13 +1464,14 @@ describe("defaults service", () => {
     });
 
     it("leaves active default fields untouched", async () => {
-      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = DEFAULT_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
 
       const outcome = await restoreAllDefaultFields();
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(DEFAULT_FIELD_IDS.length);
       expect(fieldsAddMock).not.toHaveBeenCalled();
       expect(fieldsUpdateMock).not.toHaveBeenCalled();
@@ -1465,7 +1496,7 @@ describe("defaults service", () => {
     });
 
     it("restores archived default forms", async () => {
-      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
+      const activeFields = DEFAULT_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
       const archivedForms = DEFAULT_FORM_IDS.map((id) => ({
         ...activeFormRow(id),
         archivedAt,
@@ -1478,14 +1509,24 @@ describe("defaults service", () => {
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(DEFAULT_FORM_IDS.length);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(0);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(DEFAULT_FIELD_IDS.length);
       expect(formsUpdateMock).toHaveBeenCalledTimes(DEFAULT_FORM_IDS.length);
     });
 
     it("leaves active default forms untouched", async () => {
-      const activeFields = DEFAULT_FIELD_IDS.map((id) => activeFieldRow(id));
-      const activeForms = DEFAULT_FORM_IDS.map((id) => activeFormRow(id));
+      const activeFields = DEFAULT_FIELD_SEEDS.map((seed) => activeFieldRow(seed.id, seed));
+      const activeForms = DEFAULT_FORM_SEEDS.map((seed) => ({
+        id: seed.id,
+        name: seed.name,
+        fields: seed.fields,
+        version: 1,
+        archivedAt: "",
+        createdAt: archivedAt,
+        updatedAt: archivedAt,
+      }));
       fieldsBulkGetMock.mockResolvedValueOnce(activeFields);
       formsBulkGetMock.mockResolvedValueOnce(activeForms);
 
@@ -1493,7 +1534,9 @@ describe("defaults service", () => {
 
       expect(outcome.created).toBe(0);
       expect(outcome.restored).toBe(0);
+      expect(outcome.updated).toBe(0);
       expect(outcome.unchanged).toBe(DEFAULT_FORM_IDS.length);
+      expect(outcome.fields.updated).toBe(0);
       expect(outcome.fields.unchanged).toBe(DEFAULT_FIELD_IDS.length);
       expect(formsAddMock).not.toHaveBeenCalled();
       expect(formsUpdateMock).not.toHaveBeenCalled();

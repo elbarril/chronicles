@@ -34,7 +34,7 @@ export const DEFAULT_FORM_IDS: readonly string[] = [
   MAE_OBS_FORM_ENC_8_ID,
 ] as const;
 
-type DefaultFieldSeed = Omit<Field, "createdAt" | "updatedAt" | "archivedAt">;
+export type DefaultFieldSeed = Omit<Field, "createdAt" | "updatedAt" | "archivedAt">;
 
 /** Stable instance IDs for default form instances. */
 export const DEFAULT_FORM_INSTANCE_AUDIO_ID = "00000000-0000-4000-8000-00000000e001";

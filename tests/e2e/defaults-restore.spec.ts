@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const audioFieldName = "Audio de observación";
-const textFieldName = "Texto de observación";
+const textFieldName = "Transcripción de audio de observación";
 const defaultFormName = "Observación de encuentro";
 
 /**

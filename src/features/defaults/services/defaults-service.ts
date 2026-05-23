@@ -1,6 +1,6 @@
 import { encounterSchema, type Encounter } from "@/domain/encounter";
 import { fieldSchema, type Field } from "@/domain/field";
-import { observationFormSchema, type ObservationForm } from "@/domain/form";
+import { observationFormSchema, type ObservationForm, type FormFieldInstance } from "@/domain/form";
 import { participantSchema, type Participant } from "@/domain/participant";
 import { projectSchema, type Project } from "@/domain/project";
 import { generateChronicle } from "@/features/chronicles/services/chronicle-service";
@@ -49,6 +49,7 @@ import {
   MAE_OBS_FORM_ENC_7_SEED,
   MAE_OBS_FORM_ENC_8_ID,
   MAE_OBS_FORM_ENC_8_SEED,
+  type DefaultFieldSeed,
 } from "@/features/defaults/lib/seed-data";
 import { createObservationDefinition } from "@/features/observations/services/observation-service";
 import { db } from "@/infra/db/client";
@@ -63,18 +64,63 @@ function nowIsoString(): string {
 interface RestoreOutcome {
   created: number;
   restored: number;
+  updated: number;
   unchanged: number;
 }
 
 function emptyOutcome(): RestoreOutcome {
-  return { created: 0, restored: 0, unchanged: 0 };
+  return { created: 0, restored: 0, updated: 0, unchanged: 0 };
+}
+
+/**
+ * Compares an existing field with a seed to detect configuration differences.
+ * Returns true if any relevant properties differ (config, label, key, required, helpText).
+ */
+function fieldConfigsDiffer(existing: Field, seed: DefaultFieldSeed): boolean {
+  // Compare config objects deeply
+  const configDiffers = JSON.stringify(existing.config) !== JSON.stringify(seed.config);
+  // Compare other relevant properties
+  const labelDiffers = existing.label !== seed.label;
+  const keyDiffers = existing.key !== seed.key;
+  const requiredDiffers = existing.required !== seed.required;
+  const helpTextDiffers = existing.helpText !== (seed.helpText ?? "");
+
+  return configDiffers || labelDiffers || keyDiffers || requiredDiffers || helpTextDiffers;
+}
+
+/**
+ * Compares an existing form's field instances with seed field instances.
+ * Returns true if the field arrays differ in structure or order.
+ */
+function formFieldsDiffer(
+  existingFields: FormFieldInstance[],
+  seedFields: FormFieldInstance[],
+): boolean {
+  if (existingFields.length !== seedFields.length) {
+    return true;
+  }
+
+  for (const [index, existingField] of existingFields.entries()) {
+    const seedField = seedFields[index];
+    if (
+      !seedField ||
+      existingField.instanceId !== seedField.instanceId ||
+      existingField.fieldId !== seedField.fieldId ||
+      existingField.labelOverride !== seedField.labelOverride
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
  * Ensures every default field exists and is active.
  * - Missing rows are created.
  * - Archived rows are restored.
- * - Active rows are left untouched.
+ * - Active rows with config differences are updated.
+ * - Active rows with no differences are left untouched.
  */
 export async function restoreDefaultFields(): Promise<RestoreOutcome> {
   const outcome = emptyOutcome();
@@ -103,6 +149,21 @@ export async function restoreDefaultFields(): Promise<RestoreOutcome> {
       if (existing.archivedAt && existing.archivedAt !== "") {
         await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
         outcome.restored += 1;
+
+        continue;
+      }
+
+      // Check if config differs and update if needed
+      if (fieldConfigsDiffer(existing, seed)) {
+        await db.fields.update(existing.id, {
+          label: seed.label,
+          key: seed.key,
+          required: seed.required,
+          helpText: seed.helpText,
+          config: seed.config,
+          updatedAt: now,
+        });
+        outcome.updated += 1;
 
         continue;
       }
@@ -150,6 +211,18 @@ export async function restoreDefaultForm(): Promise<RestoreOutcome & { fields: R
       return;
     }
 
+    // Check if form fields differ and update if needed
+    if (formFieldsDiffer(existing.fields, DEFAULT_FORM_SEED.fields)) {
+      await db.forms.update(existing.id, {
+        name: DEFAULT_FORM_SEED.name,
+        fields: [...DEFAULT_FORM_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
+
+      return;
+    }
+
     outcome.unchanged += 1;
   });
 
@@ -160,7 +233,8 @@ export async function restoreDefaultForm(): Promise<RestoreOutcome & { fields: R
  * Ensures every default field exists and is active.
  * - Missing rows are created.
  * - Archived rows are restored.
- * - Active rows are left untouched.
+ * - Active rows with config differences are updated.
+ * - Active rows with no differences are left untouched.
  *
  * This restores all default fields including MAE fields.
  */
@@ -191,6 +265,21 @@ export async function restoreAllDefaultFields(): Promise<RestoreOutcome> {
       if (existing.archivedAt && existing.archivedAt !== "") {
         await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
         outcome.restored += 1;
+
+        continue;
+      }
+
+      // Check if config differs and update if needed
+      if (fieldConfigsDiffer(existing, seed)) {
+        await db.fields.update(existing.id, {
+          label: seed.label,
+          key: seed.key,
+          required: seed.required,
+          helpText: seed.helpText,
+          config: seed.config,
+          updatedAt: now,
+        });
+        outcome.updated += 1;
 
         continue;
       }
@@ -248,6 +337,18 @@ export async function restoreAllDefaultForms(): Promise<
         continue;
       }
 
+      // Check if form fields differ and update if needed
+      if (formFieldsDiffer(existing.fields, seed.fields)) {
+        await db.forms.update(existing.id, {
+          name: seed.name,
+          fields: [...seed.fields],
+          updatedAt: now,
+        });
+        outcome.updated += 1;
+
+        continue;
+      }
+
       outcome.unchanged += 1;
     }
   });
@@ -259,7 +360,8 @@ export async function restoreAllDefaultForms(): Promise<
  * Ensures every MAE evaluation field exists and is active.
  * - Missing rows are created.
  * - Archived rows are restored.
- * - Active rows are left untouched.
+ * - Active rows with config differences are updated.
+ * - Active rows with no differences are left untouched.
  */
 export async function restoreMAEEvaluationFields(): Promise<RestoreOutcome> {
   const outcome = emptyOutcome();
@@ -288,6 +390,21 @@ export async function restoreMAEEvaluationFields(): Promise<RestoreOutcome> {
       if (existing.archivedAt && existing.archivedAt !== "") {
         await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
         outcome.restored += 1;
+
+        continue;
+      }
+
+      // Check if config differs and update if needed
+      if (fieldConfigsDiffer(existing, seed)) {
+        await db.fields.update(existing.id, {
+          label: seed.label,
+          key: seed.key,
+          required: seed.required,
+          helpText: seed.helpText,
+          config: seed.config,
+          updatedAt: now,
+        });
+        outcome.updated += 1;
 
         continue;
       }
@@ -337,6 +454,18 @@ export async function restoreMAEEvaluationForm(): Promise<
       return;
     }
 
+    // Check if form fields differ and update if needed
+    if (formFieldsDiffer(existing.fields, MAE_EVAL_FORM_SEED.fields)) {
+      await db.forms.update(existing.id, {
+        name: MAE_EVAL_FORM_SEED.name,
+        fields: [...MAE_EVAL_FORM_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
+
+      return;
+    }
+
     outcome.unchanged += 1;
   });
 
@@ -347,7 +476,8 @@ export async function restoreMAEEvaluationForm(): Promise<
  * Ensures every MAE observation field exists and is active.
  * - Missing rows are created.
  * - Archived rows are restored.
- * - Active rows are left untouched.
+ * - Active rows with config differences are updated.
+ * - Active rows with no differences are left untouched.
  */
 export async function restoreMAEObservationFields(): Promise<RestoreOutcome> {
   const outcome = emptyOutcome();
@@ -376,6 +506,21 @@ export async function restoreMAEObservationFields(): Promise<RestoreOutcome> {
       if (existing.archivedAt && existing.archivedAt !== "") {
         await db.fields.update(existing.id, { archivedAt: "", updatedAt: now });
         outcome.restored += 1;
+
+        continue;
+      }
+
+      // Check if config differs and update if needed
+      if (fieldConfigsDiffer(existing, seed)) {
+        await db.fields.update(existing.id, {
+          label: seed.label,
+          key: seed.key,
+          required: seed.required,
+          helpText: seed.helpText,
+          config: seed.config,
+          updatedAt: now,
+        });
+        outcome.updated += 1;
 
         continue;
       }
@@ -419,6 +564,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm1.archivedAt && existingForm1.archivedAt !== "") {
       await db.forms.update(existingForm1.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm1.fields, MAE_OBS_FORM_ENC_1_SEED.fields)) {
+      await db.forms.update(existingForm1.id, {
+        name: MAE_OBS_FORM_ENC_1_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_1_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -442,6 +594,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm2.archivedAt && existingForm2.archivedAt !== "") {
       await db.forms.update(existingForm2.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm2.fields, MAE_OBS_FORM_ENC_2_SEED.fields)) {
+      await db.forms.update(existingForm2.id, {
+        name: MAE_OBS_FORM_ENC_2_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_2_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -465,6 +624,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm3.archivedAt && existingForm3.archivedAt !== "") {
       await db.forms.update(existingForm3.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm3.fields, MAE_OBS_FORM_ENC_3_SEED.fields)) {
+      await db.forms.update(existingForm3.id, {
+        name: MAE_OBS_FORM_ENC_3_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_3_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -488,6 +654,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm4.archivedAt && existingForm4.archivedAt !== "") {
       await db.forms.update(existingForm4.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm4.fields, MAE_OBS_FORM_ENC_4_SEED.fields)) {
+      await db.forms.update(existingForm4.id, {
+        name: MAE_OBS_FORM_ENC_4_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_4_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -511,6 +684,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm5.archivedAt && existingForm5.archivedAt !== "") {
       await db.forms.update(existingForm5.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm5.fields, MAE_OBS_FORM_ENC_5_SEED.fields)) {
+      await db.forms.update(existingForm5.id, {
+        name: MAE_OBS_FORM_ENC_5_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_5_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -534,6 +714,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm6.archivedAt && existingForm6.archivedAt !== "") {
       await db.forms.update(existingForm6.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm6.fields, MAE_OBS_FORM_ENC_6_SEED.fields)) {
+      await db.forms.update(existingForm6.id, {
+        name: MAE_OBS_FORM_ENC_6_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_6_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -557,6 +744,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm7.archivedAt && existingForm7.archivedAt !== "") {
       await db.forms.update(existingForm7.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm7.fields, MAE_OBS_FORM_ENC_7_SEED.fields)) {
+      await db.forms.update(existingForm7.id, {
+        name: MAE_OBS_FORM_ENC_7_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_7_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
@@ -580,6 +774,13 @@ export async function restoreMAEObservationForms(): Promise<
     } else if (existingForm8.archivedAt && existingForm8.archivedAt !== "") {
       await db.forms.update(existingForm8.id, { archivedAt: "", updatedAt: now });
       outcome.restored += 1;
+    } else if (formFieldsDiffer(existingForm8.fields, MAE_OBS_FORM_ENC_8_SEED.fields)) {
+      await db.forms.update(existingForm8.id, {
+        name: MAE_OBS_FORM_ENC_8_SEED.name,
+        fields: [...MAE_OBS_FORM_ENC_8_SEED.fields],
+        updatedAt: now,
+      });
+      outcome.updated += 1;
     } else {
       outcome.unchanged += 1;
     }
