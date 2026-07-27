@@ -485,6 +485,81 @@ export function ObservationForm({
       return;
     }
 
+    // Validate required fields manually
+    const errors: Record<string, string> = {};
+    for (const { instance, field } of instancesWithFields) {
+      const isVisible = isFieldVisible(field.id, instance.instanceId, currentValues, instancesWithFields);
+      if (!isVisible) continue;
+
+      const isRequired = isFieldRequired(field, field.id, instance.instanceId, currentValues, instancesWithFields);
+      if (!isRequired) continue;
+
+      const fieldValue = values.values[instance.instanceId];
+      
+      // Check if the field is empty
+      const isEmpty = fieldValue === "" || 
+                      fieldValue === undefined || 
+                      fieldValue === null ||
+                      (Array.isArray(fieldValue) && fieldValue.length === 0);
+
+      if (isEmpty) {
+        const displayLabel = instance.labelOverride?.trim() || field.label;
+        errors[instance.instanceId] = `${displayLabel} es requerido`;
+      }
+    }
+
+    // Validate min/max constraints for number and rating fields
+    for (const { instance, field } of instancesWithFields) {
+      const isVisible = isFieldVisible(field.id, instance.instanceId, currentValues, instancesWithFields);
+      if (!isVisible) continue;
+
+      const fieldValue = values.values[instance.instanceId];
+
+      // Skip validation if field is empty (unless required, which is already checked above)
+      if (fieldValue === "" || fieldValue === undefined || fieldValue === null) {
+        continue;
+      }
+
+      const displayLabel = instance.labelOverride?.trim() || field.label;
+
+      // Validate number field constraints
+      if (field.type === "number") {
+        const config = field.config as { min?: number; max?: number };
+        const numValue = Number(fieldValue);
+
+        if (!Number.isNaN(numValue)) {
+          if (config.min !== undefined && numValue < config.min) {
+            errors[instance.instanceId] = `${displayLabel} debe ser al menos ${config.min}`;
+          } else if (config.max !== undefined && numValue > config.max) {
+            errors[instance.instanceId] = `${displayLabel} debe ser como máximo ${config.max}`;
+          }
+        }
+      }
+
+      // Validate rating field constraints
+      if (field.type === "rating") {
+        const config = field.config as { min: number; max: number };
+        const numValue = Number(fieldValue);
+
+        if (!Number.isNaN(numValue)) {
+          if (numValue < config.min) {
+            errors[instance.instanceId] = `${displayLabel} debe ser al menos ${config.min}`;
+          } else if (numValue > config.max) {
+            errors[instance.instanceId] = `${displayLabel} debe ser como máximo ${config.max}`;
+          }
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      // Set errors on the form
+      for (const [instanceId, message] of Object.entries(errors)) {
+        form.setError(`values.${instanceId}`, { type: "manual", message });
+      }
+      toast.error(observationMessages.createError);
+      return;
+    }
+
     await onSubmit(values);
 
     audioRecorder.clear();
