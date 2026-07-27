@@ -25,7 +25,7 @@ test("can export everything from settings and import it back", async ({ page }, 
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(/Texto de observación/).fill("Observación exportable");
+  await page.getByLabel(/Transcripción de audio de observación/).fill("Observación exportable");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   await page.goto("/settings");

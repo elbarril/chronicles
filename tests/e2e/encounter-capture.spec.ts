@@ -8,8 +8,8 @@ test("can register a post-event encounter and capture observations with media", 
   const formName = "Observación de encuentro";
   const encounterName = `Sesión ${suffix}`;
 
-  // Reuse the seeded default form ("Audio de observación" + "Texto de
-  // observación") so the test exercises media (audio) + text capture
+  // Reuse the seeded default form ("Audio de observación" + "Transcripción de
+  // audio de observación") so the test exercises media (audio) + text capture
   // without authoring fields/forms manually. After the F11 merge,
   // field authoring is covered by fields-from-form-builder.spec.ts.
   await page.goto("/projects/new");
@@ -35,7 +35,7 @@ test("can register a post-event encounter and capture observations with media", 
   // Create observation with form selector
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(/Texto de observación/).fill("Primera observación");
+  await page.getByLabel(/Transcripción de audio de observación/).fill("Primera observación");
 
   // Default form has a single audio field, so we expect a single file input.
   await page

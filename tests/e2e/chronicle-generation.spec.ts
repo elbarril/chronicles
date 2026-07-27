@@ -40,7 +40,7 @@ test("generates chronicle from encounter chronicle page and lists it", async ({ 
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(/Texto de observación/).fill("Observación para crónica");
+  await page.getByLabel(/Transcripción de audio de observación/).fill("Observación para crónica");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   await page.getByRole("link", { name: "Ver crónica" }).click();

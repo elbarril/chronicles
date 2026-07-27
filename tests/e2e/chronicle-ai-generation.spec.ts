@@ -37,7 +37,7 @@ async function createEncounterWithObservation(
 
   await page.getByRole("button", { name: "Nueva observación" }).click();
   await page.getByLabel("Formulario").selectOption({ label: formName });
-  await page.getByLabel(/Texto de observación/).fill("Texto de observación para IA");
+  await page.getByLabel(/Transcripción de audio de observación/).fill("Texto de observación para IA");
   await page.getByRole("button", { name: "Guardar observación" }).click();
 
   return { projectName, encounterName };

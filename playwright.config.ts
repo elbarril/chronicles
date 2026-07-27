@@ -10,9 +10,14 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   workers: isCI ? 1 : undefined,
   reporter: isCI ? "html" : "list",
+  timeout: 60000, // 60 seconds per test (default is 30s)
+  expect: {
+    timeout: 10000, // 10 seconds for assertions (default is 5s)
+  },
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    actionTimeout: 10000, // 10 seconds for actions (default is 30s, but we want faster feedback)
     storageState: {
       cookies: [],
       origins: [

@@ -25,28 +25,30 @@ test("preloads default fields and form, and they can be archived and restored", 
   await page.getByRole("button", { name: "Editar campos" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("cell", { name: audioFieldName })).toBeVisible();
-  await expect(dialog.getByRole("cell", { name: textFieldName })).toBeVisible();
+  await expect(dialog.getByRole("cell", { name: audioFieldName, exact: true })).toBeVisible();
+  await expect(dialog.getByRole("cell", { name: textFieldName, exact: true })).toBeVisible();
 
   // Archive the audio default field, then restore it from the
   // "Archivados" tab inside the dialog.
   await dialog
     .locator("tr", { hasText: audioFieldName })
     .getByRole("button", { name: "Archivar" })
+    .first()
     .click();
-  await expect(dialog.getByRole("cell", { name: audioFieldName })).toHaveCount(0);
+  await expect(dialog.getByRole("cell", { name: audioFieldName, exact: true })).toHaveCount(0);
 
   await dialog.getByRole("tab", { name: "Archivados" }).click();
-  await expect(dialog.getByRole("cell", { name: audioFieldName })).toBeVisible();
+  await expect(dialog.getByRole("cell", { name: audioFieldName, exact: true })).toBeVisible();
 
   await dialog
     .locator("tr", { hasText: audioFieldName })
     .getByRole("button", { name: "Restaurar" })
+    .first()
     .click();
-  await expect(dialog.getByRole("cell", { name: audioFieldName })).toHaveCount(0);
+  await expect(dialog.getByRole("cell", { name: audioFieldName, exact: true })).toHaveCount(0);
 
   await dialog.getByRole("tab", { name: "Activos" }).click();
-  await expect(dialog.getByRole("cell", { name: audioFieldName })).toBeVisible();
+  await expect(dialog.getByRole("cell", { name: audioFieldName, exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 
